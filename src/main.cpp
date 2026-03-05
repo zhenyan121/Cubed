@@ -17,7 +17,9 @@
 
 constexpr int numVAOs = 1;
 constexpr int numVBOs = 3;
-
+constexpr int WORLD_SIZE_X = 32;
+constexpr int WORLD_SIZE_Z = 32;
+bool blockPresent[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
 GLuint renderingProgram;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
@@ -31,52 +33,52 @@ glm::mat4 pMat, vMat, mMat, mvMat;
 float inc = 0.01f;
 float tf = 0.0f;
 glm::mat4 tMat, rMat, sMat;
-
+std::vector<GLuint> grass_block_texture(6);
 
 void setupVertices(void) {
     float verticesPos[108] = {
-        // ===== 后面 (z = -1) =====
-        -1.0f, -1.0f, -1.0f,  // 左下
-        1.0f, -1.0f, -1.0f,  // 右下
-        1.0f,  1.0f, -1.0f,  // 右上
-        1.0f,  1.0f, -1.0f,  // 右上
-        -1.0f,  1.0f, -1.0f,  // 左上
-        -1.0f, -1.0f, -1.0f,  // 左下
         // ===== 前面 (z = +1) =====
-        -1.0f, -1.0f,  1.0f,  // 左下
-        -1.0f,  1.0f,  1.0f,  // 左上
-        1.0f,  1.0f,  1.0f,  // 右上
-        1.0f,  1.0f,  1.0f,  // 右上
-        1.0f, -1.0f,  1.0f,  // 右下
-        -1.0f, -1.0f,  1.0f,  // 左下
-        // ===== 左面 (x = -1) =====
-        -1.0f, -1.0f, -1.0f,  // 后下
-        -1.0f, -1.0f,  1.0f,  // 前下
-        -1.0f,  1.0f,  1.0f,  // 前上
-        -1.0f,  1.0f,  1.0f,  // 前上
-        -1.0f,  1.0f, -1.0f,  // 后上
-        -1.0f, -1.0f, -1.0f,  // 后下
+        -0.5f, -0.5f,  0.5f,  // 左下
+        -0.5f,  0.5f,  0.5f,  // 左上
+        0.5f,  0.5f,  0.5f,  // 右上
+        0.5f,  0.5f,  0.5f,  // 右上
+        0.5f, -0.5f,  0.5f,  // 右下
+        -0.5f, -0.5f,  0.5f,  // 左下
         // ===== 右面 (x = +1) =====
-        1.0f, -1.0f,  1.0f,  // 前下
-        1.0f, -1.0f, -1.0f,  // 后下
-        1.0f,  1.0f, -1.0f,  // 后上
-        1.0f,  1.0f, -1.0f,  // 后上
-        1.0f,  1.0f,  1.0f,  // 前上
-        1.0f, -1.0f,  1.0f,  // 前下
+        0.5f, -0.5f,  0.5f,  // 前下
+        0.5f, -0.5f, -0.5f,  // 后下
+        0.5f,  0.5f, -0.5f,  // 后上
+        0.5f,  0.5f, -0.5f,  // 后上
+        0.5f,  0.5f,  0.5f,  // 前上
+        0.5f, -0.5f,  0.5f,  // 前下
+        // ===== 后面 (z = -1) =====
+        -0.5f, -0.5f, -0.5f,  // 左下
+        0.5f, -0.5f, -0.5f,  // 右下
+        0.5f,  0.5f, -0.5f,  // 右上
+        0.5f,  0.5f, -0.5f,  // 右上
+        -0.5f,  0.5f, -0.5f,  // 左上
+        -0.5f, -0.5f, -0.5f,  // 左下
+        // ===== 左面 (x = -1) =====
+        -0.5f, -0.5f, -0.5f,  // 后下
+        -0.5f, -0.5f,  0.5f,  // 前下
+        -0.5f,  0.5f,  0.5f,  // 前上
+        -0.5f,  0.5f,  0.5f,  // 前上
+        -0.5f,  0.5f, -0.5f,  // 后上
+        -0.5f, -0.5f, -0.5f,  // 后下
         // ===== 上面 (y = +1) =====
-        -1.0f,  1.0f, -1.0f,  // 后左
-        1.0f,  1.0f, -1.0f,  // 后右
-        1.0f,  1.0f,  1.0f,  // 前右
-        1.0f,  1.0f,  1.0f,  // 前右
-        -1.0f,  1.0f,  1.0f,  // 前左
-        -1.0f,  1.0f, -1.0f,  // 后左
+        -0.5f,  0.5f, -0.5f,  // 后左
+        0.5f,  0.5f, -0.5f,  // 后右
+        0.5f,  0.5f,  0.5f,  // 前右
+        0.5f,  0.5f,  0.5f,  // 前右
+        -0.5f,  0.5f,  0.5f,  // 前左
+        -0.5f,  0.5f, -0.5f,  // 后左
         // ===== 下面 (y = -1) =====
-        -1.0f, -1.0f,  1.0f,  // 前左
-        1.0f, -1.0f,  1.0f,  // 前右
-        1.0f, -1.0f, -1.0f,  // 后右
-        1.0f, -1.0f, -1.0f,  // 后右
-        -1.0f, -1.0f, -1.0f,  // 后左
-        -1.0f, -1.0f,  1.0f   // 前左
+        -0.5f, -0.5f,  0.5f,  // 前左
+        0.5f, -0.5f,  0.5f,  // 前右
+        0.5f, -0.5f, -0.5f,  // 后右
+        0.5f, -0.5f, -0.5f,  // 后右
+        -0.5f, -0.5f, -0.5f,  // 后左
+        -0.5f, -0.5f,  0.5f   // 前左
     };
 
     float tex_coords[72] {
@@ -166,7 +168,23 @@ void init(GLFWwindow* window) {
     glViewport(0, 0, width, height);
     pMat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
     
-    pyrTexture = loadTexture("assets/texture/block/grass_block/top.png");
+    grass_block_texture[0] = loadTexture("assets/texture/block/grass_block/front.png");
+    grass_block_texture[1] = loadTexture("assets/texture/block/grass_block/right.png");
+    grass_block_texture[2] = loadTexture("assets/texture/block/grass_block/back.png");
+    grass_block_texture[3] = loadTexture("assets/texture/block/grass_block/left.png");
+    grass_block_texture[4] = loadTexture("assets/texture/block/grass_block/top.png");
+    grass_block_texture[5] = loadTexture("assets/texture/block/grass_block/base.png");
+
+    for (int i = 0; i < 6; i++) {
+        glBindTexture(GL_TEXTURE_2D, grass_block_texture[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);    
+    
     setupVertices();
 
 }
@@ -190,6 +208,12 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 void display(GLFWwindow* window, double currentTime) {
 
     updateMoveCamera();
+
+    for (int i = 0; i < WORLD_SIZE_X; i++) {
+        for (int j = 0; j < WORLD_SIZE_Z; j++) {
+            blockPresent[i][j] = true;
+        }
+    }
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -216,11 +240,7 @@ void display(GLFWwindow* window, double currentTime) {
     glBindVertexArray(vao[0]);
     
     //sMat = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f));
-    mMat = glm::translate(glm::mat4(1.0f), glm::vec3(pyLocX, pyLocY, pyLocZ));
-    vMat = getCameraLookAt();
-    mvMat = vMat * mMat;
-    glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-    glUniformMatrix4fv(projLoc, 1 ,GL_FALSE, glm::value_ptr(pMat));
+    
 
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -232,18 +252,49 @@ void display(GLFWwindow* window, double currentTime) {
     glEnableVertexAttribArray(1);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, pyrTexture);
+    for (int x = -16; x < 16; x++) {
+        for (int z = -16; z < 16; z++) {
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
+            int ix = x + 16;
+            int iz = z + 16;
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
+            mMat = glm::translate(glm::mat4(1.0f), glm::vec3((float)x, 0.0f, (float)z));
+            vMat = getCameraLookAt();
+            mvMat = vMat * mMat;
+            glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+            glUniformMatrix4fv(projLoc, 1 ,GL_FALSE, glm::value_ptr(pMat));
 
-    //glPointSize(30.0f);
+            bool drawFace[6] = {true, true, true, true, true, true};
+
+            if (z < 15 && blockPresent[ix][iz + 1]) {
+                drawFace[0] = false;
+            }
+            if (x < 15 && blockPresent[ix + 1][iz]) {
+                drawFace[1] = false;
+            }
+            if (z > -16 && blockPresent[ix][iz + 1]) {
+                drawFace[2] = false;
+            }
+            if (x > -16 && blockPresent[ix - 1][iz]) {
+                drawFace[3] = false;
+            }
+
+
+            for (int face = 0; face < 6; face++) {
+                if (!drawFace[face]) {
+                    continue;
+                }
+                glBindTexture(GL_TEXTURE_2D, grass_block_texture[face]);
+                
+
+                //glPointSize(30.0f);
+                
+                glDrawArrays(GL_TRIANGLES, face * 6, 6);
+            }
+        }
+    }
     
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
