@@ -12,14 +12,12 @@ mat4 buildTranslate(float x, float y, float z);
 
 uniform mat4 mv_matrix;
 uniform mat4 proj_matrix;
-out vec4 varyingColor;
 
 layout (binding = 0) uniform sampler2D samp;
 
 void main(void) {
     gl_Position = proj_matrix * mv_matrix * vec4(pos, 1.0);
     tc = texCoord;
-    varyingColor = vec4(pos, 1.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
 }
 
 mat4 buildTranslate(float x, float y, float z) {

@@ -23,62 +23,59 @@ bool blockPresent[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
 GLuint renderingProgram;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
-GLuint pyrTexture;
-float cubLocX, cubLocY, cubLocZ;
-float pyLocX, pyLocY, pyLocZ;
-GLuint mvLoc, projLoc, tfLoc;
+GLuint mvLoc, projLoc;
 int width ,height;
 float aspect;
 glm::mat4 pMat, vMat, mMat, mvMat;
 float inc = 0.01f;
 float tf = 0.0f;
-glm::mat4 tMat, rMat, sMat;
+glm::mat4 tMat, rMat;
 std::vector<GLuint> grass_block_texture(6);
 
 void setupVertices(void) {
     float verticesPos[108] = {
-        // ===== 前面 (z = +1) =====
-        -0.5f, -0.5f,  0.5f,  // 左下
-        -0.5f,  0.5f,  0.5f,  // 左上
-        0.5f,  0.5f,  0.5f,  // 右上
-        0.5f,  0.5f,  0.5f,  // 右上
-        0.5f, -0.5f,  0.5f,  // 右下
-        -0.5f, -0.5f,  0.5f,  // 左下
-        // ===== 右面 (x = +1) =====
-        0.5f, -0.5f,  0.5f,  // 前下
-        0.5f, -0.5f, -0.5f,  // 后下
-        0.5f,  0.5f, -0.5f,  // 后上
-        0.5f,  0.5f, -0.5f,  // 后上
-        0.5f,  0.5f,  0.5f,  // 前上
-        0.5f, -0.5f,  0.5f,  // 前下
-        // ===== 后面 (z = -1) =====
-        -0.5f, -0.5f, -0.5f,  // 左下
-        0.5f, -0.5f, -0.5f,  // 右下
-        0.5f,  0.5f, -0.5f,  // 右上
-        0.5f,  0.5f, -0.5f,  // 右上
-        -0.5f,  0.5f, -0.5f,  // 左上
-        -0.5f, -0.5f, -0.5f,  // 左下
-        // ===== 左面 (x = -1) =====
-        -0.5f, -0.5f, -0.5f,  // 后下
-        -0.5f, -0.5f,  0.5f,  // 前下
-        -0.5f,  0.5f,  0.5f,  // 前上
-        -0.5f,  0.5f,  0.5f,  // 前上
-        -0.5f,  0.5f, -0.5f,  // 后上
-        -0.5f, -0.5f, -0.5f,  // 后下
-        // ===== 上面 (y = +1) =====
-        -0.5f,  0.5f, -0.5f,  // 后左
-        0.5f,  0.5f, -0.5f,  // 后右
-        0.5f,  0.5f,  0.5f,  // 前右
-        0.5f,  0.5f,  0.5f,  // 前右
-        -0.5f,  0.5f,  0.5f,  // 前左
-        -0.5f,  0.5f, -0.5f,  // 后左
-        // ===== 下面 (y = -1) =====
-        -0.5f, -0.5f,  0.5f,  // 前左
-        0.5f, -0.5f,  0.5f,  // 前右
-        0.5f, -0.5f, -0.5f,  // 后右
-        0.5f, -0.5f, -0.5f,  // 后右
-        -0.5f, -0.5f, -0.5f,  // 后左
-        -0.5f, -0.5f,  0.5f   // 前左
+        // ===== front (z = +1) =====
+        -0.5f, -0.5f,  0.5f,  // bottom left
+        -0.5f,  0.5f,  0.5f,  // top left
+        0.5f,  0.5f,  0.5f,  // top right
+        0.5f,  0.5f,  0.5f,  // top right
+        0.5f, -0.5f,  0.5f,  // bottom right
+        -0.5f, -0.5f,  0.5f,  // bottom left
+        // ===== right (x = +1) =====
+        0.5f, -0.5f,  0.5f,  // bottom front
+        0.5f, -0.5f, -0.5f,  // bottom back
+        0.5f,  0.5f, -0.5f,  // top back
+        0.5f,  0.5f, -0.5f,  // top back
+        0.5f,  0.5f,  0.5f,  // top front
+        0.5f, -0.5f,  0.5f,  // bottom front
+        // ===== back (z = -1) =====
+        -0.5f, -0.5f, -0.5f,  // bottom left
+        0.5f, -0.5f, -0.5f,  // bottom right
+        0.5f,  0.5f, -0.5f,  // top right
+        0.5f,  0.5f, -0.5f,  // top right
+        -0.5f,  0.5f, -0.5f,  // top left
+        -0.5f, -0.5f, -0.5f,  // bottom left
+        // ===== left (x = -1) =====
+        -0.5f, -0.5f, -0.5f,  // bottom back
+        -0.5f, -0.5f,  0.5f,  // bottom front
+        -0.5f,  0.5f,  0.5f,  // top front
+        -0.5f,  0.5f,  0.5f,  // top front
+        -0.5f,  0.5f, -0.5f,  // top back
+        -0.5f, -0.5f, -0.5f,  // bottom back
+        // ===== top (y = +1) =====
+        -0.5f,  0.5f, -0.5f,  // back left
+        0.5f,  0.5f, -0.5f,  // back right
+        0.5f,  0.5f,  0.5f,  // front right
+        0.5f,  0.5f,  0.5f,  // front right
+        -0.5f,  0.5f,  0.5f,  // front left
+        -0.5f,  0.5f, -0.5f,  // back left
+        // ===== bottom (y = -1) =====
+        -0.5f, -0.5f,  0.5f,  // front left
+        0.5f, -0.5f,  0.5f,  // front right
+        0.5f, -0.5f, -0.5f,  // back right
+        0.5f, -0.5f, -0.5f,  // back right
+        -0.5f, -0.5f, -0.5f,  // back left
+        -0.5f, -0.5f,  0.5f   // front left
     };
 
     float tex_coords[72] {
@@ -155,13 +152,10 @@ GLuint createShaderProgram() {
 
 void init(GLFWwindow* window) {
     renderingProgram = createShaderProgram();
-    
-    cubLocX = 0.0f;
-    cubLocY = -2.0f;
-    cubLocZ = 0.0f;
-    pyLocX = 0.0f;
-    pyLocY = -2.0f;
-    pyLocZ = -20.0f;
+
+    mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
+    projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
+
     cameraInit();
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
@@ -220,27 +214,7 @@ void display(GLFWwindow* window, double currentTime) {
     glClear(GL_DEPTH_BUFFER_BIT);
     
     glUseProgram(renderingProgram);
-    
-    
-
-    mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
-    projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
-    
-    /*
-    cameraX += inc;
-    if (cameraX > 1.0f)  {
-        inc = -inc;
-    }
-    if (cameraX < -1.0f) {
-        inc = -inc;
-    }
-    */
-
-    
     glBindVertexArray(vao[0]);
-    
-    //sMat = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f));
-    
 
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -252,13 +226,13 @@ void display(GLFWwindow* window, double currentTime) {
     glEnableVertexAttribArray(1);
 
     glActiveTexture(GL_TEXTURE0);
-    for (int x = -16; x < 16; x++) {
-        for (int z = -16; z < 16; z++) {
+    for (int x = 0; x < WORLD_SIZE_X; x++) {
+        for (int z = 0; z < WORLD_SIZE_Z; z++) {
 
-            int ix = x + 16;
-            int iz = z + 16;
+            int wx = x - WORLD_SIZE_X / 2;
+            int wz = z - WORLD_SIZE_Z / 2;
 
-            mMat = glm::translate(glm::mat4(1.0f), glm::vec3((float)x, 0.0f, (float)z));
+            mMat = glm::translate(glm::mat4(1.0f), glm::vec3((float)wx, 0.0f, (float)wz));
             vMat = getCameraLookAt();
             mvMat = vMat * mMat;
             glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
@@ -266,16 +240,16 @@ void display(GLFWwindow* window, double currentTime) {
 
             bool drawFace[6] = {true, true, true, true, true, true};
 
-            if (z < 15 && blockPresent[ix][iz + 1]) {
+            if (z < WORLD_SIZE_Z - 1&& blockPresent[x][z + 1]) {
                 drawFace[0] = false;
             }
-            if (x < 15 && blockPresent[ix + 1][iz]) {
+            if (x < WORLD_SIZE_X - 1 && blockPresent[x + 1][z]) {
                 drawFace[1] = false;
             }
-            if (z > -16 && blockPresent[ix][iz + 1]) {
+            if (z > 0 && blockPresent[x][z - 1]) {
                 drawFace[2] = false;
             }
-            if (x > -16 && blockPresent[ix - 1][iz]) {
+            if (x > 0 && blockPresent[x - 1][z]) {
                 drawFace[3] = false;
             }
 

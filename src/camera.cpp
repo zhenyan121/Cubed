@@ -37,7 +37,7 @@ void updateMoveCamera() {
 
 
 void cameraInit() {
-    cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);
+    cameraPos = glm::vec3(0.0f, 2.0f, 0.0f);
 }
 
 void changeView(float offsetX, float offsetY) {
