@@ -25,7 +25,7 @@ namespace LOG {
                         time_point_cast<std::chrono::seconds> 
                         (std::chrono::system_clock::now());
         std::string msg = std::vformat(fmt, std::make_format_args(args...));
-        std::cout << "\033[1;31m" 
+        std::cerr << "\033[1;31m" 
                   << std::format("[ERROR][{:%Y-%m-%d %H:%M:%S}]", now_time) 
                   << msg 
                   << "\033[0m" 
