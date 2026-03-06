@@ -12,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Cubed/camera.hpp>
+#include <Cubed/config.hpp>
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
@@ -19,8 +20,6 @@
 
 constexpr int numVAOs = 1;
 constexpr int numVBOs = 3;
-constexpr int WORLD_SIZE_X = 32;
-constexpr int WORLD_SIZE_Z = 32;
 bool blockPresent[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
 GLuint renderingProgram;
 GLuint vao[numVAOs];

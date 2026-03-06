@@ -1,5 +1,10 @@
 #include <Cubed/gameplay/player.hpp>
 #include <GLFW/glfw3.h>
+
+static constexpr int UPDATE_TIME = 0.1f;
+static float currentTime = 0.0f;
+
+
 Player::Player() {
 
 }
@@ -16,11 +21,21 @@ const MoveState& Player::getMoveState() const {
     return m_moveState;
 }
 
+void Player::init(bool** blockPresent) {
+    m_blockPresent = blockPresent;
+}
+
 void Player::setPlayerPos(const glm::vec3& pos) {
     m_playerPos = pos;
 }
 
 void Player::update(float deltaTime) {
+
+    currentTime += deltaTime;
+    if (currentTime < UPDATE_TIME) {
+        return;
+    }
+    currentTime = 0.0f;
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
     if (m_moveState.forward) {
         m_playerPos += glm::vec3(m_front.x, 0.0f, m_front.z) * m_speed;
@@ -35,11 +50,12 @@ void Player::update(float deltaTime) {
         m_playerPos += glm::vec3(m_right.x, 0.0f, m_right.z) * m_speed;
     }
     if (m_moveState.up) {
-        m_playerPos += glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;;
+        m_playerPos += glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
     }
     if (m_moveState.down) {
-        m_playerPos -= glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;;
+        m_playerPos -= glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
     }
+
 }
 
 void Player::updatePlayerMoveState(int key, int action) {
