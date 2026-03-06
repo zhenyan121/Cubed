@@ -45,10 +45,10 @@ set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/camera.cpp
+    src/gameplay/player.cpp
     src/tools/shader_tools.cpp
     src/tools/log.cpp
-    src/camera.cpp
-   
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})

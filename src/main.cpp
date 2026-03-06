@@ -12,6 +12,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Cubed/camera.hpp>
+#include <Cubed/gameplay/player.hpp>
+#include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
@@ -29,9 +31,12 @@ float aspect;
 glm::mat4 pMat, vMat, mMat, mvMat;
 float inc = 0.01f;
 float tf = 0.0f;
+double lastTime = 0.0f;
+double deltaTime = 0.0f;
 glm::mat4 tMat, rMat;
 std::vector<GLuint> grass_block_texture(6);
-
+Player player;
+Camera camera;
 void setupVertices(void) {
     float verticesPos[108] = {
         // ===== front (z = +1) =====
@@ -156,7 +161,7 @@ void init(GLFWwindow* window) {
     mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
     projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
 
-    cameraInit();
+    camera.cameraInit(&player);
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
@@ -194,14 +199,16 @@ void window_reshape_callback(GLFWwindow* window, int newWidth, int newHeight) {
 
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    updateCursorPositionCamera(xpos, ypos);
+    camera.updateCursorPositionCamera(xpos, ypos);
 }
 
 
 
 void display(GLFWwindow* window, double currentTime) {
-
-    updateMoveCamera();
+    deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+    player.update(deltaTime);
+    camera.updateMoveCamera();
 
     for (int i = 0; i < WORLD_SIZE_X; i++) {
         for (int j = 0; j < WORLD_SIZE_Z; j++) {
@@ -233,7 +240,7 @@ void display(GLFWwindow* window, double currentTime) {
             int wz = z - WORLD_SIZE_Z / 2;
 
             mMat = glm::translate(glm::mat4(1.0f), glm::vec3((float)wx, 0.0f, (float)wz));
-            vMat = getCameraLookAt();
+            vMat = camera.getCameraLookAt();
             mvMat = vMat * mMat;
             glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
             glUniformMatrix4fv(projLoc, 1 ,GL_FALSE, glm::value_ptr(pMat));
@@ -286,7 +293,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             
     }
 
-    updateCameraKey(key, action);
+    player.updatePlayerMoveState(key, action);
 }
 
 
