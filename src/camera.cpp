@@ -10,7 +10,8 @@ Camera::Camera() {
 
 void Camera::updateMoveCamera() {
     CUBED_ASSERT_MSG(m_player, "nullptr");
-    m_cameraPos = m_player->getPlayerPos();
+    auto pos = m_player->getPlayerPos();
+    m_cameraPos = glm::vec3(pos.x, pos.y + 1, pos.z);
 }
 
 
