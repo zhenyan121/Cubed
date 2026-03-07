@@ -20,8 +20,10 @@ const unsigned MapTable::get_id_from_name(const std::string& name) {
 void MapTable::init_map() {
     id_to_name_map.reserve(MAX_BLOCK_NUM);
     name_to_id_map.reserve(MAX_BLOCK_NUM);
-    id_to_name_map[0] = "grass_block";
-    name_to_id_map[HASH::str("grass_block")] = 0;
+    id_to_name_map[0] = "air";
+    name_to_id_map[HASH::str("air")] = 0; 
+    id_to_name_map[1] = "grass_block";
+    name_to_id_map[HASH::str("grass_block")] = 1;
 }
 
 

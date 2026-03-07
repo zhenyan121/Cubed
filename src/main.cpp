@@ -1,5 +1,4 @@
 #include <string>
-#include <vector>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -11,6 +10,7 @@
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/player.hpp>
+#include <Cubed/gameplay/world.hpp>
 #include <Cubed/map_table.hpp>
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
@@ -19,7 +19,7 @@
 
 constexpr int NUM_VAO = 1;
 constexpr int NUM_VBO = 3;
-bool block_present[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
+
 GLuint rendering_program;
 GLuint vao[NUM_VAO];
 GLuint vbo[NUM_VBO];
@@ -31,10 +31,11 @@ float inc = 0.01f;
 float tf = 0.0f;
 double last_time = 0.0f;
 double delta_time = 0.0f;
-std::vector<GLuint> grass_block_texture;
+
 Player player;
 Camera camera;
 TextureManager texture_manager;
+World world;
 void setup_vertices(void) {
     float vertices_pos[108] = {
         // ===== front (z = +1) =====
@@ -164,15 +165,6 @@ void init(GLFWwindow* window) {
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
     p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
-    // Must call after texture_manager.init_texture();
-    grass_block_texture = texture_manager.get_block_texture("grass_block").texture;
-
-    for (int i = 0; i < 6; i++) {
-        glBindTexture(GL_TEXTURE_2D, grass_block_texture[i]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);    
@@ -203,11 +195,6 @@ void display(GLFWwindow* window, double current_time) {
     player.update(delta_time);
     camera.update_move_camera();
 
-    for (int i = 0; i < WORLD_SIZE_X; i++) {
-        for (int j = 0; j < WORLD_SIZE_Z; j++) {
-            block_present[i][j] = true;
-        }
-    }
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -226,45 +213,36 @@ void display(GLFWwindow* window, double current_time) {
     glEnableVertexAttribArray(1);
 
     glActiveTexture(GL_TEXTURE0);
-    for (int x = 0; x < WORLD_SIZE_X; x++) {
-        for (int z = 0; z < WORLD_SIZE_Z; z++) {
+    for (int x = 0; x < DISTANCE * CHUCK_SIZE; x++) {
+        for (int z = 0; z < DISTANCE * CHUCK_SIZE; z++) {
+            for (int y = 0; y < CHUCK_SIZE; y++) {
 
-            int wx = x - WORLD_SIZE_X / 2;
-            int wz = z - WORLD_SIZE_Z / 2;
+                m_mat = glm::translate(glm::mat4(1.0f), glm::vec3((float)x, y, (float)z));
+                v_mat = camera.get_camera_lookat();
+                mv_mat = v_mat * m_mat;
+                glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+                glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
 
-            m_mat = glm::translate(glm::mat4(1.0f), glm::vec3((float)wx, 0.0f, (float)wz));
-            v_mat = camera.get_camera_lookat();
-            mv_mat = v_mat * m_mat;
-            glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
-            glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
-
-            bool draw_face[6] = {true, true, true, true, true, true};
-
-            if (z < WORLD_SIZE_Z - 1&& block_present[x][z + 1]) {
-                draw_face[0] = false;
-            }
-            if (x < WORLD_SIZE_X - 1 && block_present[x + 1][z]) {
-                draw_face[1] = false;
-            }
-            if (z > 0 && block_present[x][z - 1]) {
-                draw_face[2] = false;
-            }
-            if (x > 0 && block_present[x - 1][z]) {
-                draw_face[3] = false;
-            }
-
-
-            for (int face = 0; face < 6; face++) {
-                if (!draw_face[face]) {
+                const auto& block_render_data = world.get_block_render_data(x, y, z);
+                // air
+                if (block_render_data.block_id == 0) {
                     continue;
                 }
-                glBindTexture(GL_TEXTURE_2D, grass_block_texture[face]);
-                
-
-                //glPointSize(30.0f);
-                
-                glDrawArrays(GL_TRIANGLES, face * 6, 6);
+                for (int face = 0; face < 6; face++) {
+                    if (!block_render_data.draw_face[face]) {
+                        continue;
+                    }
+                    glBindTexture(GL_TEXTURE_2D,
+                        texture_manager.get_block_texture(
+                            block_render_data
+                            .block_id)
+                            .texture[face]
+                        );
+                    
+                    glDrawArrays(GL_TRIANGLES, face * 6, 6);
+                }
             }
+            
         }
     }
     
@@ -314,6 +292,7 @@ int main() {
     glfwSetCursorPosCallback(window, cursor_position_callback);
     MapTable::init_map();
     texture_manager.init_texture();
+    world.init_world();
     init(window);
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

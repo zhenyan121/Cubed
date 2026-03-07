@@ -4,7 +4,7 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 TextureManager::TextureManager() {
-    
+
 }
 
 TextureManager::~TextureManager() {
@@ -40,7 +40,12 @@ void TextureManager::delet_texture() {
 void TextureManager::load_block_texture(const std::string& block_name) {
 
     auto id = MapTable::get_id_from_name(block_name);
-
+    m_block_textures[id].name = block_name;
+    m_block_textures[id].id = id;
+    // air don`t need texture
+    if (id == 0) {
+        return;
+    }
     std::string block_texture_path = "assets/texture/block/" + block_name;
     m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/front.png"));
     m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/right.png"));

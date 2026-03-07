@@ -47,7 +47,9 @@ set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/camera.cpp
+    src/gameplay/chuck.cpp
     src/gameplay/player.cpp
+    src/gameplay/world.cpp
     src/map_table.cpp
     src/texture_manager.cpp
     src/tools/shader_tools.cpp
