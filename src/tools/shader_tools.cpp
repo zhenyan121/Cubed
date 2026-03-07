@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 #include <Cubed/tools/log.hpp>
 
@@ -51,7 +52,7 @@ std::string read_shader_source(const char* file_path) {
     std::ifstream file_stream(file_path, std::ios::in);
 
     if (!file_stream.is_open()) {
-        LOG::error("file not exist");
+        LOG::error("{} not exist", file_path);
     }
 
     std::string line = "";
@@ -64,11 +65,14 @@ std::string read_shader_source(const char* file_path) {
     return content;
 }
 
+GLuint load_texture(const std::string& tex_image_path) {
+    return load_texture(tex_image_path.c_str());
+}
+
 GLuint load_texture(const char* tex_image_path) {
     GLuint texture_id;
     texture_id = SOIL_load_OGL_texture(tex_image_path, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-    if (texture_id == 0) {
-        LOG::error("could not find texture file");
-    }
+    std::string error_info = std::string("Could not load texture") + tex_image_path;
+    CUBED_ASSERT_MSG(texture_id, error_info.c_str());
     return texture_id;
 }

@@ -48,6 +48,7 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/camera.cpp
     src/gameplay/player.cpp
+    src/texture_manager.cpp
     src/tools/shader_tools.cpp
     src/tools/log.cpp
 )

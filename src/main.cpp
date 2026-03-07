@@ -11,6 +11,7 @@
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/player.hpp>
+#include <Cubed/texture_manager.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
@@ -32,6 +33,7 @@ double delta_time = 0.0f;
 std::vector<GLuint> grass_block_texture(6);
 Player player;
 Camera camera;
+TextureManager texture_manager;
 void setup_vertices(void) {
     float vertices_pos[108] = {
         // ===== front (z = +1) =====
@@ -162,12 +164,7 @@ void init(GLFWwindow* window) {
     glViewport(0, 0, width, height);
     p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
     
-    grass_block_texture[0] = load_texture("assets/texture/block/grass_block/front.png");
-    grass_block_texture[1] = load_texture("assets/texture/block/grass_block/right.png");
-    grass_block_texture[2] = load_texture("assets/texture/block/grass_block/back.png");
-    grass_block_texture[3] = load_texture("assets/texture/block/grass_block/left.png");
-    grass_block_texture[4] = load_texture("assets/texture/block/grass_block/top.png");
-    grass_block_texture[5] = load_texture("assets/texture/block/grass_block/base.png");
+    grass_block_texture = texture_manager.get_block_texture("grass_block").texture;
 
     for (int i = 0; i < 6; i++) {
         glBindTexture(GL_TEXTURE_2D, grass_block_texture[i]);
