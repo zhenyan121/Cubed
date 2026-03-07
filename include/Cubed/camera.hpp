@@ -12,23 +12,23 @@ class Player;
 class Camera {
 private:
 
-    bool m_firseMouse = true;
+    bool m_firse_mouse = true;
     Player* m_player;
-    float m_lastMouseX, m_lastMouseY;
-    glm::vec3 m_cameraPos;
+    float m_last_mouse_x, m_last_mouse_y;
+    glm::vec3 m_camera_pos;
     
 
 public:
 
     Camera();
 
-    void updateMoveCamera();
+    void update_move_camera();
 
-    void cameraInit(Player* player);
+    void camera_init(Player* player);
 
-    void updateCursorPositionCamera(double xpos, double ypos);
+    void update_cursor_position_camera(double xpos, double ypos);
 
-    const glm::mat4 getCameraLookAt() const;
+    const glm::mat4 get_camera_lookat() const;
 
 };
 

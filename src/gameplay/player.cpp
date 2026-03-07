@@ -1,111 +1,112 @@
-#include <Cubed/gameplay/player.hpp>
 #include <GLFW/glfw3.h>
 
-static constexpr int UPDATE_TIME = 0.1f;
-static float currentTime = 0.0f;
+#include <Cubed/gameplay/player.hpp>
+
+static constexpr float UPDATE_TIME = 0.005f;
+static float current_time = 0.0f;
 
 
 Player::Player() {
 
 }
 
-const glm::vec3& Player::getFront() const {
+const glm::vec3& Player::get_front() const {
     return m_front;
 }
 
-const glm::vec3& Player::getPlayerPos() const {
-    return m_playerPos;
+const glm::vec3& Player::get_player_pos() const {
+    return m_player_pos;
 }
 
-const MoveState& Player::getMoveState() const {
-    return m_moveState;
+const MoveState& Player::get_move_state() const {
+    return m_move_state;
 }
 
-void Player::init(bool** blockPresent) {
-    m_blockPresent = blockPresent;
+void Player::init(bool** block_present) {
+    m_block_present = block_present;
 }
 
-void Player::setPlayerPos(const glm::vec3& pos) {
-    m_playerPos = pos;
+void Player::set_player_pos(const glm::vec3& pos) {
+    m_player_pos = pos;
 }
 
-void Player::update(float deltaTime) {
+void Player::update(float delta_time) {
 
-    currentTime += deltaTime;
-    if (currentTime < UPDATE_TIME) {
+    current_time += delta_time;
+    if (current_time < UPDATE_TIME) {
         return;
     }
-    currentTime = 0.0f;
+    current_time = 0.0f;
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
-    if (m_moveState.forward) {
-        m_playerPos += glm::vec3(m_front.x, 0.0f, m_front.z) * m_speed;
+    if (m_move_state.forward) {
+        m_player_pos += glm::vec3(m_front.x, 0.0f, m_front.z) * m_speed;
     }
-    if (m_moveState.back) {
-        m_playerPos -= glm::vec3(m_front.x, 0.0f, m_front.z) * m_speed;
+    if (m_move_state.back) {
+        m_player_pos -= glm::vec3(m_front.x, 0.0f, m_front.z) * m_speed;
     }
-    if (m_moveState.left) {
-        m_playerPos -= glm::vec3(m_right.x, 0.0f, m_right.z) * m_speed;
+    if (m_move_state.left) {
+        m_player_pos -= glm::vec3(m_right.x, 0.0f, m_right.z) * m_speed;
     }
-    if (m_moveState.right) {
-        m_playerPos += glm::vec3(m_right.x, 0.0f, m_right.z) * m_speed;
+    if (m_move_state.right) {
+        m_player_pos += glm::vec3(m_right.x, 0.0f, m_right.z) * m_speed;
     }
-    if (m_moveState.up) {
-        m_playerPos += glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
+    if (m_move_state.up) {
+        m_player_pos += glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
     }
-    if (m_moveState.down) {
-        m_playerPos -= glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
+    if (m_move_state.down) {
+        m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * m_speed;
     }
 
 }
 
-void Player::updatePlayerMoveState(int key, int action) {
+void Player::update_player_move_state(int key, int action) {
     switch(key) {
         case GLFW_KEY_W:
             if (action == GLFW_PRESS) {
-                m_moveState.forward = true;
+                m_move_state.forward = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.forward = false;
+                m_move_state.forward = false;
             }
             break;
         case GLFW_KEY_S:
             if (action == GLFW_PRESS) {
-                m_moveState.back = true;
+                m_move_state.back = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.back = false;
+                m_move_state.back = false;
             }
             break;
         case GLFW_KEY_A:
             if (action == GLFW_PRESS) {
-                m_moveState.left = true;
+                m_move_state.left = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.left = false;
+                m_move_state.left = false;
             }
             break;
         case GLFW_KEY_D:
             if (action == GLFW_PRESS) {
-                m_moveState.right = true;
+                m_move_state.right = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.right = false;
+                m_move_state.right = false;
             }
             break;
         case GLFW_KEY_SPACE:
             if (action == GLFW_PRESS) {
-                m_moveState.up = true;
+                m_move_state.up = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.up = false;
+                m_move_state.up = false;
             }
             break;
         case GLFW_KEY_LEFT_SHIFT:
             if (action == GLFW_PRESS) {
-                m_moveState.down = true;
+                m_move_state.down = true;
             }
             if (action == GLFW_RELEASE) {
-                m_moveState.down = false;
+                m_move_state.down = false;
             }
             break;
         
@@ -113,9 +114,9 @@ void Player::updatePlayerMoveState(int key, int action) {
     }
 }
 
-void Player::updateFrontVec(float offsetX, float offsetY) {
-    m_yaw += offsetX * m_sensitivity;
-    m_pitch += offsetY * m_sensitivity;
+void Player::update_front_vec(float offset_x, float offset_y) {
+    m_yaw += offset_x * m_sensitivity;
+    m_pitch += offset_y * m_sensitivity;
     
     
     if (m_pitch > 89.0f)  m_pitch = 89.0f;

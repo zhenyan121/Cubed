@@ -1,6 +1,3 @@
-#include <fstream>
-#include <iostream>
-#include <stack>
 #include <string>
 #include <vector>
 
@@ -18,26 +15,25 @@
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
-constexpr int numVAOs = 1;
-constexpr int numVBOs = 3;
-bool blockPresent[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
-GLuint renderingProgram;
-GLuint vao[numVAOs];
-GLuint vbo[numVBOs];
-GLuint mvLoc, projLoc;
+constexpr int NUM_VAO = 1;
+constexpr int NUM_VBO = 3;
+bool block_present[WORLD_SIZE_X][WORLD_SIZE_Z] = {false};
+GLuint rendering_program;
+GLuint vao[NUM_VAO];
+GLuint vbo[NUM_VBO];
+GLuint mv_loc, proj_loc;
 int width ,height;
 float aspect;
-glm::mat4 pMat, vMat, mMat, mvMat;
+glm::mat4 p_mat, v_mat, m_mat, mv_mat;
 float inc = 0.01f;
 float tf = 0.0f;
-double lastTime = 0.0f;
-double deltaTime = 0.0f;
-glm::mat4 tMat, rMat;
+double last_time = 0.0f;
+double delta_time = 0.0f;
 std::vector<GLuint> grass_block_texture(6);
 Player player;
 Camera camera;
-void setupVertices(void) {
-    float verticesPos[108] = {
+void setup_vertices(void) {
+    float vertices_pos[108] = {
         // ===== front (z = +1) =====
         -0.5f, -0.5f,  0.5f,  // bottom left
         -0.5f,  0.5f,  0.5f,  // top left
@@ -93,12 +89,12 @@ void setupVertices(void) {
     };
 
     
-    glGenVertexArrays(numVAOs, vao);
+    glGenVertexArrays(NUM_VAO, vao);
     glBindVertexArray(vao[0]);
-    glGenBuffers(numVBOs, vbo);
+    glGenBuffers(NUM_VBO, vbo);
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPos), verticesPos, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_pos), vertices_pos, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
@@ -111,67 +107,67 @@ void setupVertices(void) {
 
 
 
-GLuint createShaderProgram() {
-    std::string vShaderStr = readShaderSource("shaders/vShader.glsl");
-    std::string fShaderStr = readShaderSource("shaders/fShader.glsl");
-    const char *vshaderSource = vShaderStr.c_str();
-    const char *fshaderSource = fShaderStr.c_str();
+GLuint create_shader_program() {
+    std::string v_shader_str = read_shader_source("shaders/vShader.glsl");
+    std::string f_shader_str = read_shader_source("shaders/fShader.glsl");
+    const char *v_shader_source = v_shader_str.c_str();
+    const char *f_shader_source = f_shader_str.c_str();
 
-    GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint v_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint f_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
     GLint vc, fc;
-    glShaderSource(vShader, 1, &vshaderSource, NULL);
-    glShaderSource(fShader, 1, &fshaderSource, NULL);
-    glCompileShader(vShader);
-    checkOpenGLError();
-    glGetShaderiv(vShader, GL_COMPILE_STATUS, &vc);
+    glShaderSource(v_shader, 1, &v_shader_source, NULL);
+    glShaderSource(f_shader, 1, &f_shader_source, NULL);
+    glCompileShader(v_shader);
+    check_opengl_error();
+    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &vc);
     if (vc != 1) {
         LOG::error("vertex compilation failed");
-        printShaderLog(vShader);
+        print_shader_log(v_shader);
     }
-    glCompileShader(fShader);         
-    checkOpenGLError();
-    glGetShaderiv(fShader, GL_COMPILE_STATUS, &fc);
+    glCompileShader(f_shader);         
+    check_opengl_error();
+    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
     if (fc != 1) {
         LOG::error("vertex compilation failed");
-        printShaderLog(fShader);
+        print_shader_log(f_shader);
     }
-    GLuint vfProgram = glCreateProgram();
-    glAttachShader(vfProgram, vShader);
-    glAttachShader(vfProgram, fShader);
-    glLinkProgram(vfProgram);
+    GLuint vf_program = glCreateProgram();
+    glAttachShader(vf_program, v_shader);
+    glAttachShader(vf_program, f_shader);
+    glLinkProgram(vf_program);
 
     GLint linked;
-    checkOpenGLError();
-    glGetProgramiv(vfProgram, GL_LINK_STATUS, &linked);
+    check_opengl_error();
+    glGetProgramiv(vf_program, GL_LINK_STATUS, &linked);
     if (linked != 1) {
         LOG::error("linking failed");
-        printProgramInfo(vfProgram);
+        print_program_info(vf_program);
     }
 
-    return vfProgram;
+    return vf_program;
 }
 
 
 void init(GLFWwindow* window) {
-    renderingProgram = createShaderProgram();
+    rendering_program = create_shader_program();
 
-    mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
-    projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
+    mv_loc = glGetUniformLocation(rendering_program, "mv_matrix");
+    proj_loc = glGetUniformLocation(rendering_program, "proj_matrix");
 
-    camera.cameraInit(&player);
+    camera.camera_init(&player);
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
-    pMat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
+    p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
     
-    grass_block_texture[0] = loadTexture("assets/texture/block/grass_block/front.png");
-    grass_block_texture[1] = loadTexture("assets/texture/block/grass_block/right.png");
-    grass_block_texture[2] = loadTexture("assets/texture/block/grass_block/back.png");
-    grass_block_texture[3] = loadTexture("assets/texture/block/grass_block/left.png");
-    grass_block_texture[4] = loadTexture("assets/texture/block/grass_block/top.png");
-    grass_block_texture[5] = loadTexture("assets/texture/block/grass_block/base.png");
+    grass_block_texture[0] = load_texture("assets/texture/block/grass_block/front.png");
+    grass_block_texture[1] = load_texture("assets/texture/block/grass_block/right.png");
+    grass_block_texture[2] = load_texture("assets/texture/block/grass_block/back.png");
+    grass_block_texture[3] = load_texture("assets/texture/block/grass_block/left.png");
+    grass_block_texture[4] = load_texture("assets/texture/block/grass_block/top.png");
+    grass_block_texture[5] = load_texture("assets/texture/block/grass_block/base.png");
 
     for (int i = 0; i < 6; i++) {
         glBindTexture(GL_TEXTURE_2D, grass_block_texture[i]);
@@ -183,35 +179,35 @@ void init(GLFWwindow* window) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);    
     
-    setupVertices();
+    setup_vertices();
 
 }
 
-void window_reshape_callback(GLFWwindow* window, int newWidth, int newHeight) {
+void window_reshape_callback(GLFWwindow* window, int new_width, int new_height) {
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
-    pMat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
+    p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f);
 }
 
 
 
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    camera.updateCursorPositionCamera(xpos, ypos);
+    camera.update_cursor_position_camera(xpos, ypos);
 }
 
 
 
-void display(GLFWwindow* window, double currentTime) {
-    deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
-    player.update(deltaTime);
-    camera.updateMoveCamera();
+void display(GLFWwindow* window, double current_time) {
+    delta_time = current_time - last_time;
+    last_time = current_time;
+    player.update(delta_time);
+    camera.update_move_camera();
 
     for (int i = 0; i < WORLD_SIZE_X; i++) {
         for (int j = 0; j < WORLD_SIZE_Z; j++) {
-            blockPresent[i][j] = true;
+            block_present[i][j] = true;
         }
     }
 
@@ -219,7 +215,7 @@ void display(GLFWwindow* window, double currentTime) {
     glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_DEPTH_BUFFER_BIT);
     
-    glUseProgram(renderingProgram);
+    glUseProgram(rendering_program);
     glBindVertexArray(vao[0]);
 
     
@@ -238,30 +234,30 @@ void display(GLFWwindow* window, double currentTime) {
             int wx = x - WORLD_SIZE_X / 2;
             int wz = z - WORLD_SIZE_Z / 2;
 
-            mMat = glm::translate(glm::mat4(1.0f), glm::vec3((float)wx, 0.0f, (float)wz));
-            vMat = camera.getCameraLookAt();
-            mvMat = vMat * mMat;
-            glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-            glUniformMatrix4fv(projLoc, 1 ,GL_FALSE, glm::value_ptr(pMat));
+            m_mat = glm::translate(glm::mat4(1.0f), glm::vec3((float)wx, 0.0f, (float)wz));
+            v_mat = camera.get_camera_lookat();
+            mv_mat = v_mat * m_mat;
+            glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+            glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
 
-            bool drawFace[6] = {true, true, true, true, true, true};
+            bool draw_face[6] = {true, true, true, true, true, true};
 
-            if (z < WORLD_SIZE_Z - 1&& blockPresent[x][z + 1]) {
-                drawFace[0] = false;
+            if (z < WORLD_SIZE_Z - 1&& block_present[x][z + 1]) {
+                draw_face[0] = false;
             }
-            if (x < WORLD_SIZE_X - 1 && blockPresent[x + 1][z]) {
-                drawFace[1] = false;
+            if (x < WORLD_SIZE_X - 1 && block_present[x + 1][z]) {
+                draw_face[1] = false;
             }
-            if (z > 0 && blockPresent[x][z - 1]) {
-                drawFace[2] = false;
+            if (z > 0 && block_present[x][z - 1]) {
+                draw_face[2] = false;
             }
-            if (x > 0 && blockPresent[x - 1][z]) {
-                drawFace[3] = false;
+            if (x > 0 && block_present[x - 1][z]) {
+                draw_face[3] = false;
             }
 
 
             for (int face = 0; face < 6; face++) {
-                if (!drawFace[face]) {
+                if (!draw_face[face]) {
                     continue;
                 }
                 glBindTexture(GL_TEXTURE_2D, grass_block_texture[face]);
@@ -292,7 +288,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             
     }
 
-    player.updatePlayerMoveState(key, action);
+    player.update_player_move_state(key, action);
 }
 
 

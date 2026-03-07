@@ -1,5 +1,3 @@
-#include <memory>
-#include <optional>
 #include <Cubed/camera.hpp>
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
@@ -8,35 +6,35 @@ Camera::Camera() {
 
 }
 
-void Camera::updateMoveCamera() {
+void Camera::update_move_camera() {
     CUBED_ASSERT_MSG(m_player, "nullptr");
-    auto pos = m_player->getPlayerPos();
-    m_cameraPos = glm::vec3(pos.x, pos.y + 1, pos.z);
+    auto pos = m_player->get_player_pos();
+    m_camera_pos = glm::vec3(pos.x, pos.y + 1, pos.z);
 }
 
 
-void Camera::cameraInit(Player* _player) {
-    m_cameraPos = glm::vec3(0.0f, 2.0f, 0.0f);
-    m_player = _player;
+void Camera::camera_init(Player* player) {
+    m_camera_pos = glm::vec3(0.0f, 2.0f, 0.0f);
+    m_player = player;
 }
 
-void Camera::updateCursorPositionCamera(double xpos, double ypos) {
-    if (m_firseMouse) {
-        m_lastMouseX = xpos;
-        m_lastMouseY = ypos;
-        m_firseMouse = false;
+void Camera::update_cursor_position_camera(double xpos, double ypos) {
+    if (m_firse_mouse) {
+        m_last_mouse_x = xpos;
+        m_last_mouse_y = ypos;
+        m_firse_mouse = false;
     }
 
-    float offsetX = xpos - m_lastMouseX;
-    float offsetY = m_lastMouseY - ypos;
+    float offset_x = xpos - m_last_mouse_x;
+    float offset_y = m_last_mouse_y - ypos;
 
-    m_lastMouseX = xpos;
-    m_lastMouseY = ypos;
+    m_last_mouse_x = xpos;
+    m_last_mouse_y = ypos;
     CUBED_ASSERT_MSG(m_player, "nullptr");
-    m_player->updateFrontVec(offsetX, offsetY);
+    m_player->update_front_vec(offset_x, offset_y);
 }
 
-const glm::mat4 Camera::getCameraLookAt() const{
+const glm::mat4 Camera::get_camera_lookat() const{
     CUBED_ASSERT_MSG(m_player, "nullptr");
-    return glm::lookAt(m_cameraPos, m_cameraPos + m_player->getFront(), glm::vec3(0.0f, 1.0f, 0.0f));
+    return glm::lookAt(m_camera_pos, m_camera_pos + m_player->get_front(), glm::vec3(0.0f, 1.0f, 0.0f));
 }

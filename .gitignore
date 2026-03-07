@@ -21,6 +21,7 @@ Release/
 x64/
 x86/
 out/
+.cache/
 .vs/
 .vscode/
 .idea/
