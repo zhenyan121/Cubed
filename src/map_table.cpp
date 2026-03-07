@@ -1,0 +1,27 @@
+#include <Cubed/config.hpp>
+#include <Cubed/map_table.hpp>
+#include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/cubed_hash.hpp>
+
+std::unordered_map<unsigned, std::string> MapTable::id_to_name_map;
+std::unordered_map<size_t, unsigned> MapTable::name_to_id_map;
+
+
+const std::string& MapTable::get_name_from_id(unsigned id) {
+    auto it = id_to_name_map.find(id);
+    CUBED_ASSERT_MSG(it != id_to_name_map.end(), "Id: " + std::to_string(id) + " is not exist");
+    return it->second;
+}
+const unsigned MapTable::get_id_from_name(const std::string& name) {
+    auto it = name_to_id_map.find(HASH::str(name));
+    CUBED_ASSERT_MSG(it != name_to_id_map.end(), "Name " + name + " is not exist");
+    return it->second;
+}
+void MapTable::init_map() {
+    id_to_name_map.reserve(MAX_BLOCK_NUM);
+    name_to_id_map.reserve(MAX_BLOCK_NUM);
+    id_to_name_map[0] = "grass_block";
+    name_to_id_map[HASH::str("grass_block")] = 0;
+}
+
+

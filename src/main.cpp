@@ -11,6 +11,7 @@
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/player.hpp>
+#include <Cubed/map_table.hpp>
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
@@ -30,7 +31,7 @@ float inc = 0.01f;
 float tf = 0.0f;
 double last_time = 0.0f;
 double delta_time = 0.0f;
-std::vector<GLuint> grass_block_texture(6);
+std::vector<GLuint> grass_block_texture;
 Player player;
 Camera camera;
 TextureManager texture_manager;
@@ -110,8 +111,8 @@ void setup_vertices(void) {
 
 
 GLuint create_shader_program() {
-    std::string v_shader_str = read_shader_source("shaders/vShader.glsl");
-    std::string f_shader_str = read_shader_source("shaders/fShader.glsl");
+    std::string v_shader_str = Shader::read_shader_source("shaders/vShader.glsl");
+    std::string f_shader_str = Shader::read_shader_source("shaders/fShader.glsl");
     const char *v_shader_source = v_shader_str.c_str();
     const char *f_shader_source = f_shader_str.c_str();
 
@@ -122,18 +123,18 @@ GLuint create_shader_program() {
     glShaderSource(v_shader, 1, &v_shader_source, NULL);
     glShaderSource(f_shader, 1, &f_shader_source, NULL);
     glCompileShader(v_shader);
-    check_opengl_error();
+    Shader::check_opengl_error();
     glGetShaderiv(v_shader, GL_COMPILE_STATUS, &vc);
     if (vc != 1) {
         LOG::error("vertex compilation failed");
-        print_shader_log(v_shader);
+        Shader::print_shader_log(v_shader);
     }
     glCompileShader(f_shader);         
-    check_opengl_error();
+    Shader::check_opengl_error();
     glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
     if (fc != 1) {
         LOG::error("vertex compilation failed");
-        print_shader_log(f_shader);
+        Shader::print_shader_log(f_shader);
     }
     GLuint vf_program = glCreateProgram();
     glAttachShader(vf_program, v_shader);
@@ -141,11 +142,11 @@ GLuint create_shader_program() {
     glLinkProgram(vf_program);
 
     GLint linked;
-    check_opengl_error();
+    Shader::check_opengl_error();
     glGetProgramiv(vf_program, GL_LINK_STATUS, &linked);
     if (linked != 1) {
         LOG::error("linking failed");
-        print_program_info(vf_program);
+        Shader::print_program_info(vf_program);
     }
 
     return vf_program;
@@ -163,7 +164,7 @@ void init(GLFWwindow* window) {
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
     p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
-    
+    // Must call after texture_manager.init_texture();
     grass_block_texture = texture_manager.get_block_texture("grass_block").texture;
 
     for (int i = 0; i < 6; i++) {
@@ -311,8 +312,10 @@ int main() {
     glfwSetWindowSizeCallback(window, window_reshape_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
+    MapTable::init_map();
+    texture_manager.init_texture();
     init(window);
-
+    
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     while(!glfwWindowShouldClose(window)) {
