@@ -22,7 +22,7 @@ private:
     
     float m_sensitivity = 0.05f;
 
-    float m_speed = 0.1f;
+    float m_speed = 10.0f;
     // player is tow block tall, the pos is the lower pos
     glm::vec3 m_player_pos = glm::vec3(0.0f, 5.0f, 0.0f);
     glm::vec3 m_front = glm::vec3(0, 0, -1);
