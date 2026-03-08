@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include <Cubed/config.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 #include <Cubed/tools/log.hpp>
@@ -65,20 +66,18 @@ namespace Shader {
         return content;
     }
 
-    GLuint load_texture(const std::string& tex_image_path) {
-        return load_texture(tex_image_path.c_str());
+    void delete_image_data(unsigned char* data) {
+        SOIL_free_image_data(data);
     }
 
-    GLuint load_texture(const char* tex_image_path) {
-        GLuint texture_id;
-        texture_id = SOIL_load_OGL_texture(tex_image_path, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-        std::string error_info = std::string("Could not load texture ") + tex_image_path;
-        CUBED_ASSERT_MSG(texture_id, error_info.c_str());
-        // generate mipmap
-        glBindTexture(GL_TEXTURE_2D, texture_id);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        return texture_id;
+    unsigned char* load_image_data(const std::string& tex_image_path) {
+        unsigned char* data;
+        int width, height, channels; 
+        data = SOIL_load_image(tex_image_path.c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
+        std::string error_info = "Could not load texture " + tex_image_path;
+        CUBED_ASSERT_MSG(data, error_info.c_str());
+
+        return data;
     }
+
 }

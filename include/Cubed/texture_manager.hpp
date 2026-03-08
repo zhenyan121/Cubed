@@ -1,24 +1,21 @@
 #pragma once
 #include <glad/glad.h>
-#include <string>
-#include <vector>
 #include <Cubed/gameplay/block.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
 
 class TextureManager {
 private:
-    std::vector<BlockTexture> m_block_textures;
+    GLuint m_texture_array;
+
+    void load_block_texture(unsigned block_id);
 
 public:
     TextureManager();
     ~TextureManager();
-    const BlockTexture& get_block_texture(const std::string& block_name);
-    const BlockTexture& get_block_texture(unsigned block_id);
-    void delet_texture();
-    
-    void load_block_texture(const std::string& block_name);
-    void load_block_texture(unsigned block_id);
+
+    void delet_texture(); 
+    GLuint get_texture_array();
     // Must call after MapTable::init_map() and glfwMakeContextCurrent(window);
     void init_texture();
 };

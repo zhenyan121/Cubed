@@ -18,7 +18,13 @@
 #include <Cubed/tools/shader_tools.hpp>
 
 constexpr int NUM_VAO = 1;
-constexpr int NUM_VBO = 3;
+constexpr int NUM_VBO = 1;
+
+struct Vertex {
+    float x, y, z;
+    float s, t;
+    float layer;
+};
 
 GLuint rendering_program;
 GLuint vao[NUM_VAO];
@@ -31,13 +37,16 @@ float inc = 0.01f;
 float tf = 0.0f;
 double last_time = 0.0f;
 double delta_time = 0.0f;
-
+GLuint texture_array;
 Player player;
 Camera camera;
 TextureManager texture_manager;
 World world;
+std::vector<Vertex> vertex_data;
+
+
 void setup_vertices(void) {
-    float vertices_pos[108] = {
+    float vertices_pos[6][6][3] = {
         // ===== front (z = +1) =====
         -0.5f, -0.5f,  0.5f,  // bottom left
         -0.5f,  0.5f,  0.5f,  // top left
@@ -82,7 +91,7 @@ void setup_vertices(void) {
         -0.5f, -0.5f,  0.5f   // front left
     };
 
-    float tex_coords[72] {
+    float tex_coords[6][6][2] = {
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -92,18 +101,46 @@ void setup_vertices(void) {
 
     };
 
+    // every block
+    for (int x = 0; x < DISTANCE * CHUCK_SIZE; x++) {
+        for (int z = 0; z < DISTANCE * CHUCK_SIZE; z++) {
+            for (int y = 0; y < CHUCK_SIZE; y++) {
+                const auto& block_render_data = world.get_block_render_data(x, y, z);
+                // air
+                if (block_render_data.block_id == 0) {
+                    continue;
+                }
+                for (int face = 0; face < 6; face++) {
+                    if (!block_render_data.draw_face[face]) {
+                        continue;
+                    }
+                    for (int i = 0; i < 6; i++) {
+                        Vertex vex = {
+                            vertices_pos[face][i][0] + (float)x * 1.0f,
+                            vertices_pos[face][i][1] + (float)y * 1.0f,
+                            vertices_pos[face][i][2] + (float)z * 1.0f,
+                            tex_coords[face][i][0],
+                            tex_coords[face][i][1],
+                            static_cast<float>(block_render_data.block_id * 6 + face) 
+
+                        };
+                        vertex_data.emplace_back(vex);
+                    }    
+                }
+            }
+            
+        }
+    }
+
     
     glGenVertexArrays(NUM_VAO, vao);
     glBindVertexArray(vao[0]);
     glGenBuffers(NUM_VBO, vbo);
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_pos), vertices_pos, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
-    
+    glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(Vertex), vertex_data.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     glBindVertexArray(0);
 
 }
@@ -167,7 +204,14 @@ void init(GLFWwindow* window) {
     p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);    
+    glDepthFunc(GL_LEQUAL);
+
+    #ifndef NDEBUG    
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param) {
+        LOG::info("GL Debug: {}", reinterpret_cast<const char*>(message));
+    }, nullptr);
+    #endif
     
     setup_vertices();
 
@@ -205,47 +249,24 @@ void display(GLFWwindow* window, double current_time) {
 
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, s));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     glActiveTexture(GL_TEXTURE0);
-    for (int x = 0; x < DISTANCE * CHUCK_SIZE; x++) {
-        for (int z = 0; z < DISTANCE * CHUCK_SIZE; z++) {
-            for (int y = 0; y < CHUCK_SIZE; y++) {
-
-                m_mat = glm::translate(glm::mat4(1.0f), glm::vec3((float)x, y, (float)z));
-                v_mat = camera.get_camera_lookat();
-                mv_mat = v_mat * m_mat;
-                glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
-                glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
-
-                const auto& block_render_data = world.get_block_render_data(x, y, z);
-                // air
-                if (block_render_data.block_id == 0) {
-                    continue;
-                }
-                for (int face = 0; face < 6; face++) {
-                    if (!block_render_data.draw_face[face]) {
-                        continue;
-                    }
-                    glBindTexture(GL_TEXTURE_2D,
-                        texture_manager.get_block_texture(
-                            block_render_data
-                            .block_id)
-                            .texture[face]
-                        );
-                    
-                    glDrawArrays(GL_TRIANGLES, face * 6, 6);
-                }
-            }
-            
-        }
-    }
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
     
+
+    m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    v_mat = camera.get_camera_lookat();
+    mv_mat = v_mat * m_mat;  
+    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+    glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
+    glDrawArrays(GL_TRIANGLES, 0, vertex_data.size() * 3);
     
 }
 
@@ -293,6 +314,7 @@ int main() {
     MapTable::init_map();
     texture_manager.init_texture();
     world.init_world();
+    texture_array = texture_manager.get_texture_array();
     init(window);
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

@@ -11,61 +11,75 @@ TextureManager::~TextureManager() {
     delet_texture();   
 }
 
-const BlockTexture& TextureManager::get_block_texture(const std::string& name) {
-
-
-    load_block_texture(name);
-    return m_block_textures[MapTable::get_id_from_name(name)];
-    
-}
-
-const BlockTexture& TextureManager::get_block_texture(unsigned id) {
-
-
-    load_block_texture(id);
-    return m_block_textures[id];
-    
-}
-
-
 void TextureManager::delet_texture() {
-    for (const auto& block_texture : m_block_textures) {  
-        for (const auto& id : block_texture.texture) {
-            glDeleteTextures(1, &id);
-        }
-    }
+    glDeleteTextures(1, &m_texture_array);
     LOG::info("Successfully delete all texture");
 }
 
-void TextureManager::load_block_texture(const std::string& block_name) {
+GLuint TextureManager::get_texture_array() {
+    return m_texture_array;
+}
 
-    auto id = MapTable::get_id_from_name(block_name);
-    m_block_textures[id].name = block_name;
-    m_block_textures[id].id = id;
+void TextureManager::load_block_texture(unsigned id) {
+    CUBED_ASSERT_MSG(id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
+    const std::string& name = MapTable::get_name_from_id(id);
     // air don`t need texture
     if (id == 0) {
         return;
     }
-    std::string block_texture_path = "assets/texture/block/" + block_name;
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/front.png"));
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/right.png"));
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/back.png"));
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/left.png"));
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/top.png"));
-    m_block_textures[id].texture.emplace_back(Shader::load_texture(block_texture_path + "/base.png"));
-}
+    unsigned char * image_data[6];
 
-void TextureManager::load_block_texture(unsigned block_id) {
-    CUBED_ASSERT_MSG(block_id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
-    load_block_texture(MapTable::get_name_from_id(block_id));
+    std::string block_texture_path = "assets/texture/block/" + name;
+    image_data[0] = (Shader::load_image_data(block_texture_path + "/front.png"));
+    image_data[1] = (Shader::load_image_data(block_texture_path + "/right.png"));
+    image_data[2] = (Shader::load_image_data(block_texture_path + "/back.png"));
+    image_data[3] = (Shader::load_image_data(block_texture_path + "/left.png"));
+    image_data[4] = (Shader::load_image_data(block_texture_path + "/top.png"));
+    image_data[5] = (Shader::load_image_data(block_texture_path + "/base.png"));
+    
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
+    Shader::check_opengl_error();
+    for (int i = 0; i < 6; i++) {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
+            0, 0, id * 6 + i,
+            16, 16, 1,
+            GL_RGBA, GL_UNSIGNED_BYTE,
+            image_data[i]
+            );
+        Shader::check_opengl_error();
+        Shader::delete_image_data(image_data[i]);
+    }
+
 }
 
 void TextureManager::init_texture() {
-    MapTable::init_map();
-    m_block_textures.resize(MAX_BLOCK_NUM);
 
+    MapTable::init_map();
+
+    glGenTextures(1, &m_texture_array);
+    Shader::check_opengl_error();
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
+    Shader::check_opengl_error();
+    glTexImage3D(GL_TEXTURE_2D_ARRAY,
+        0, GL_RGBA,
+        16, 16,
+        MAX_BLOCK_NUM * 6,
+        0, GL_RGBA,
+        GL_UNSIGNED_BYTE, nullptr);
+    Shader::check_opengl_error();
     for (int i = 0; i < MAX_BLOCK_NUM; i++) {
         load_block_texture(i);
     }
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
+    Shader::check_opengl_error();
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    Shader::check_opengl_error();
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    Shader::check_opengl_error();
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    Shader::check_opengl_error();
+
+    
 
 }
