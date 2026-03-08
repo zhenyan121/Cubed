@@ -80,6 +80,11 @@ void TextureManager::init_texture() {
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     Shader::check_opengl_error();
 
-    
+    GLfloat max_aniso = 0.0f;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
+    if (max_aniso > 0.0f) {
+        LOG::info("Support anisotropic filtering max_aniso is {}", max_aniso);
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
+    }    
 
 }
