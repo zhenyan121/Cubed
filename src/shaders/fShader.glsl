@@ -1,4 +1,4 @@
-#version 430
+#version 460
 
 in vec2 tc;
 flat in int tex_layer;
