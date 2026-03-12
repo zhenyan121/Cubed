@@ -7,11 +7,21 @@ World::World() {
 World::~World() {
 
 }
-static int chunk_x, chunk_z;
+
 const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
-    
-    chunk_x = world_x / CHUCK_SIZE;
-    chunk_z = world_z / CHUCK_SIZE;
+    static int chunk_x, chunk_z;
+    if (world_x < 0) {
+        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_x >= 0) {
+        chunk_x = world_x / CHUCK_SIZE;
+    }
+    if (world_z < 0) {
+        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_z >= 0) {
+        chunk_z = world_z / CHUCK_SIZE;
+    }
     //LOG::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
     CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk not find");
@@ -26,47 +36,69 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     // draw_face
     m_block_render_data.draw_face.assign(6, true);
     if (x > 0 ) {
-        if (x > 0 && chunk_blocks[Chunk::get_index(x - 1, y, z)]) {
+        if (chunk_blocks[Chunk::get_index(x - 1, y, z)]) {
             m_block_render_data.draw_face[3] = false;
         }   
     }
     if (x < CHUCK_SIZE - 1) {
-        if (x < DISTANCE * CHUCK_SIZE - 1 && chunk_blocks[Chunk::get_index(x + 1, y, z)]) {
+        if (chunk_blocks[Chunk::get_index(x + 1, y, z)]) {
             m_block_render_data.draw_face[1] = false;
         }
     }
-    if (z > 0 ) {    
-        if (z > 0 && chunk_blocks[Chunk::get_index(x, y, z - 1)]) {
+    if (z > 0 ) { 
+        if (chunk_blocks[Chunk::get_index(x, y, z - 1)]) {
             m_block_render_data.draw_face[2] = false;
         }
-    }
+    } 
     if (z < CHUCK_SIZE - 1) {
-        if (z < DISTANCE * CHUCK_SIZE - 1 && chunk_blocks[Chunk::get_index(x, y, z + 1)]) {
+        if (chunk_blocks[Chunk::get_index(x, y, z + 1)]) {
             m_block_render_data.draw_face[0] = false;
         }
     }
     if (y > 0 ) {
-        if (y > 0 && chunk_blocks[Chunk::get_index(x, y - 1, z)]) {
+        if (chunk_blocks[Chunk::get_index(x, y - 1, z)]) {
             m_block_render_data.draw_face[5] = false;
         }
     }
     if (y < CHUCK_SIZE - 1) {
-        if (y < CHUCK_SIZE - 1 && chunk_blocks[Chunk::get_index(x, y + 1, z)]) {
+        if (chunk_blocks[Chunk::get_index(x, y + 1, z)]) {
             m_block_render_data.draw_face[4] = false;
         }
     }
-    
-    if (x == 0 && world_x - 1 > 0) {
-        int adjacent_chunk_x = (world_x - 1) / CHUCK_SIZE;
-        int adjacet_chunk_z = world_z / CHUCK_SIZE;
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacet_chunk_z});
+    int adjacent_chunk_x;
+    int adjacent_chunk_z;
+    int adj_world_x;
+    int adj_world_z;
+    int adjacent_x, adjacent_z;
+    if (x == 0) {
+
+        adj_world_x = world_x - 1;
+        adj_world_z = world_z;
+        if (adj_world_x < 0) {
+            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_x >= 0) {
+            adjacent_chunk_x = adj_world_x / CHUCK_SIZE;
+        }
+        if (adj_world_z < 0) {
+            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_z >= 0) {
+            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
+        }
+        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
         if (adjacent != m_chunks.end()) {
-            int adjacent_x, adjacent_z;
+            
             const auto& adjacent_chunk_blocks = it->second.get_chunk_blocks();
             int x, y, z;
             y = world_y;
             x = world_x - 1 - adjacent_chunk_x * CHUCK_SIZE;
-            z = world_z - adjacet_chunk_z * CHUCK_SIZE;
+            z = world_z - adjacent_chunk_z * CHUCK_SIZE;
+            if (x < 0 || y < 0 || z < 0 || Chunk::get_index(x, y, z) >= 4096 || Chunk::get_index(x, y, z) < 0) {
+                LOG::info("adj x {} z {}", adjacent_chunk_x, adjacent_chunk_z);
+                LOG::info("x {} y {} z {}, world x {} world y {} world z {} chunk x {} chunk z {}", x, y, z ,world_x, world_y, world_z, chunk_x, chunk_z);
+
+            } else
             if (adjacent_chunk_blocks[Chunk::get_index(x, y, z)]) {
                 m_block_render_data.draw_face[3] = false;
             }
@@ -75,34 +107,66 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     }
 
     if (x == CHUCK_SIZE - 1) {
-        int adjacent_chunk_x = (world_x + 1) / CHUCK_SIZE;
-        int adjacet_chunk_z = world_z / CHUCK_SIZE;
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacet_chunk_z});
+        adj_world_x = world_x + 1;
+        adj_world_z = world_z;
+        if (adj_world_x < 0) {
+            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_x >= 0) {
+            adjacent_chunk_x = adj_world_x/ CHUCK_SIZE;
+        }
+        if (adj_world_z < 0) {
+            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_z >= 0) {
+            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
+        }
+        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
         if (adjacent != m_chunks.end()) {
             int adjacent_x, adjacent_z;
             const auto& adjacent_chunk_blocks = it->second.get_chunk_blocks();
             int x, y, z;
             y = world_y;
             x = world_x + 1 - adjacent_chunk_x * CHUCK_SIZE;
-            z = world_z - adjacet_chunk_z * CHUCK_SIZE;
+            z = world_z - adjacent_chunk_z * CHUCK_SIZE;
+            if (x < 0 || y < 0 || z < 0 || Chunk::get_index(x, y, z) >= 4096 || Chunk::get_index(x, y, z) < 0) {
+                LOG::info("adj x {} z {}", adjacent_chunk_x, adjacent_chunk_z);
+                LOG::info("x {} y {} z {}, world x {} world y {} world z {} chunk x {} chunk z {}", x, y, z ,world_x, world_y, world_z, chunk_x, chunk_z);
+            } else
             if (adjacent_chunk_blocks[Chunk::get_index(x, y, z)]) {
                 m_block_render_data.draw_face[1] = false;
             }
         }
     }
 
-    if (z == 0 && world_z - 1 > 0) {
-        int adjacent_chunk_x = world_x / CHUCK_SIZE;
-        int adjacet_chunk_z = (world_z - 1) / CHUCK_SIZE;
+    if (z == 0) {
+        adj_world_x = world_x;
+        adj_world_z = world_z - 1;
+        if (adj_world_x < 0) {
+            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_x >= 0) {
+            adjacent_chunk_x = adj_world_x / CHUCK_SIZE;
+        }
+        if (adj_world_z < 0) {
+            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_z >= 0) {
+            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
+        }
         
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacet_chunk_z});
+        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
         if (adjacent != m_chunks.end()) {
             int adjacent_x, adjacent_z;
             const auto& adjacent_chunk_blocks = it->second.get_chunk_blocks();
             int x, y, z;
             y = world_y;
             x = world_x - adjacent_chunk_x * CHUCK_SIZE;
-            z = world_z - 1 - adjacet_chunk_z * CHUCK_SIZE;
+            z = world_z - 1 - adjacent_chunk_z * CHUCK_SIZE;
+            if (x < 0 || y < 0 || z < 0  || Chunk::get_index(x, y, z) >= 4096 || Chunk::get_index(x, y, z) < 0) {
+                LOG::info("adj x {} z {}", adjacent_chunk_x, adjacent_chunk_z);
+                LOG::info("x {} y {} z {}, world x {} world y {} world z {} chunk x {} chunk z {}", x, y, z ,world_x, world_y, world_z, chunk_x, chunk_z);
+            } else
             if (adjacent_chunk_blocks[Chunk::get_index(x, y, z)]) {
                 m_block_render_data.draw_face[2] = false;
             }
@@ -110,16 +174,32 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     }
 
     if (z == CHUCK_SIZE - 1) {
-        int adjacent_chunk_x = world_x / CHUCK_SIZE;
-        int adjacet_chunk_z = (world_z + 1) / CHUCK_SIZE;
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacet_chunk_z});
+        adj_world_x = world_x;
+        adj_world_z = world_z + 1;
+        if (adj_world_x < 0) {
+            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_x >= 0) {
+            adjacent_chunk_x = adj_world_x/ CHUCK_SIZE;
+        }
+        if (adj_world_z < 0) {
+            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
+        }
+        if (adj_world_z >= 0) {
+            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
+        }
+        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
         if (adjacent != m_chunks.end()) {
             int adjacent_x, adjacent_z;
             const auto& adjacent_chunk_blocks = it->second.get_chunk_blocks();
             int x, y, z;
             y = world_y;
             x = world_x - adjacent_chunk_x * CHUCK_SIZE;
-            z = world_z + 1 - adjacet_chunk_z * CHUCK_SIZE;
+            z = world_z + 1 - adjacent_chunk_z * CHUCK_SIZE;
+            if (x < 0 || y < 0 || z < 0  || Chunk::get_index(x, y, z) >= 4096 || Chunk::get_index(x, y, z) < 0) {
+                LOG::info("adj x {} z {}", adjacent_chunk_x, adjacent_chunk_z);
+                LOG::info("x {} y {} z {}, world x {} world y {} world z {} chunk x {} chunk z {}", x, y, z ,world_x, world_y, world_z, chunk_x, chunk_z);
+            } else
             if (adjacent_chunk_blocks[Chunk::get_index(x, y, z)]) {
                 m_block_render_data.draw_face[0] = false;
             }
@@ -133,8 +213,11 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
 void World::init_world() {
     for (int s = 0; s < DISTANCE; s++) {
         for (int t = 0; t < DISTANCE; t++) {
-            ChunkPos pos{s, t};
-            LOG::info("Chunk Pos in init_world X: {} Z: {}", pos.x, pos.z);
+            int ns = s - DISTANCE / 2;
+            int nt = t - DISTANCE / 2;
+
+            ChunkPos pos{ns, nt};
+
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
@@ -143,6 +226,14 @@ void World::init_world() {
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
         chunk.init_chunk();
+        
+    }
+    // After block gen fininshed
+    for (auto& chunk_map : m_chunks) {
+        auto& [chunk_pos, chunk] = chunk_map;
+
+        chunk.gen_vertex_data();
+        
     }
 
 }
