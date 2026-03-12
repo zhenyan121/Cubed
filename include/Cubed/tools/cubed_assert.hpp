@@ -18,7 +18,7 @@ namespace Assert {
 
 #ifdef NDEBUG
 #define CUBED_ASSERT(cond) ((void)0)
-#define CUBED_ASSERT_MSG(cond) ((void)0)
+#define CUBED_ASSERT_MSG(cond, message) ((void)0)
 #else
 #define CUBED_ASSERT(cond) \
     do { \
