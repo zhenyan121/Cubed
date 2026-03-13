@@ -32,16 +32,16 @@ void Player::update(float delta_time) {
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
     float speed = m_speed * delta_time;
     if (m_move_state.forward) {
-        m_player_pos += glm::vec3(m_front.x, 0.0f, m_front.z) * speed;
+        m_player_pos += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
     }
     if (m_move_state.back) {
-        m_player_pos -= glm::vec3(m_front.x, 0.0f, m_front.z) * speed;
+        m_player_pos -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
     }
     if (m_move_state.left) {
-        m_player_pos -= glm::vec3(m_right.x, 0.0f, m_right.z) * speed;
+        m_player_pos -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
     }
     if (m_move_state.right) {
-        m_player_pos += glm::vec3(m_right.x, 0.0f, m_right.z) * speed;
+        m_player_pos += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
     }
     if (m_move_state.up) {
         m_player_pos += glm::vec3(0.0f, 1.0f, 0.0f) * speed;
