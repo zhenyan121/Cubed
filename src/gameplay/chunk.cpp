@@ -8,7 +8,7 @@ Chunk::Chunk(World& world, ChunkPos chunk_pos) :
 }
 
 Chunk::~Chunk() {
-
+    glDeleteBuffers(1, &m_vbo);
 }
 
 const std::vector<uint8_t>& Chunk::get_chunk_blocks() const{

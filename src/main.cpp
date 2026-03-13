@@ -18,9 +18,6 @@
 #include <Cubed/tools/shader_tools.hpp>
 
 constexpr int NUM_VAO = 1;
-constexpr int NUM_VBO = 1;
-
-
 
 GLuint rendering_program;
 GLuint vao[NUM_VAO];
@@ -39,15 +36,9 @@ World world;
 
 
 void setup_vertices(void) {
-    
 
-    // every block
-    
-
-    
     glGenVertexArrays(NUM_VAO, vao);
     glBindVertexArray(vao[0]);
-
     glBindVertexArray(0);
 
 }
@@ -93,7 +84,8 @@ GLuint create_shader_program() {
         LOG::error("linking failed");
         Shader::print_program_info(vf_program);
     }
-
+    glDeleteShader(v_shader);
+    glDeleteShader(f_shader);
     return vf_program;
 }
 
@@ -169,7 +161,7 @@ void display(GLFWwindow* window, double current_time) {
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     switch(key) {
-        case GLFW_KEY_ESCAPE:
+        case GLFW_KEY_Q:
             if (action == GLFW_PRESS) {
                 
                 if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
@@ -179,6 +171,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 }
             }
             break;
+        case GLFW_KEY_ESCAPE:
+            if (action == GLFW_PRESS) {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
             
     }
 
@@ -221,7 +217,10 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glDeleteVertexArrays(NUM_VAO, vao);
+    glDeleteProgram(rendering_program);
     glfwDestroyWindow(window);
     glfwTerminate();
     exit(EXIT_SUCCESS);

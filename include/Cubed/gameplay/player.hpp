@@ -36,7 +36,7 @@ private:
 
 public:
     Player(const World& world, const std::string& name);
-    
+    ~Player();
     const glm::vec3& get_front() const;
     const glm::vec3& get_player_pos() const;
     const MoveState& get_move_state() const;

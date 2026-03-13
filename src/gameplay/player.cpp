@@ -8,7 +8,9 @@ Player::Player(const World& world, const std::string& name) :
 {
 
 }
+Player::~Player() {
 
+}
 const glm::vec3& Player::get_front() const {
     return m_front;
 }
