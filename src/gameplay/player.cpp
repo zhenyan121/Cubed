@@ -2,7 +2,10 @@
 
 #include <Cubed/gameplay/player.hpp>
 
-Player::Player() {
+Player::Player(const World& world, const std::string& name) :
+    m_world(world),
+    m_name(name)    
+{
 
 }
 
@@ -16,10 +19,6 @@ const glm::vec3& Player::get_player_pos() const {
 
 const MoveState& Player::get_move_state() const {
     return m_move_state;
-}
-
-void Player::init(bool** block_present) {
-    m_block_present = block_present;
 }
 
 void Player::set_player_pos(const glm::vec3& pos) {

@@ -1,5 +1,7 @@
+#include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/cubed_hash.hpp>
 World::World() {
     
 }
@@ -209,6 +211,16 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     return m_block_render_data;
 }
 
+Player& World::get_player(const std::string& name){
+    auto it = m_players.find(HASH::str(name));
+    if (it == m_players.end()) {
+        LOG::error("Can't find player {}", name);
+        CUBED_ASSERT(0);
+    }
+    
+    return it->second;
+}
+
 
 void World::init_world() {
     for (int s = 0; s < DISTANCE; s++) {
@@ -235,7 +247,8 @@ void World::init_world() {
         chunk.gen_vertex_data();
         
     }
-
+    // init players
+    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
 }
 
 void World::render() {
@@ -254,5 +267,11 @@ void World::render() {
         glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size() * 3);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         //LOG::info("Chunk {} {} render finished", pos.x, pos.z);
+    }
+}
+
+void World::update(float delta_time) {
+    for (auto& player : m_players) {
+        player.second.update(delta_time);
     }
 }

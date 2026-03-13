@@ -33,7 +33,6 @@ float tf = 0.0f;
 double last_time = 0.0f;
 double delta_time = 0.0f;
 GLuint texture_array;
-Player player;
 Camera camera;
 TextureManager texture_manager;
 World world;
@@ -105,7 +104,7 @@ void init(GLFWwindow* window) {
     mv_loc = glGetUniformLocation(rendering_program, "mv_matrix");
     proj_loc = glGetUniformLocation(rendering_program, "proj_matrix");
 
-    camera.camera_init(&player);
+    camera.camera_init(&world.get_player("TestPlayer"));
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
@@ -144,7 +143,7 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 void display(GLFWwindow* window, double current_time) {
     delta_time = current_time - last_time;
     last_time = current_time;
-    player.update(delta_time);
+    world.update(delta_time);
     camera.update_move_camera();
 
 
@@ -183,7 +182,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             
     }
 
-    player.update_player_move_state(key, action);
+    world.get_player("TestPlayer").update_player_move_state(key, action);
 }
 
 

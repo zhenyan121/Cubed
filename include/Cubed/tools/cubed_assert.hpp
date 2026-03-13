@@ -3,7 +3,7 @@
 namespace Assert {
     inline void msg(const char* condition, const char* file,
              int line, const char* func,
-             const std::string& message        
+             const std::string& message = ""        
             ) {
     
         LOG::error("Assertion failed: {} at {}: {} in function {}",
