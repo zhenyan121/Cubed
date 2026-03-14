@@ -244,8 +244,9 @@ int main() {
     glfwSwapInterval(1);   
     glfwSetWindowSizeCallback(window, window_reshape_callback);
     glfwSetKeyCallback(window, key_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    
     glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     MapTable::init_map();
     texture_manager.init_texture();
     world.init_world();

@@ -75,7 +75,7 @@ const std::vector<Vertex>& Chunk::get_vertex_data() const{
 void Chunk::init_chunk() {
     m_blocks.assign(CHUCK_SIZE * CHUCK_SIZE * CHUCK_SIZE, 0);
     for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int y = 0; y < 2; y++) {
+        for (int y = 0; y < 5; y++) {
             for (int z = 0; z < CHUCK_SIZE; z++) {
                 m_blocks[get_index(x, y, z)] = 1;
             }

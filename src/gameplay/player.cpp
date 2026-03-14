@@ -147,7 +147,7 @@ void Player::update(float delta_time) {
     if (m_move_state.up) {
         auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f;
         new_pos.y += 2.0f;
-        if (!m_world.is_block(new_pos)) {
+        if (!m_world.is_block(glm::floor(new_pos))) {
             new_pos.y -= 2.0f;
             m_player_pos = new_pos;
         }
@@ -185,7 +185,7 @@ void Player::update(float delta_time) {
 
 
     static bool should_ceil = true;
-    if (!m_world.is_block(glm::floor(m_player_pos))) {
+    if (!m_world.is_block(glm::floor(m_player_pos)) && !m_move_state.up) {
         
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed * 0.7f;
     } else if (should_ceil) {
