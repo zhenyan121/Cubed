@@ -211,8 +211,17 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     return m_block_render_data;
 }
 
-const glm::ivec3& World::get_last_block_pos() const {
-    return last_block_pos;
+const std::optional<glm::ivec3>& World::get_look_block_pos(const std::string& name) const{
+    static std::optional<glm::ivec3> null_pos = std::nullopt;
+    auto it = m_players.find(HASH::str(name));
+    if (it == m_players.end()) {
+        LOG::error("Can't find player {}", name);
+        CUBED_ASSERT(0);
+        return null_pos;
+    }
+
+    return it->second.get_look_block_pos();
+    
 }
 
 Player& World::get_player(const std::string& name){
@@ -253,13 +262,6 @@ void World::init_world() {
     }
     // init players
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
-}
-
-void World::mark_looked_block(const glm::ivec3& block_pos) {
-    if (last_block_pos == block_pos) {
-        return;
-    }
-    last_block_pos = block_pos;
 }
 
 void World::render() {

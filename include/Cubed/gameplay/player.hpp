@@ -3,6 +3,7 @@
 
 #include <Cubed/config.hpp>
 
+#include <optional>
 #include <string>
 struct MoveState {
     bool forward = false;
@@ -30,6 +31,7 @@ private:
     glm::vec3 m_right;
     MoveState m_move_state;
 
+    std::optional<glm::ivec3> m_look_block_pos = std::nullopt;
     std::string m_name;
     World& m_world;
 
@@ -39,6 +41,7 @@ public:
     Player(World& world, const std::string& name);
     ~Player();
     const glm::vec3& get_front() const;
+    const std::optional<glm::ivec3>& get_look_block_pos() const;
     const glm::vec3& get_player_pos() const;
     const MoveState& get_move_state() const;
     

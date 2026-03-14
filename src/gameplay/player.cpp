@@ -17,6 +17,10 @@ const glm::vec3& Player::get_front() const {
     return m_front;
 }
 
+const std::optional<glm::ivec3>& Player::get_look_block_pos() const {
+    return m_look_block_pos;
+}
+
 const glm::vec3& Player::get_player_pos() const {
     return m_player_pos;
 }
@@ -68,7 +72,9 @@ void Player::update(float delta_time) {
     // calculate the block that is looked 
     glm::ivec3 block_pos;
     if(ray_cast(glm::vec3(m_player_pos.x + 0.5f, (m_player_pos.y + 1.0f), m_player_pos.z + 0.5f), m_front, block_pos)) {
-        m_world.mark_looked_block(block_pos);
+        m_look_block_pos = std::move(block_pos);
+    } else {
+        m_look_block_pos = std::nullopt;
     }
 
 }

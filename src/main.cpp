@@ -122,23 +122,22 @@ void display(GLFWwindow* window, double current_time) {
     glUseProgram(outline_program);
     mv_loc = glGetUniformLocation(outline_program, "mv_matrix");
     proj_loc = glGetUniformLocation(outline_program, "proj_matrix");
+    const auto& block_pos = world.get_look_block_pos("TestPlayer");
+    if (block_pos != std::nullopt) {
+        m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(block_pos.value()));
+        mv_mat = v_mat * m_mat;
+        glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+        glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
 
-    m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(world.get_last_block_pos()));
-    mv_mat = v_mat * m_mat;
-    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
-    glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
+        glBindBuffer(GL_ARRAY_BUFFER, outline_vbo);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, outline_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outline_indices_vbo);
-    glLineWidth(5.0f);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
-
-
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outline_indices_vbo);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+        glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+    }
     
 }
 
