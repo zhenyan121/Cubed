@@ -27,8 +27,11 @@ float aspect;
 glm::mat4 p_mat, v_mat, m_mat, mv_mat;
 float inc = 0.01f;
 float tf = 0.0f;
-double last_time = 0.0f;
+double last_time = glfwGetTime();
 double delta_time = 0.0f;
+double fps_time_count = 0.0f;
+int frame_count = 0;
+int fps;
 GLuint texture_array;
 Camera camera;
 TextureManager texture_manager;
@@ -151,6 +154,15 @@ void render_sky() {
 void display(GLFWwindow* window, double current_time) {
     delta_time = current_time - last_time;
     last_time = current_time;
+    fps_time_count += delta_time;
+    frame_count++;
+    if (fps_time_count >= 1.0f) {
+        fps = static_cast<int>(frame_count / fps_time_count);
+        std::string title = "Cubed FPS: " + std::to_string(fps);
+        glfwSetWindowTitle(window, title.c_str());
+        frame_count = 0;
+        fps_time_count = 0.0f;
+    }
     world.update(delta_time);
     camera.update_move_camera();
 
