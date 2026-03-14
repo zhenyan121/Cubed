@@ -14,7 +14,7 @@ private:
     World& m_world;
     // the index is a array of block id
     std::vector<uint8_t> m_blocks;
-    GLuint m_vbo;
+    GLuint m_vbo = 0;
     std::vector<Vertex> m_vertexs_data;
 
 public:
@@ -28,5 +28,7 @@ public:
     GLuint get_vbo() const;
     const std::vector<Vertex>& get_vertex_data() const;
     void init_chunk();
+
+    void set_chunk_block(int index, unsigned id);
     
 };

@@ -36,6 +36,8 @@ World world;
 
 GLuint outline_vbo, outline_indices_vbo;
 
+
+
 void setup_vertices(void) {
 
     glGenVertexArrays(NUM_VAO, vao);
@@ -124,7 +126,7 @@ void display(GLFWwindow* window, double current_time) {
     proj_loc = glGetUniformLocation(outline_program, "proj_matrix");
     const auto& block_pos = world.get_look_block_pos("TestPlayer");
     if (block_pos != std::nullopt) {
-        m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(block_pos.value()));
+        m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(block_pos.value().pos));
         mv_mat = v_mat * m_mat;
         glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
         glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
@@ -136,6 +138,7 @@ void display(GLFWwindow* window, double current_time) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outline_indices_vbo);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
+        glLineWidth(4.0f);
         glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
     }
     
@@ -163,6 +166,26 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     world.get_player("TestPlayer").update_player_move_state(key, action);
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            if (action == GLFW_PRESS) {
+                Input::get_input_state().mouse_state.left = true;
+            }
+            if (action == GLFW_RELEASE) {
+                Input::get_input_state().mouse_state.left = false;
+            } 
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            if (action == GLFW_PRESS) {
+                Input::get_input_state().mouse_state.right = true;
+            }
+            if (action == GLFW_RELEASE) {
+                Input::get_input_state().mouse_state.right = false;
+            }
+            break;
+    }
+}
 
 int main() {
     if (!glfwInit()) {
@@ -185,6 +208,7 @@ int main() {
     glfwSwapInterval(1);   
     glfwSetWindowSizeCallback(window, window_reshape_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     MapTable::init_map();
     texture_manager.init_texture();

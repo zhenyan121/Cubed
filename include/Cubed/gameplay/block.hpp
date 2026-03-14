@@ -21,3 +21,8 @@ struct BlockRenderData {
     std::vector<bool> draw_face;
     unsigned block_id;
 };
+
+struct LookBlock {
+    glm::ivec3 pos;
+    glm::ivec3 normal;
+};

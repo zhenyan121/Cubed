@@ -1,5 +1,6 @@
 #include <Cubed/gameplay/chunk.hpp>
 #include <Cubed/gameplay/world.hpp>
+#include <Cubed/tools/log.hpp>
 Chunk::Chunk(World& world, ChunkPos chunk_pos) : 
     m_world(world),
     m_chunk_pos(chunk_pos)     
@@ -21,6 +22,8 @@ int Chunk::get_index(int x, int y, int z) {
 }
 
 void Chunk::gen_vertex_data() {
+    m_vertexs_data.clear();
+    glDeleteBuffers(1, &m_vbo);
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int z = 0; z < CHUCK_SIZE; z++) {
             for (int y = 0; y < CHUCK_SIZE; y++) {
@@ -29,7 +32,7 @@ void Chunk::gen_vertex_data() {
                 int world_y = y;
                 const auto& block_render_data = m_world.get_block_render_data(world_x, world_y, world_z);
                 // air
-                if (block_render_data.block_id == 0) {
+                if (m_blocks[get_index(x, y, z)] == 0) {
                     continue;
                 }
                 for (int face = 0; face < 6; face++) {
@@ -79,6 +82,13 @@ void Chunk::init_chunk() {
         }
     }
     
+}
+
+void Chunk::set_chunk_block(int index ,unsigned id) {
+    m_blocks[index] = id;
+    glDeleteBuffers(1, &m_vbo);
+    
+    gen_vertex_data();
 }
 
 

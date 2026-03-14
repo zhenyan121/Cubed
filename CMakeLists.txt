@@ -50,6 +50,7 @@ add_executable(${PROJECT_NAME}
     src/gameplay/chunk.cpp
     src/gameplay/player.cpp
     src/gameplay/world.cpp
+    src/input.cpp
     src/map_table.cpp
     src/texture_manager.cpp
     src/tools/shader_tools.cpp

@@ -1,5 +1,6 @@
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
+#include <Cubed/map_table.hpp>
 #include <Cubed/tools/log.hpp>
 #include <GLFW/glfw3.h>
 
@@ -17,8 +18,8 @@ const glm::vec3& Player::get_front() const {
     return m_front;
 }
 
-const std::optional<glm::ivec3>& Player::get_look_block_pos() const {
-    return m_look_block_pos;
+const std::optional<LookBlock>& Player::get_look_block_pos() const {
+    return m_look_block;
 }
 
 const glm::vec3& Player::get_player_pos() const {
@@ -29,15 +30,75 @@ const MoveState& Player::get_move_state() const {
     return m_move_state;
 }
 
-bool Player::ray_cast(const glm::vec3& start, const glm::vec3& dir,glm::ivec3& block_pos, float distance) {
+bool Player::ray_cast(const glm::vec3& start, const glm::vec3& front, glm::ivec3& block_pos, glm::vec3& normal, float distance) {
+    glm::vec3 dir = glm::normalize(front);
     float step = 0.1f;
     glm::ivec3 cur = glm::floor(start);
-    for (float t = 0.0f; t < distance; t += step) {
-        glm::vec3 point = start + dir * t;
-        block_pos = glm::floor(point);
-        if (m_world.is_block(block_pos)) {
+    int ix = cur.x;
+    int iy = cur.y;
+    int iz = cur.z;
+    // step direction
+    int step_x = (dir.x > 0) ? 1 : ((dir.x < 0) ? -1 : 0);
+    int step_y = (dir.y > 0) ? 1 : ((dir.y < 0) ? -1 : 0);
+    int step_z = (dir.z > 0) ? 1 : ((dir.z < 0) ? -1 : 0);
+
+    static const float INF = std::numeric_limits<float>::infinity();
+    
+    float t_delta_x = (dir.x != 0) ? std::fabs(1.0f / dir.x) : INF;
+    float t_delta_y = (dir.y != 0) ? std::fabs(1.0f / dir.y) : INF;
+    float t_delta_z = (dir.z != 0) ? std::fabs(1.0f / dir.z) : INF;
+
+    float t_max_x, t_max_y, t_max_z;
+
+    if (dir.x > 0) {
+        t_max_x = (static_cast<float>(ix) + 1.0f - start.x) / dir.x;
+    } else if (dir.x < 0) {
+        t_max_x = (start.x - static_cast<float>(ix)) / (-dir.x);
+    } else {
+        t_max_x = INF;
+    }
+
+    if (dir.y > 0) {
+        t_max_y = (static_cast<float>(iy) + 1.0f - start.y) / dir.y;
+    } else if (dir.y < 0) {
+        t_max_y = (start.y - static_cast<float>(iy)) / (-dir.y);
+    } else {
+        t_max_y = INF;
+    }
+
+    if (dir.z > 0) {
+        t_max_z = (static_cast<float>(iz) + 1.0f - start.z) / dir.z;
+    } else if (dir.z < 0) {
+        t_max_z = (start.z - static_cast<float>(iz)) / (-dir.z);
+    } else {
+        t_max_z = INF;
+    }
+    float t = 0.0f;
+    normal = glm::vec3(0.0f, 0.0f, 0.0f);
+    while (t <= distance) {
+        if (m_world.is_block(glm::ivec3(ix, iy, iz))) {
+            block_pos = glm::ivec3(ix, iy, iz);
             return true;
         }
+
+        if (t_max_x < t_max_y && t_max_x < t_max_z) {
+            t = t_max_x;
+            t_max_x += t_delta_x;
+            normal = glm::vec3(-step_x, 0.0f, 0.0f);
+            ix += step_x;
+        } else if (t_max_y < t_max_z) {
+            t = t_max_y;
+            t_max_y += t_delta_y;
+            normal = glm::vec3(0.0f, -step_y, 0.0f);
+            iy += step_y;
+        } else {
+            t = t_max_z;
+            t_max_z += t_delta_z;
+            normal = glm::vec3(0.0f, 0.0f, -step_z);
+            iz += step_z;
+        }
+
+
     }
     return false;
 }
@@ -73,11 +134,31 @@ void Player::update(float delta_time) {
     */
     // calculate the block that is looked 
     glm::ivec3 block_pos;
-    if(ray_cast(glm::vec3(m_player_pos.x + 0.5f, (m_player_pos.y + 1.0f), m_player_pos.z + 0.5f), m_front, block_pos)) {
-        m_look_block_pos = std::move(block_pos);
+    glm::vec3 block_normal;
+    if(ray_cast(glm::vec3(m_player_pos.x + 0.5f, (m_player_pos.y + 1.0f), m_player_pos.z + 0.5f), m_front, block_pos, block_normal)) {
+        m_look_block = std::move(LookBlock{block_pos, glm::floor(block_normal)});
     } else {
-        m_look_block_pos = std::nullopt;
+        m_look_block = std::nullopt;
     }
+
+    if (m_look_block != std::nullopt) {
+        if (Input::get_input_state().mouse_state.left) {
+            if (m_world.is_block(m_look_block->pos)) {
+                m_world.set_block(m_look_block->pos, 0);
+                
+            }
+            Input::get_input_state().mouse_state.left = false;
+        }
+        if (Input::get_input_state().mouse_state.right) {
+            glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
+            if (!m_world.is_block(near_pos)) {
+                m_world.set_block(near_pos, 1);
+            }
+            Input::get_input_state().mouse_state.right = false;
+        }
+    }
+
+
     static bool should_ceil = true;
     if (!m_world.is_block(m_player_pos)) {
         
@@ -90,6 +171,9 @@ void Player::update(float delta_time) {
     if (m_player_pos.y < -50.0f) {
         m_player_pos = glm::vec3(0.0f, 15.0f, 0.0f);
     }
+
+
+
 }
 
 void Player::update_player_move_state(int key, int action) {
@@ -142,8 +226,6 @@ void Player::update_player_move_state(int key, int action) {
                 m_move_state.down = false;
             }
             break;
-        
-            
     }
 }
 

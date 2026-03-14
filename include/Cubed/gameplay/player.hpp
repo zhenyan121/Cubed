@@ -2,17 +2,11 @@
 #include <glm/glm.hpp>
 
 #include <Cubed/config.hpp>
+#include <Cubed/gameplay/block.hpp>
+#include <Cubed/input.hpp>
 
 #include <optional>
 #include <string>
-struct MoveState {
-    bool forward = false;
-    bool back = false;
-    bool left = false;
-    bool right = false;
-    bool down = false;
-    bool up = false;
-};
 
 class World;
 
@@ -31,17 +25,17 @@ private:
     glm::vec3 m_right;
     MoveState m_move_state;
 
-    std::optional<glm::ivec3> m_look_block_pos = std::nullopt;
+    std::optional<LookBlock> m_look_block = std::nullopt;
     std::string m_name;
     World& m_world;
 
-    bool ray_cast(const glm::vec3& start, const glm::vec3& dir, glm::ivec3& block_pos, float distance = 4.0f);
+    bool ray_cast(const glm::vec3& start, const glm::vec3& dir, glm::ivec3& block_pos, glm::vec3& normal, float distance = 4.0f);
 
 public:
     Player(World& world, const std::string& name);
     ~Player();
     const glm::vec3& get_front() const;
-    const std::optional<glm::ivec3>& get_look_block_pos() const;
+    const std::optional<LookBlock>& get_look_block_pos() const;
     const glm::vec3& get_player_pos() const;
     const MoveState& get_move_state() const;
     

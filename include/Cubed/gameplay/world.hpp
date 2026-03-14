@@ -17,11 +17,12 @@ public:
     ~World();
 
     const BlockRenderData& get_block_render_data(int x, int y ,int z);
-    const std::optional<glm::ivec3>& get_look_block_pos(const std::string& name) const;
+    const std::optional<LookBlock>& get_look_block_pos(const std::string& name) const;
     Player& get_player(const std::string& name);
     void init_world();
     bool is_block(const glm::ivec3& block_pos) const;
     void render();
+    void set_block(const glm::ivec3& pos, unsigned id);
     void update(float delta_time);
     
 
