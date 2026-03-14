@@ -56,19 +56,19 @@ add_executable(${PROJECT_NAME}
     src/tools/log.cpp
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "Building with AddressSanitizer enabled for target: ${PROJECT_NAME}")
-
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address
-        -fno-omit-frame-pointer   
-        -g                        
-    )
-
-    target_link_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address
-    )
-endif()
+#if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#    message(STATUS "Building with AddressSanitizer enabled for target: ${PROJECT_NAME}")
+#
+#    target_compile_options(${PROJECT_NAME} PRIVATE
+#        -fsanitize=address
+#        -fno-omit-frame-pointer   
+#        -g                        
+#    )
+#
+#    target_link_options(${PROJECT_NAME} PRIVATE
+#        -fsanitize=address
+#    )
+#endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})
 

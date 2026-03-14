@@ -31,11 +31,12 @@ private:
     MoveState m_move_state;
 
     std::string m_name;
-    const World& m_world;
+    World& m_world;
 
+    bool ray_cast(const glm::vec3& start, const glm::vec3& dir, glm::ivec3& block_pos, float distance = 4.0f);
 
 public:
-    Player(const World& world, const std::string& name);
+    Player(World& world, const std::string& name);
     ~Player();
     const glm::vec3& get_front() const;
     const glm::vec3& get_player_pos() const;

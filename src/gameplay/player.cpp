@@ -1,8 +1,10 @@
+#include <Cubed/gameplay/player.hpp>
+#include <Cubed/gameplay/world.hpp>
+#include <Cubed/tools/log.hpp>
 #include <GLFW/glfw3.h>
 
-#include <Cubed/gameplay/player.hpp>
 
-Player::Player(const World& world, const std::string& name) :
+Player::Player(World& world, const std::string& name) :
     m_world(world),
     m_name(name)    
 {
@@ -22,6 +24,20 @@ const glm::vec3& Player::get_player_pos() const {
 const MoveState& Player::get_move_state() const {
     return m_move_state;
 }
+
+bool Player::ray_cast(const glm::vec3& start, const glm::vec3& dir,glm::ivec3& block_pos, float distance) {
+    float step = 0.1f;
+    glm::ivec3 cur = glm::floor(start);
+    for (float t = 0.0f; t < distance; t += step) {
+        glm::vec3 point = start + dir * t;
+        block_pos = glm::floor(point);
+        if (m_world.is_block(block_pos)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void Player::set_player_pos(const glm::vec3& pos) {
     m_player_pos = pos;
@@ -48,6 +64,11 @@ void Player::update(float delta_time) {
     }
     if (m_move_state.down) {
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed;
+    }
+    // calculate the block that is looked 
+    glm::ivec3 block_pos;
+    if(ray_cast(glm::vec3(m_player_pos.x + 0.5f, (m_player_pos.y + 1.0f), m_player_pos.z + 0.5f), m_front, block_pos)) {
+        m_world.mark_looked_block(block_pos);
     }
 
 }

@@ -5,7 +5,7 @@ constexpr int WORLD_SIZE_Y = 16;
 constexpr int MAX_BLOCK_NUM = 2;
 constexpr int CHUCK_SIZE = 16;
 constexpr int DISTANCE = 8;
-
+constexpr int MAX_BLOCK_STATUS = 1;
 
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====
@@ -60,4 +60,21 @@ constexpr float TEX_COORDS[6][6][2] = {
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 
+    };
+
+constexpr float CUBE_VER[24] = {
+        -0.5, -0.5, -0.5,
+        0.5, -0.5, -0.5,
+        0.5, 0.5, -0.5,
+        -0.5, 0.5, -0.5,
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5
+    };
+
+constexpr int OUTLINE_CUBE_INDICES[24] = {
+        0,1, 1,2, 2,3, 3,0,
+        4,5, 5,6, 6,7, 7,4,
+        0,4, 1,5, 2,6, 3,7
     };

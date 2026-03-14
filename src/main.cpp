@@ -19,7 +19,7 @@
 
 constexpr int NUM_VAO = 1;
 
-GLuint rendering_program;
+GLuint rendering_program, outline_program;
 GLuint vao[NUM_VAO];
 GLuint mv_loc, proj_loc;
 int width ,height;
@@ -34,67 +34,29 @@ Camera camera;
 TextureManager texture_manager;
 World world;
 
+GLuint outline_vbo, outline_indices_vbo;
 
 void setup_vertices(void) {
 
     glGenVertexArrays(NUM_VAO, vao);
     glBindVertexArray(vao[0]);
     glBindVertexArray(0);
-
+    glGenBuffers(1, &outline_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, outline_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CUBE_VER), CUBE_VER, GL_STATIC_DRAW);
+    glGenBuffers(1, &outline_indices_vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outline_indices_vbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(OUTLINE_CUBE_INDICES), OUTLINE_CUBE_INDICES, GL_STATIC_DRAW);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-
-
-
-GLuint create_shader_program() {
-    std::string v_shader_str = Shader::read_shader_source("shaders/vShader.glsl");
-    std::string f_shader_str = Shader::read_shader_source("shaders/fShader.glsl");
-    const char *v_shader_source = v_shader_str.c_str();
-    const char *f_shader_source = f_shader_str.c_str();
-
-    GLuint v_shader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    GLint vc, fc;
-    glShaderSource(v_shader, 1, &v_shader_source, NULL);
-    glShaderSource(f_shader, 1, &f_shader_source, NULL);
-    glCompileShader(v_shader);
-    Shader::check_opengl_error();
-    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &vc);
-    if (vc != 1) {
-        LOG::error("vertex compilation failed");
-        Shader::print_shader_log(v_shader);
-    }
-    glCompileShader(f_shader);         
-    Shader::check_opengl_error();
-    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
-    if (fc != 1) {
-        LOG::error("vertex compilation failed");
-        Shader::print_shader_log(f_shader);
-    }
-    GLuint vf_program = glCreateProgram();
-    glAttachShader(vf_program, v_shader);
-    glAttachShader(vf_program, f_shader);
-    glLinkProgram(vf_program);
-
-    GLint linked;
-    Shader::check_opengl_error();
-    glGetProgramiv(vf_program, GL_LINK_STATUS, &linked);
-    if (linked != 1) {
-        LOG::error("linking failed");
-        Shader::print_program_info(vf_program);
-    }
-    glDeleteShader(v_shader);
-    glDeleteShader(f_shader);
-    return vf_program;
-}
 
 
 void init(GLFWwindow* window) {
-    rendering_program = create_shader_program();
+    rendering_program = Shader::create_shader_program("shaders/vShader.glsl", "shaders/fShader.glsl");
+    outline_program = Shader::create_shader_program("shaders/outline_v_shader.glsl", "shaders/outline_f_shader.glsl");
 
-    mv_loc = glGetUniformLocation(rendering_program, "mv_matrix");
-    proj_loc = glGetUniformLocation(rendering_program, "proj_matrix");
 
     camera.camera_init(&world.get_player("TestPlayer"));
     glfwGetFramebufferSize(window, &width, &height);
@@ -145,7 +107,8 @@ void display(GLFWwindow* window, double current_time) {
     
     glUseProgram(rendering_program);
     glBindVertexArray(vao[0]);
-
+    mv_loc = glGetUniformLocation(rendering_program, "mv_matrix");
+    proj_loc = glGetUniformLocation(rendering_program, "proj_matrix");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture_array);
     m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -156,6 +119,26 @@ void display(GLFWwindow* window, double current_time) {
 
     world.render();
     
+    glUseProgram(outline_program);
+    mv_loc = glGetUniformLocation(outline_program, "mv_matrix");
+    proj_loc = glGetUniformLocation(outline_program, "proj_matrix");
+
+    m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(world.get_last_block_pos()));
+    mv_mat = v_mat * m_mat;
+    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+    glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
+
+    glBindBuffer(GL_ARRAY_BUFFER, outline_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outline_indices_vbo);
+    glLineWidth(5.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+
+
     
 }
 
@@ -218,9 +201,12 @@ int main() {
         glfwPollEvents();
     }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &outline_vbo);
+    glDeleteBuffers(1, &outline_indices_vbo);
     glBindVertexArray(0);
     glDeleteVertexArrays(NUM_VAO, vao);
     glDeleteProgram(rendering_program);
+    glDeleteProgram(outline_program);
     glfwDestroyWindow(window);
     glfwTerminate();
     exit(EXIT_SUCCESS);

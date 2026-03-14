@@ -11,7 +11,7 @@ World::~World() {
 }
 
 const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
-    static int chunk_x, chunk_z;
+    int chunk_x, chunk_z;
     if (world_x < 0) {
         chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
     }
@@ -211,6 +211,10 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     return m_block_render_data;
 }
 
+const glm::ivec3& World::get_last_block_pos() const {
+    return last_block_pos;
+}
+
 Player& World::get_player(const std::string& name){
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {
@@ -251,6 +255,13 @@ void World::init_world() {
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
 }
 
+void World::mark_looked_block(const glm::ivec3& block_pos) {
+    if (last_block_pos == block_pos) {
+        return;
+    }
+    last_block_pos = block_pos;
+}
+
 void World::render() {
     for (const auto& chunk_map : m_chunks) {
         const auto& [pos, chunk] = chunk_map;
@@ -266,7 +277,49 @@ void World::render() {
 
         glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size() * 3);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        //LOG::info("Chunk {} {} render finished", pos.x, pos.z);
+
+    }
+}
+
+bool World::is_block(const glm::ivec3& block_pos) const{
+    int chunk_x, chunk_z;
+    int world_x, world_y, world_z;
+    world_x = block_pos.x;
+    world_y = block_pos.y;
+    world_z = block_pos.z;
+
+    if (world_x < 0) {
+        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_x >= 0) {
+        chunk_x = world_x / CHUCK_SIZE;
+    }
+    if (world_z < 0) {
+        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_z >= 0) {
+        chunk_z = world_z / CHUCK_SIZE;
+    }
+
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return false;
+    }
+
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    int x, y, z;
+    y = world_y;
+    x = world_x - chunk_x * CHUCK_SIZE;
+    z = world_z - chunk_z * CHUCK_SIZE;
+    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= CHUCK_SIZE || z >= CHUCK_SIZE) {
+        return false;
+    }
+    auto id = chunk_blocks[Chunk::get_index(x, y, z)];
+    if (id == 0) {
+        return false;
+    } else {
+        return true;
     }
 }
 
