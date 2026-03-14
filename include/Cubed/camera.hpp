@@ -29,7 +29,7 @@ public:
     void update_cursor_position_camera(double xpos, double ypos);
 
     const glm::mat4 get_camera_lookat() const;
-
+    const glm::vec3& get_camera_pos() const;
 };
 
 

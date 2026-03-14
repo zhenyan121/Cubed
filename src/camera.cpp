@@ -39,3 +39,7 @@ const glm::mat4 Camera::get_camera_lookat() const{
     CUBED_ASSERT_MSG(m_player, "nullptr");
     return glm::lookAt(m_camera_pos, m_camera_pos + m_player->get_front(), glm::vec3(0.0f, 1.0f, 0.0f));
 }
+
+const glm::vec3& Camera::get_camera_pos() const {
+    return m_camera_pos;
+}
