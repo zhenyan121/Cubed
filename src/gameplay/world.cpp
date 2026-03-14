@@ -11,6 +11,17 @@ World::~World() {
 
 }
 
+bool World::can_move(const glm::vec3& pos) const{
+    
+    if (is_block(glm::floor(pos))) {
+        return false;
+    }
+    if (is_block(glm::floor(glm::vec3(pos.x, pos.y + 1.0f, pos.z)))) {
+        return false;
+    }
+    return true;
+}
+
 const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
     int chunk_x, chunk_z;
     if (world_x < 0) {

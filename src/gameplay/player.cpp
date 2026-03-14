@@ -113,19 +113,44 @@ void Player::update(float delta_time) {
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
     float speed = m_speed * delta_time;
     if (m_move_state.forward) {
-        m_player_pos += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
+        auto new_pos = m_player_pos + glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
+        new_pos.y += 1.0f;
+        if (m_world.can_move(new_pos)) {
+            new_pos.y -= 1.0f;
+            m_player_pos = new_pos;
+        }
     }
     if (m_move_state.back) {
-        m_player_pos -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
+        auto new_pos = m_player_pos - glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
+        new_pos.y += 1.0f;
+        if (m_world.can_move(new_pos)) {
+            new_pos.y -= 1.0f;
+            m_player_pos = new_pos;
+        }
     }
     if (m_move_state.left) {
-        m_player_pos -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
+        auto new_pos = m_player_pos - glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
+        new_pos.y += 1.0f;
+        if (m_world.can_move(new_pos)) {
+            new_pos.y -= 1.0f;
+            m_player_pos = new_pos;
+        }
     }
     if (m_move_state.right) {
-        m_player_pos += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
+        auto new_pos = m_player_pos + glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
+        new_pos.y += 1.0f;
+        if (m_world.can_move(new_pos)) {
+            new_pos.y -= 1.0f;
+            m_player_pos = new_pos;
+        }
     }
     if (m_move_state.up) {
-        m_player_pos += glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f;
+        auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f;
+        new_pos.y += 2.0f;
+        if (!m_world.is_block(new_pos)) {
+            new_pos.y -= 2.0f;
+            m_player_pos = new_pos;
+        }
     }
     /*
     if (m_move_state.down) {
@@ -135,7 +160,7 @@ void Player::update(float delta_time) {
     // calculate the block that is looked 
     glm::ivec3 block_pos;
     glm::vec3 block_normal;
-    if(ray_cast(glm::vec3(m_player_pos.x + 0.5f, (m_player_pos.y + 1.0f), m_player_pos.z + 0.5f), m_front, block_pos, block_normal)) {
+    if(ray_cast(glm::vec3(m_player_pos.x, (m_player_pos.y + 1.0f), m_player_pos.z), m_front, block_pos, block_normal)) {
         m_look_block = std::move(LookBlock{block_pos, glm::floor(block_normal)});
     } else {
         m_look_block = std::nullopt;
@@ -160,12 +185,12 @@ void Player::update(float delta_time) {
 
 
     static bool should_ceil = true;
-    if (!m_world.is_block(m_player_pos)) {
+    if (!m_world.is_block(glm::floor(m_player_pos))) {
         
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed * 0.7f;
     } else if (should_ceil) {
         should_ceil = false;
-        m_player_pos.y = std::ceil(m_player_pos.y);
+        m_player_pos.y = std::floor(m_player_pos.y + 1.0f);
     }
 
     if (m_player_pos.y < -50.0f) {

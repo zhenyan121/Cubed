@@ -9,47 +9,47 @@ constexpr int MAX_BLOCK_STATUS = 1;
 constexpr float FOV = 70.0f;
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====
-        -0.5f, -0.5f,  0.5f,  // bottom left
-        -0.5f,  0.5f,  0.5f,  // top left
-        0.5f,  0.5f,  0.5f,  // top right
-        0.5f,  0.5f,  0.5f,  // top right
-        0.5f, -0.5f,  0.5f,  // bottom right
-        -0.5f, -0.5f,  0.5f,  // bottom left
+        0.0f, 0.0f, 1.0f,  // bottom left
+        0.0f, 1.0f, 1.0f,  // top left
+        1.0f, 1.0f, 1.0f,  // top right
+        1.0f, 1.0f, 1.0f,  // top right
+        1.0f, 0.0f, 1.0f,  // bottom right
+        0.0f, 0.0f, 1.0f,  // bottom left
         // ===== right (x = +1) =====
-        0.5f, -0.5f,  0.5f,  // bottom front
-        0.5f, -0.5f, -0.5f,  // bottom back
-        0.5f,  0.5f, -0.5f,  // top back
-        0.5f,  0.5f, -0.5f,  // top back
-        0.5f,  0.5f,  0.5f,  // top front
-        0.5f, -0.5f,  0.5f,  // bottom front
+        1.0f, 0.0f, 1.0f,  // bottom front
+        1.0f, 0.0f, 0.0f,  // bottom back
+        1.0f, 1.0f, 0.0f,  // top back
+        1.0f, 1.0f, 0.0f,  // top back
+        1.0f, 1.0f, 1.0f,  // top front
+        1.0f, 0.0f, 1.0f,  // bottom front
         // ===== back (z = -1) =====
-        -0.5f, -0.5f, -0.5f,  // bottom left
-        0.5f, -0.5f, -0.5f,  // bottom right
-        0.5f,  0.5f, -0.5f,  // top right
-        0.5f,  0.5f, -0.5f,  // top right
-        -0.5f,  0.5f, -0.5f,  // top left
-        -0.5f, -0.5f, -0.5f,  // bottom left
+        0.0f, 0.0f, 0.0f,  // bottom left
+        1.0f, 0.0f, 0.0f,  // bottom right
+        1.0f, 1.0f, 0.0f,  // top right
+        1.0f, 1.0f, 0.0f,  // top right
+        0.0f, 1.0f, 0.0f,  // top left
+        0.0f, 0.0f, 0.0f,  // bottom left
         // ===== left (x = -1) =====
-        -0.5f, -0.5f, -0.5f,  // bottom back
-        -0.5f, -0.5f,  0.5f,  // bottom front
-        -0.5f,  0.5f,  0.5f,  // top front
-        -0.5f,  0.5f,  0.5f,  // top front
-        -0.5f,  0.5f, -0.5f,  // top back
-        -0.5f, -0.5f, -0.5f,  // bottom back
+        0.0f, 0.0f, 0.0f,  // bottom back
+        0.0f, 0.0f, 1.0f,  // bottom front
+        0.0f, 1.0f, 1.0f,  // top front
+        0.0f, 1.0f, 1.0f,  // top front
+        0.0f, 1.0f, 0.0f,  // top back
+        0.0f, 0.0f, 0.0f,  // bottom back
         // ===== top (y = +1) =====
-        -0.5f,  0.5f, -0.5f,  // back left
-        0.5f,  0.5f, -0.5f,  // back right
-        0.5f,  0.5f,  0.5f,  // front right
-        0.5f,  0.5f,  0.5f,  // front right
-        -0.5f,  0.5f,  0.5f,  // front left
-        -0.5f,  0.5f, -0.5f,  // back left
+        0.0f, 1.0f, 0.0f,  // back left
+        1.0f, 1.0f, 0.0f,  // back right
+        1.0f, 1.0f, 1.0f,  // front right
+        1.0f, 1.0f, 1.0f,  // front right
+        0.0f, 1.0f, 1.0f,  // front left
+        0.0f, 1.0f, 0.0f,  // back left
         // ===== bottom (y = -1) =====
-        -0.5f, -0.5f,  0.5f,  // front left
-        0.5f, -0.5f,  0.5f,  // front right
-        0.5f, -0.5f, -0.5f,  // back right
-        0.5f, -0.5f, -0.5f,  // back right
-        -0.5f, -0.5f, -0.5f,  // back left
-        -0.5f, -0.5f,  0.5f   // front left
+        0.0f, 0.0f, 1.0f,  // front left
+        1.0f, 0.0f, 1.0f,  // front right
+        1.0f, 0.0f, 0.0f,  // back right
+        1.0f, 0.0f, 0.0f,  // back right
+        0.0f, 0.0f, 0.0f,  // back left
+        0.0f, 0.0f, 1.0f   // front left
     };
 
 constexpr float TEX_COORDS[6][6][2] = {
@@ -63,15 +63,16 @@ constexpr float TEX_COORDS[6][6][2] = {
     };
 
 constexpr float CUBE_VER[24] = {
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5,
-        0.5, 0.5, -0.5,
-        -0.5, 0.5, -0.5,
-        -0.5, -0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, 0.5, 0.5,
-        -0.5, 0.5, 0.5
+        0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0,
+        0.0, 1.0, 1.0
     };
+
 
 constexpr int OUTLINE_CUBE_INDICES[24] = {
         0,1, 1,2, 2,3, 3,0,

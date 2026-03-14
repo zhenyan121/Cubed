@@ -15,7 +15,7 @@ public:
     
     World();
     ~World();
-
+    bool can_move(const glm::vec3& new_pos) const;
     const BlockRenderData& get_block_render_data(int x, int y ,int z);
     const std::optional<LookBlock>& get_look_block_pos(const std::string& name) const;
     Player& get_player(const std::string& name);

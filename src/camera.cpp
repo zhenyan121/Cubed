@@ -9,13 +9,14 @@ Camera::Camera() {
 void Camera::update_move_camera() {
     CUBED_ASSERT_MSG(m_player, "nullptr");
     auto pos = m_player->get_player_pos();
-    m_camera_pos = glm::vec3(pos.x, pos.y + 1, pos.z);
+    // pos.y need to add 1.6f to center
+    m_camera_pos = glm::vec3(pos.x, pos.y + 1.6f, pos.z);
 }
 
 
 void Camera::camera_init(Player* player) {
-    m_camera_pos = glm::vec3(0.0f, 2.0f, 0.0f);
     m_player = player;
+    update_move_camera();
 }
 
 void Camera::update_cursor_position_camera(double xpos, double ypos) {
