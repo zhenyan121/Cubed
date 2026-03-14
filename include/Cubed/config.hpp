@@ -6,7 +6,7 @@ constexpr int MAX_BLOCK_NUM = 2;
 constexpr int CHUCK_SIZE = 16;
 constexpr int DISTANCE = 8;
 constexpr int MAX_BLOCK_STATUS = 1;
-
+constexpr float FOV = 70.0f;
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====
         -0.5f, -0.5f,  0.5f,  // bottom left

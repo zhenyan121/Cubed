@@ -62,7 +62,7 @@ void init(GLFWwindow* window) {
     glfwGetFramebufferSize(window, &width, &height);
     aspect = (float)width / (float)height;
     glViewport(0, 0, width, height);
-    p_mat = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 1000.0f); 
+    p_mat = glm::perspective(glm::radians(FOV), aspect, 0.1f, 1000.0f); 
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
