@@ -14,10 +14,11 @@ World::~World() {
 
 bool World::can_move(const glm::vec3& pos) const{
     
-    if (is_block(glm::floor(pos))) {
+    if (is_block(glm::floor(glm::vec3(pos.x, pos.y - 0.5f, pos.z)))) {
         return false;
     }
-    if (is_block(glm::floor(glm::vec3(pos.x, pos.y + 1.0f, pos.z)))) {
+    
+    if (is_block(glm::floor(glm::vec3(pos.x, pos.y + 0.5f, pos.z)))) {
         return false;
     }
     return true;

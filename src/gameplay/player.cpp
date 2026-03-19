@@ -109,49 +109,58 @@ void Player::set_player_pos(const glm::vec3& pos) {
 }
 
 void Player::update(float delta_time) {
+    static float speed = 0;
+    static glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
+    if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
+        direction = glm::vec3(0.0f, 0.0f, 0.0f);
+        speed += ACCELERATION * delta_time;
+        if (speed > m_speed) {
+            speed = m_speed;
+        }
+    } else {
+        speed += -DECELERATION * delta_time;
+        if (speed < 0) {
+            speed = 0;
+            direction = glm::vec3(0.0f, 0.0f, 0.0f);
+        }
+    }
 
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
-    float speed = m_speed * delta_time;
+    glm::vec3 move_dir = glm::vec3(0.0f);
     if (m_move_state.forward) {
-        auto new_pos = m_player_pos + glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
-        new_pos.y += 1.0f;
-        if (m_world.can_move(new_pos)) {
-            new_pos.y -= 1.0f;
-            m_player_pos = new_pos;
-        }
+        move_dir += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+
     }
     if (m_move_state.back) {
-        auto new_pos = m_player_pos - glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z)) * speed;
-        new_pos.y += 1.0f;
-        if (m_world.can_move(new_pos)) {
-            new_pos.y -= 1.0f;
-            m_player_pos = new_pos;
-        }
+        move_dir -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+
     }
     if (m_move_state.left) {
-        auto new_pos = m_player_pos - glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
-        new_pos.y += 1.0f;
-        if (m_world.can_move(new_pos)) {
-            new_pos.y -= 1.0f;
-            m_player_pos = new_pos;
-        }
+        move_dir -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
+
     }
     if (m_move_state.right) {
-        auto new_pos = m_player_pos + glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z)) * speed;
-        new_pos.y += 1.0f;
-        if (m_world.can_move(new_pos)) {
-            new_pos.y -= 1.0f;
-            m_player_pos = new_pos;
-        }
+        move_dir += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
     }
+    if (glm::length(move_dir) > 0.001f) {
+        direction = glm::normalize(move_dir);
+    }
+    auto new_pos = m_player_pos + direction * speed * delta_time;
+    new_pos.y += 1.0f;
+    if (m_world.can_move(new_pos)) {
+        new_pos.y -= 1.0f;
+        m_player_pos = new_pos;
+    }
+
     if (m_move_state.up) {
-        auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f;
+        auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f * delta_time;
         new_pos.y += 2.0f;
         if (!m_world.is_block(glm::floor(new_pos))) {
             new_pos.y -= 2.0f;
             m_player_pos = new_pos;
         }
     }
+
     /*
     if (m_move_state.down) {
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed;
@@ -165,7 +174,7 @@ void Player::update(float delta_time) {
     } else {
         m_look_block = std::nullopt;
     }
-
+    
     if (m_look_block != std::nullopt) {
         if (Input::get_input_state().mouse_state.left) {
             if (m_world.is_block(m_look_block->pos)) {
@@ -190,12 +199,18 @@ void Player::update(float delta_time) {
 
 
     static bool should_ceil = true;
+    static float down_speed = 0.0f;
+
     if (!m_world.is_block(glm::floor(m_player_pos)) && !m_move_state.up) {
-        
-        m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed * 0.7f;
-    } else if (should_ceil) {
-        should_ceil = false;
-        m_player_pos.y = std::floor(m_player_pos.y + 1.0f);
+        should_ceil = true;
+        down_speed += 10 * delta_time;
+        m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * down_speed * delta_time;
+    } else {
+        if (should_ceil && m_world.is_block(glm::floor(m_player_pos))) {
+            should_ceil = false;
+            m_player_pos.y = std::floor(m_player_pos.y + 1.0f);
+        }
+        down_speed = 0.0f;
     }
 
     if (m_player_pos.y < -50.0f) {
