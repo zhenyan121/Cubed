@@ -3,6 +3,7 @@
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
+#include <Cubed/tools/math_tools.hpp>
 World::World() {
     
 }
@@ -123,26 +124,43 @@ void World::init_world() {
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
 }
 
-void World::render() {
-
+void World::render(const glm::mat4& mvp_matrix) {
+    Math::extract_frustum_planes(mvp_matrix, m_planes);
     for (const auto& chunk_map : m_chunks) {
         const auto& [pos, chunk] = chunk_map;
+        glm::vec3 center = glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2));
+        if (is_aabb_in_frustum(center, glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2)))) {
+            glBindBuffer(GL_ARRAY_BUFFER, chunk.get_vbo());
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, s));
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            glEnableVertexAttribArray(2);
+
+            glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size() * 3);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        }
         
-        glBindBuffer(GL_ARRAY_BUFFER, chunk.get_vbo());
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, s));
-        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-
-        glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size() * 3);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     }
-}
 
+}
+bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents) {
+    for (const auto& plane : m_planes) {
+        // distance
+        float d = glm::dot(glm::vec3(plane), center) + plane.w;
+        float r = half_extents.x * std::abs(plane.x) +
+                  half_extents.y * std::abs(plane.y) +
+                  half_extents.z * std::abs(plane.z);
+        if (d + r < 0) {
+            return false;
+        }
+    }
+    return true;
+}
 bool World::is_block(const glm::ivec3& block_pos) const{
     int chunk_x, chunk_z;
     int world_x, world_y, world_z;

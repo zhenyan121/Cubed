@@ -24,7 +24,7 @@ GLuint vao[NUM_VAO];
 GLuint mv_loc, proj_loc;
 int width ,height;
 float aspect;
-glm::mat4 p_mat, v_mat, m_mat, mv_mat;
+glm::mat4 p_mat, v_mat, m_mat, mv_mat, mvp_mat;
 float inc = 0.01f;
 float tf = 0.0f;
 double last_time = glfwGetTime();
@@ -183,8 +183,8 @@ void display(GLFWwindow* window, double current_time) {
     mv_mat = v_mat * m_mat;  
     glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
     glUniformMatrix4fv(proj_loc, 1 ,GL_FALSE, glm::value_ptr(p_mat));
-
-    world.render();
+    mvp_mat = p_mat * mv_mat;
+    world.render(mvp_mat);
     
     render_outline();
     

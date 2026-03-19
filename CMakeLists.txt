@@ -53,6 +53,7 @@ add_executable(${PROJECT_NAME}
     src/input.cpp
     src/map_table.cpp
     src/texture_manager.cpp
+    src/tools/math_tools.cpp
     src/tools/shader_tools.cpp
     src/tools/log.cpp
 )
