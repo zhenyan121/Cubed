@@ -174,7 +174,7 @@ void Player::update(float delta_time) {
     } else {
         m_look_block = std::nullopt;
     }
-    
+
     if (m_look_block != std::nullopt) {
         if (Input::get_input_state().mouse_state.left) {
             if (m_world.is_block(m_look_block->pos)) {
@@ -203,10 +203,13 @@ void Player::update(float delta_time) {
 
     if (!m_world.is_block(glm::floor(m_player_pos)) && !m_move_state.up) {
         should_ceil = true;
-        down_speed += 10 * delta_time;
+        down_speed += 25 * delta_time;
+        if (down_speed > 20.0f) {
+            down_speed = 20.0f;
+        }
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * down_speed * delta_time;
     } else {
-        if (should_ceil && m_world.is_block(glm::floor(m_player_pos))) {
+        if (should_ceil && m_world.is_block(glm::floor(glm::vec3(m_player_pos.x, m_player_pos.y, m_player_pos.z)))) {
             should_ceil = false;
             m_player_pos.y = std::floor(m_player_pos.y + 1.0f);
         }
