@@ -46,16 +46,19 @@ set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
+    src/app.cpp
     src/camera.cpp
     src/gameplay/chunk.cpp
     src/gameplay/player.cpp
     src/gameplay/world.cpp
     src/input.cpp
     src/map_table.cpp
+    src/renderer.cpp
     src/texture_manager.cpp
     src/tools/math_tools.cpp
     src/tools/shader_tools.cpp
     src/tools/log.cpp
+    src/window.cpp
 )
 
 #if(CMAKE_BUILD_TYPE STREQUAL "Debug")

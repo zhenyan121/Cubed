@@ -1,5 +1,7 @@
 #pragma once
 
+#include <GLFW/glfw3.h>
+
 struct MoveState {
     bool forward = false;
     bool back = false;
@@ -21,4 +23,6 @@ struct InputState {
 
 namespace Input {
     InputState& get_input_state();
+
+    
 }

@@ -3,12 +3,12 @@
 namespace Assert {
     inline void msg(const char* condition, const char* file,
              int line, const char* func,
-             const std::string& message = ""        
+             std::string_view message = ""        
             ) {
     
         LOG::error("Assertion failed: {} at {}: {} in function {}",
              condition, file, line, func);
-        if (!message.empty()) {
+        if (message.size()) {
             LOG::error("Message: {}", message);
         }
         std::abort();

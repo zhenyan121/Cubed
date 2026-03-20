@@ -1,0 +1,155 @@
+#include <Cubed/app.hpp>
+#include <Cubed/gameplay/player.hpp>
+#include <Cubed/map_table.hpp>
+#include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/log.hpp>
+
+#include <exception>
+
+static double last_time = glfwGetTime();
+static double current_time = glfwGetTime();
+static double delta_time = 0.0f;
+static double fps_time_count = 0.0f;
+static int frame_count = 0;
+static int fps;
+
+App::App() {
+
+}
+
+App::~App() {
+
+}
+void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    CUBED_ASSERT_MSG(app, "nullptr");
+    app->m_camera.update_cursor_position_camera(xpos, ypos);
+}
+void App::init() {
+    m_window.init();
+    glfwSetWindowUserPointer(m_window.get_glfw_window(), this);
+    
+    glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
+    glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
+    glfwSetCursorPosCallback(m_window.get_glfw_window(), cursor_position_callback);
+    glfwSetMouseButtonCallback(m_window.get_glfw_window(), mouse_button_callback);
+   
+    m_renderer.init();
+    m_window.update_viewport();
+    MapTable::init_map();
+    m_texture_manager.init_texture();
+    m_world.init_world();
+    m_texture_array = m_texture_manager.get_texture_array();
+    m_camera.camera_init(&m_world.get_player("TestPlayer"));
+    
+}
+
+void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    switch(key) {
+        case GLFW_KEY_Q:
+            if (action == GLFW_PRESS) {
+                
+                if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                } else if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                }
+            }
+            break;
+        case GLFW_KEY_ESCAPE:
+            if (action == GLFW_PRESS) {
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+            }
+            
+    }
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    CUBED_ASSERT_MSG(app, "nullptr");
+    app->m_world.get_player("TestPlayer").update_player_move_state(key, action);
+}
+
+void App::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            if (action == GLFW_PRESS) {
+                Input::get_input_state().mouse_state.left = true;
+            }
+            if (action == GLFW_RELEASE) {
+                Input::get_input_state().mouse_state.left = false;
+            } 
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            if (action == GLFW_PRESS) {
+                Input::get_input_state().mouse_state.right = true;
+            }
+            if (action == GLFW_RELEASE) {
+                Input::get_input_state().mouse_state.right = false;
+            }
+            break;
+    }
+}
+
+void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_height) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    CUBED_ASSERT_MSG(app, "nullptr");
+    app->m_window.update_viewport();
+}
+
+
+
+void App::render() {
+
+    m_renderer.render(m_texture_array);
+
+    glfwSwapBuffers(m_window.get_glfw_window());
+
+}
+
+void App::run() {
+
+    while(!glfwWindowShouldClose(m_window.get_glfw_window())) {
+        
+        update();
+        render(); 
+        
+    }
+}
+
+void App::update() {
+    glfwPollEvents();
+    current_time = glfwGetTime();
+    delta_time = current_time - last_time;
+    last_time = current_time;
+    fps_time_count += delta_time;
+    frame_count++;
+    if (fps_time_count >= 1.0f) {
+        fps = static_cast<int>(frame_count / fps_time_count);
+        std::string title = "Cubed FPS: " + std::to_string(fps);
+        glfwSetWindowTitle(m_window.get_glfw_window(), title.c_str());
+        frame_count = 0;
+        fps_time_count = 0.0f;
+    }
+    m_world.update(delta_time);
+    m_camera.update_move_camera();
+
+
+}
+
+int App::start_cubed_application(int argc, char** argv) {
+
+    App app;
+
+    try {
+
+        app.init();
+        app.run();
+
+        return 0;
+    } catch (std::exception& e) {
+        LOG::error("{}", e.what());
+        
+    } catch (...) {
+        LOG::error("Unkown error");
+        
+    }
+    return 1;
+}
