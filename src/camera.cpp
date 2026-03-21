@@ -17,6 +17,11 @@ void Camera::update_move_camera() {
 void Camera::camera_init(Player* player) {
     m_player = player;
     update_move_camera();
+    reset_camera();
+}
+
+void Camera::reset_camera() {
+    m_firse_mouse = true;
 }
 
 void Camera::update_cursor_position_camera(double xpos, double ypos) {
@@ -24,6 +29,7 @@ void Camera::update_cursor_position_camera(double xpos, double ypos) {
         m_last_mouse_x = xpos;
         m_last_mouse_y = ypos;
         m_firse_mouse = false;
+        return;
     }
 
     float offset_x = xpos - m_last_mouse_x;

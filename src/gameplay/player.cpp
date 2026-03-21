@@ -280,6 +280,7 @@ void Player::update_front_vec(float offset_x, float offset_y) {
     m_yaw += offset_x * m_sensitivity;
     m_pitch += offset_y * m_sensitivity;
     
+    m_yaw = std::fmod(m_yaw, 360.0);
     
     if (m_pitch > 89.0f)  m_pitch = 89.0f;
     if (m_pitch < -89.0f) m_pitch = -89.0f;

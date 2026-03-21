@@ -25,7 +25,7 @@ public:
     void update_move_camera();
 
     void camera_init(Player* player);
-
+    void reset_camera();
     void update_cursor_position_camera(double xpos, double ypos);
 
     const glm::mat4 get_camera_lookat() const;

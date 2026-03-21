@@ -29,10 +29,12 @@ void App::init() {
     m_window.init();
     glfwSetWindowUserPointer(m_window.get_glfw_window(), this);
     
-    glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
-    glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
     glfwSetCursorPosCallback(m_window.get_glfw_window(), cursor_position_callback);
     glfwSetMouseButtonCallback(m_window.get_glfw_window(), mouse_button_callback);
+    glfwSetWindowFocusCallback(m_window.get_glfw_window(), window_focus_callback);
+    glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
+    glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
+    
    
     m_renderer.init();
     m_window.update_viewport();
@@ -86,6 +88,15 @@ void App::mouse_button_callback(GLFWwindow* window, int button, int action, int 
             }
             break;
     }
+}
+
+void App::window_focus_callback(GLFWwindow* window, int focused) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    CUBED_ASSERT_MSG(app, "nullptr");
+    if (focused) {
+        app->m_camera.reset_camera();
+    }
+    
 }
 
 void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_height) {

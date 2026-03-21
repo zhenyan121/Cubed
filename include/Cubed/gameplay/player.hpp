@@ -14,8 +14,8 @@ class Player {
 private:
     constexpr static float ACCELERATION = 30.0f;   
     constexpr static float DECELERATION = 50.0f; 
-    float m_yaw;
-    float m_pitch;
+    float m_yaw = 0.0f;
+    float m_pitch = 0.0f;
     
     float m_sensitivity = 0.05f;
 
