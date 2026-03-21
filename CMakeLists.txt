@@ -14,13 +14,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-find_package(PkgConfig REQUIRED)
+
 find_package(OpenGL REQUIRED)
 if (UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
     pkg_check_modules(EGL REQUIRED egl)
     pkg_check_modules(Wayland REQUIRED wayland-client wayland-egl)
     find_package(glfw3 REQUIRED)   
 endif()
+
+add_library(glad STATIC third_party/glad/src/glad.c)
+target_include_directories(glad PUBLIC third_party/glad/include)
+
+include(FetchContent)
 
 if (WIN32)
     FetchContent_Declare(
@@ -38,12 +44,6 @@ if (WIN32)
 
     FetchContent_MakeAvailable(glfw)
 endif()
-
-
-add_library(glad STATIC third_party/glad/src/glad.c)
-target_include_directories(glad PUBLIC third_party/glad/include)
-
-include(FetchContent)
 
 FetchContent_Declare(
     glm
