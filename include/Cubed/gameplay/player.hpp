@@ -12,8 +12,8 @@ class World;
 
 class Player {
 private:
-    constexpr static float ACCELERATION = 30.0f;   
-    constexpr static float DECELERATION = 50.0f; 
+    constexpr static float ACCELERATION = 25.0f;   
+    constexpr static float DECELERATION = 40.0f; 
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     
