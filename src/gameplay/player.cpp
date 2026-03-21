@@ -169,7 +169,7 @@ void Player::update(float delta_time) {
     // calculate the block that is looked 
     glm::ivec3 block_pos;
     glm::vec3 block_normal;
-    if(ray_cast(glm::vec3(m_player_pos.x, (m_player_pos.y + 1.0f), m_player_pos.z), m_front, block_pos, block_normal)) {
+    if(ray_cast(glm::vec3(m_player_pos.x, (m_player_pos.y + 1.6f), m_player_pos.z), m_front, block_pos, block_normal)) {
         m_look_block = std::move(LookBlock{block_pos, glm::floor(block_normal)});
     } else {
         m_look_block = std::nullopt;
