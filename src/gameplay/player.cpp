@@ -126,31 +126,74 @@ void Player::update(float delta_time) {
     }
 
     m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
+    glm::vec3 move_dir_front = glm::vec3(0.0f);
+    glm::vec3 move_dir_right = glm::vec3(0.0f);
     glm::vec3 move_dir = glm::vec3(0.0f);
     if (m_move_state.forward) {
-        move_dir += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+        move_dir_front += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
 
     }
     if (m_move_state.back) {
-        move_dir -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+        move_dir_front -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
 
     }
     if (m_move_state.left) {
-        move_dir -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
+        move_dir_right -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
 
     }
     if (m_move_state.right) {
-        move_dir += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
+        move_dir_right += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
     }
+    move_dir = move_dir_front + move_dir_right;
+
     if (glm::length(move_dir) > 0.001f) {
-        direction = glm::normalize(move_dir);
+        direction = glm::normalize(move_dir);    
     }
-    auto new_pos = m_player_pos + direction * speed * delta_time;
-    new_pos.y += 1.0f;
-    if (m_world.can_move(new_pos)) {
-        new_pos.y -= 1.0f;
-        m_player_pos = new_pos;
+
+    if (glm::length(direction) > 0.001f) {
+        auto new_pos = m_player_pos + direction * speed * delta_time;
+        new_pos.y += 1.0f;
+        if (m_world.can_move(new_pos)) {
+            new_pos.y -= 1.0f;
+            m_player_pos = new_pos;
+        } else {
+            if (glm::length(move_dir_front) > 0.001f) {
+                if (std::abs(move_dir_front.x) > std::abs(move_dir_front.z)) {
+                    move_dir_front.z = 0.0f;
+                } else {
+                    move_dir_front.x = 0.0f;
+                }
+                direction = glm::normalize(move_dir_front);
+                auto new_pos = m_player_pos + direction * speed * delta_time;
+                new_pos.y += 1.0f;
+                if (m_world.can_move(new_pos)) {
+                    new_pos.y -= 1.0f;
+                    m_player_pos = new_pos;
+                } else {
+                    direction = glm::vec3(0.0f, 0.0f, 0.0f);
+                }
+            }
+            if (glm::length(move_dir_right) > 0.001f) {
+                if (std::abs(move_dir_right.x) > std::abs(move_dir_right.z)) {
+                    move_dir_right.z = 0.0f;
+                } else {
+                    move_dir_right.x = 0.0f;
+                }
+                direction = glm::normalize(move_dir_right);
+                auto new_pos = m_player_pos + direction * speed * delta_time;
+                new_pos.y += 1.0f;
+                if (m_world.can_move(new_pos)) {
+                    new_pos.y -= 1.0f;
+                    m_player_pos = new_pos;
+                } else {
+                    direction = glm::vec3(0.0f, 0.0f, 0.0f);
+                }
+            }
+        }
     }
+    
+
+    
 
     if (m_move_state.up) {
         auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f * delta_time;
