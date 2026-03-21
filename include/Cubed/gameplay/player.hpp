@@ -17,7 +17,7 @@ private:
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     
-    float m_sensitivity = 0.05f;
+    float m_sensitivity = 0.15f;
 
     float m_speed = 5.0f;
     

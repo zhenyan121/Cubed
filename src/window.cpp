@@ -46,7 +46,12 @@ void Window::init() {
     
 
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
+    if (glfwRawMouseMotionSupported()) {
+        glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    } else {
+        LOG::warn("Don,t support Raw Mouse Motion");
+    }
+    
     //update_viewport();
     
 }
