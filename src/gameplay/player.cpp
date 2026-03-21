@@ -187,8 +187,7 @@ void Player::update(float delta_time) {
             glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
             if (!m_world.is_block(near_pos)) {
                 glm::ivec3 p_pos = glm::floor(m_player_pos);
-                p_pos.y += 1;
-                if ((near_pos != p_pos) && (near_pos != (p_pos + glm::ivec3(0 ,1, 0)))) {
+                if ((near_pos != p_pos) && (near_pos != (p_pos + glm::ivec3(0 ,1, 0))) && (near_pos != (p_pos + glm::ivec3(0, 2, 0)))) {
                     m_world.set_block(near_pos, 1);
                 }
                 
