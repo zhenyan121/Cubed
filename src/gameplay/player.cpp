@@ -243,10 +243,7 @@ void Player::update(float delta_time) {
     static float down_speed = 0.0f;
 
     if (!m_world.is_block(glm::floor(m_player_pos)) && !m_move_state.up) {
-        down_speed += 25 * delta_time;
-        if (down_speed > 20.0f) {
-            down_speed = 20.0f;
-        }
+        down_speed += G * delta_time;
         m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * down_speed * delta_time;
     } else {
         down_speed = 0.0f;

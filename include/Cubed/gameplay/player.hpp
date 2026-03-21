@@ -12,14 +12,15 @@ class World;
 
 class Player {
 private:
-    constexpr static float ACCELERATION = 25.0f;   
-    constexpr static float DECELERATION = 40.0f; 
+    constexpr static float ACCELERATION = 10.0f;   
+    constexpr static float DECELERATION = 15.0f;
+    constexpr static float G = 22.5f; 
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     
     float m_sensitivity = 0.15f;
 
-    float m_speed = 5.0f;
+    float m_speed = 4.5f;
     
     // player is tow block tall, the pos is the lower pos
     glm::vec3 m_player_pos = glm::vec3(0.0f, 15.0f, 0.0f);
