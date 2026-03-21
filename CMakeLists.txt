@@ -16,10 +16,28 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenGL REQUIRED)
+if (UNIX AND NOT APPLE)
+    pkg_check_modules(EGL REQUIRED egl)
+    pkg_check_modules(Wayland REQUIRED wayland-client wayland-egl)
+    find_package(glfw3 REQUIRED)   
+endif()
 
-pkg_check_modules(EGL REQUIRED egl)
-pkg_check_modules(Wayland REQUIRED wayland-client wayland-egl)
-find_package(glfw3 REQUIRED)   
+if (WIN32)
+    FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4  
+    )
+
+    set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)         
+    set(GLFW_VULKAN_STATIC ON CACHE BOOL "" FORCE)     
+    set(GLFW_STATIC ON CACHE BOOL "" FORCE)          
+
+    FetchContent_MakeAvailable(glfw)
+endif()
 
 
 add_library(glad STATIC third_party/glad/src/glad.c)
@@ -79,8 +97,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        ${EGL_LIBRARIES}              
-        ${Wayland_LIBRARIES}
         glfw                                   
         glad
         glm::glm
@@ -88,16 +104,23 @@ target_link_libraries(${PROJECT_NAME}
         soil2
 )
 
+if (UNIX AND NOT APPLE)
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+            ${EGL_LIBRARIES}
+            ${Wayland_LIBRARIES}
+    )
 
-target_include_directories(${PROJECT_NAME}
-    PRIVATE
-        ${EGL_INCLUDE_DIRS}
-        ${Wayland_INCLUDE_DIRS}
-)
+
+    target_include_directories(${PROJECT_NAME}
+        PRIVATE
+            ${EGL_INCLUDE_DIRS}
+            ${Wayland_INCLUDE_DIRS}
+    )
 
 
-target_compile_options(${PROJECT_NAME} PRIVATE ${EGL_CFLAGS_OTHER} ${Wayland_CFLAGS_OTHER})
-
+    target_compile_options(${PROJECT_NAME} PRIVATE ${EGL_CFLAGS_OTHER} ${Wayland_CFLAGS_OTHER})
+endif()
 
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
