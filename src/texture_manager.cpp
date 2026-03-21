@@ -17,14 +17,19 @@ void TextureManager::delet_texture() {
     LOG::info("Successfully delete all texture");
 }
 
-GLuint TextureManager::get_block_status_array() {
+GLuint TextureManager::get_block_status_array() const{
     return m_block_status_array;
 }
 
-GLuint TextureManager::get_texture_array() {
+GLuint TextureManager::get_texture_array() const{
     return m_texture_array;
 }
-void TextureManager::load_block_status(int id) {
+
+GLuint TextureManager::get_ui_array() const{
+    return m_ui_array;
+}
+
+void TextureManager::load_block_status(unsigned id) {
 
     CUBED_ASSERT_MSG(id < MAX_BLOCK_STATUS, "Exceed the max status sum limit");
     std::string path = "assets/texture/status/" + std::to_string(id) + ".png";
@@ -39,6 +44,7 @@ void TextureManager::load_block_status(int id) {
                     );
     Shader::delete_image_data(image_data);
 }
+
 void TextureManager::load_block_texture(unsigned id) {
     CUBED_ASSERT_MSG(id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
     const std::string& name = MapTable::get_name_from_id(id);
@@ -68,6 +74,23 @@ void TextureManager::load_block_texture(unsigned id) {
         Shader::check_opengl_error();
         Shader::delete_image_data(image_data[i]);
     }
+
+}
+
+void TextureManager::load_ui_texture(unsigned id) {
+    CUBED_ASSERT_MSG(id < MAX_UI_NUM, "Exceed the max ui sum limit");
+
+    std::string path = "assets/texture/ui/" + std::to_string(id) + ".png";
+    unsigned char* image_data = nullptr;
+    image_data = (Shader::load_image_data(path));
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
+                        0 ,0, id,
+                        16, 16, 1,
+                        GL_RGBA, GL_UNSIGNED_BYTE,
+                        image_data
+                    );
+    Shader::delete_image_data(image_data);
 
 }
 
@@ -133,6 +156,26 @@ void TextureManager::init_texture() {
     if (max_aniso > 0.0f) {
         LOG::info("Support anisotropic filtering max_aniso is {}", max_aniso);
         glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
-    }    
+    }
+    
+    glGenTextures(1, &m_ui_array);
+    Shader::check_opengl_error();
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
+    Shader::check_opengl_error();
+    glTexImage3D(GL_TEXTURE_2D_ARRAY,
+        0, GL_RGBA,
+        16, 16,
+        MAX_UI_NUM,
+        0, GL_RGBA,
+        GL_UNSIGNED_BYTE, nullptr);
+    Shader::check_opengl_error();
+    for (int i = 0; i < MAX_UI_NUM; i++) {
+        load_ui_texture(i);
+    }
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+
 
 }

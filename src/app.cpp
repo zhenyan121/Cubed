@@ -36,7 +36,7 @@ void App::init() {
    
     m_renderer.init();
     m_window.update_viewport();
-    MapTable::init_map();
+    //MapTable::init_map();
     m_texture_manager.init_texture();
     m_world.init_world();
     m_texture_array = m_texture_manager.get_texture_array();
@@ -98,7 +98,7 @@ void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_hei
 
 void App::render() {
 
-    m_renderer.render(m_texture_array);
+    m_renderer.render();
 
     glfwSwapBuffers(m_window.get_glfw_window());
 

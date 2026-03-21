@@ -13,8 +13,4 @@ struct ChunkPos {
     };
 };
 
-struct Vertex {
-    float x, y, z;
-    float s, t;
-    float layer;
-};
+

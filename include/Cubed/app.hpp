@@ -20,15 +20,16 @@ public:
     
 private:
     Camera m_camera;
+    TextureManager m_texture_manager;
     World m_world;
-    Renderer m_renderer{m_camera, m_world};
+    Renderer m_renderer{m_camera, m_world, m_texture_manager};
 
     Window m_window{m_renderer};
     
     
     GLuint m_texture_array;
     
-    TextureManager m_texture_manager;
+    
     
     
     void init();
