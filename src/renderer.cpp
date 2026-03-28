@@ -187,7 +187,8 @@ void Renderer::render_text() {
     m_proj_loc = glGetUniformLocation(m_text_program, "projection");
 
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
-    Font::render_text(m_text_program, m_text_vbo, std::string{"fps" + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    Font::render_text(m_text_program, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    Font::render_text(m_text_program, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
     glEnable(GL_DEPTH_TEST);
 }
 

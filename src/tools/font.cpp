@@ -1,5 +1,4 @@
-
-
+#include <Cubed/config.hpp>
 #include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
 
@@ -24,7 +23,7 @@ Font::~Font() {
     FT_Done_Face(m_face);
     FT_Done_FreeType(m_ft);
     for (const auto& [key, character] : m_characters) {
-        glDeleteTextures(1, &character.texture_id);
+        glDeleteTextures(1, &m_text_texture);
     }
 }
 
@@ -33,27 +32,25 @@ void Font::load_character(char8_t c) {
             LOG::error("FREETYTPE: Failed to load Glyph");
             return;
         }
-        GLuint texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
+        const auto& width = m_face->glyph->bitmap.width;
+        const auto& height = m_face->glyph->bitmap.rows;
+        glTexSubImage3D(
+            GL_TEXTURE_2D_ARRAY,
             0,
-            GL_RED,
-            m_face->glyph->bitmap.width,
-            m_face->glyph->bitmap.rows,
             0,
+            0,
+            static_cast<int>(c),
+            width,
+            height,
+            1,
             GL_RED,
             GL_UNSIGNED_BYTE,
             m_face->glyph->bitmap.buffer
         );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         Character character = {
-            texture,
+            glm::vec2{0.0f, 0.0f},
+            glm::vec2{static_cast<float>(width) / m_texture_width, static_cast<float>(height) / m_texture_height},
             glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
             glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
             static_cast<GLuint>(m_face->glyph->advance.x)
@@ -63,19 +60,44 @@ void Font::load_character(char8_t c) {
 }
 
 void Font::setup_font_character() {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);  
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
+    glGenTextures(1, &m_text_texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_text_texture);
+    glTexImage3D(
+        GL_TEXTURE_2D_ARRAY,
+        0,
+        GL_RED,
+        m_texture_width,
+        m_texture_height,
+        MAX_CHARACTER,
+        0,
+        GL_RED,
+        GL_UNSIGNED_BYTE,
+        nullptr
+    );
+
     for (char8_t c = 0; c < 128; c++) {
         load_character(c);
     }
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0); 
 }
 
 
 
-void Font::render_text(GLuint program, GLuint vbo, const std::string& text, float x, float y, float scale, const glm::vec3& color) {
+void Font::render_text(GLuint program, const std::string& text, float x, float y, float scale, const glm::vec3& color) {
     static Font font;
     glUseProgram(program);
     glUniform3f(glGetUniformLocation(program, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
+    
+    std::vector<Vertex2D> vertices;
+
     for (char8_t c : text) {
         auto it = font.m_characters.find(c);
         if (it == font.m_characters.end()) {
@@ -89,24 +111,32 @@ void Font::render_text(GLuint program, GLuint vbo, const std::string& text, floa
         float w = ch.size.x * scale;
         float h = ch.size.y * scale;
 
-        float vertices[6][4] {
-        { xpos,     ypos + h,   0.0, 1.0 },  
-        { xpos,     ypos,       0.0, 0.0 },  
-        { xpos + w, ypos,       1.0, 0.0 },  
-
-        { xpos,     ypos + h,   0.0, 1.0 },  
-        { xpos + w, ypos,       1.0, 0.0 },  
-        { xpos + w, ypos + h,   1.0, 1.0 }  
-        };
-        glBindTexture(GL_TEXTURE_2D, ch.texture_id);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
-        glEnableVertexAttribArray(0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        vertices.emplace_back(xpos,         ypos + h, ch.uv_min.x, ch.uv_max.y, static_cast<float>(c)); 
+        vertices.emplace_back(xpos,         ypos,     ch.uv_min.x, ch.uv_min.y, static_cast<float>(c)); 
+        vertices.emplace_back(xpos + w,     ypos,     ch.uv_max.x, ch.uv_min.y, static_cast<float>(c)); 
+        vertices.emplace_back(xpos,         ypos + h, ch.uv_min.x, ch.uv_max.y, static_cast<float>(c)); 
+        vertices.emplace_back(xpos + w,     ypos,     ch.uv_max.x, ch.uv_min.y, static_cast<float>(c)); 
+        vertices.emplace_back(xpos + w,     ypos + h, ch.uv_max.x, ch.uv_max.y, static_cast<float>(c));
+        
         x += (ch.advance >> 6) * scale;
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex2D), vertices.data(), GL_STATIC_DRAW);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, font.m_text_texture);
+ 
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)offsetof(Vertex2D, s));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)offsetof(Vertex2D, layer));
 
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 6);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glDeleteBuffers(1, &vbo);
 }

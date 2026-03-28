@@ -8,7 +8,7 @@ constexpr int MAX_UI_NUM = 1;
 constexpr int CHUCK_SIZE = 16;
 constexpr int DISTANCE = 8;
 constexpr int MAX_BLOCK_STATUS = 1;
-
+constexpr int MAX_CHARACTER = 128;
 constexpr float FOV = 70.0f;
 
 constexpr float VERTICES_POS[6][6][3] = {
