@@ -14,10 +14,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
 
 find_package(OpenGL REQUIRED)
-find_package(Freetype REQUIRED)
+
 if (UNIX AND NOT APPLE)
+    find_package(Freetype REQUIRED)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(EGL REQUIRED egl)
     pkg_check_modules(Wayland REQUIRED wayland-client wayland-egl)
@@ -44,6 +48,16 @@ if (WIN32)
     set(GLFW_STATIC ON CACHE BOOL "" FORCE)          
 
     FetchContent_MakeAvailable(glfw)
+
+    FetchContent_Declare(
+        freetype
+        GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+        GIT_TAG VER-2-14-3
+    )
+    FetchContent_MakeAvailable(freetype)
+    if(TARGET freetype)
+    add_library(Freetype::Freetype ALIAS freetype)
+    endif()
 endif()
 
 FetchContent_Declare(
