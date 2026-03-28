@@ -10,7 +10,7 @@ public:
     GLFWwindow* get_glfw_window();
     void init();
     void update_viewport();
-    
+    void toggle_fullscreen();
 private:
     float m_aspect;
     GLFWwindow* m_window;

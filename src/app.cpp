@@ -40,6 +40,9 @@ void App::init() {
 }
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    CUBED_ASSERT_MSG(app, "nullptr");
+
     switch(key) {
         case GLFW_KEY_Q:
             if (action == GLFW_PRESS) {
@@ -55,10 +58,14 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             if (action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
+        case GLFW_KEY_F11:
+            if (action == GLFW_PRESS) {
+                app->m_window.toggle_fullscreen();
+            }
+            break;
             
     }
-    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    CUBED_ASSERT_MSG(app, "nullptr");
+
     app->m_world.get_player("TestPlayer").update_player_move_state(key, action);
 }
 

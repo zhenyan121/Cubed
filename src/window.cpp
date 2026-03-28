@@ -39,19 +39,58 @@ void Window::init() {
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_window = glfwCreateWindow(800, 600, "Cubed", NULL, NULL);
+    
     glfwMakeContextCurrent(m_window);
 
     glfwSwapInterval(1);   
     
-
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if (glfwRawMouseMotionSupported()) {
         glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     } else {
         LOG::warn("Don,t support Raw Mouse Motion");
     }
-    
+
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+    glfwSetWindowPos(m_window, static_cast<int>(mode->width / 2.0f) - 400, static_cast<int>(mode->height / 2.0f) - 300);
     //update_viewport();
     
+}
+
+void Window::toggle_fullscreen() {
+    static int windowed_xpos = 0, windowed_ypos = 0;
+    static int windowed_width = 800, windowed_height = 600;
+
+    GLFWmonitor* monitor = glfwGetWindowMonitor(m_window);
+    if (monitor != nullptr) {
+        glfwSetWindowMonitor(
+            m_window, 
+            nullptr, 
+            windowed_xpos, 
+            windowed_ypos, 
+            windowed_width, 
+            windowed_height, 
+            0
+        );
+    } else {
+        glfwGetWindowPos(m_window, &windowed_xpos, &windowed_ypos);
+        glfwGetWindowSize(m_window, &windowed_width, &windowed_height);
+
+        GLFWmonitor* primary = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(primary);
+
+        glfwSetWindowMonitor(
+            m_window, 
+            primary, 
+            0, 
+            0, 
+            mode->width, 
+            mode->height, 
+            GL_DONT_CARE
+        );
+    }
+    update_viewport();
 }
