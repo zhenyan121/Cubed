@@ -6,13 +6,6 @@
 
 #include <exception>
 
-static double last_time = glfwGetTime();
-static double current_time = glfwGetTime();
-static double delta_time = 0.0f;
-static double fps_time_count = 0.0f;
-static int frame_count = 0;
-static int fps;
-
 App::App() {
 
 }
@@ -163,4 +156,12 @@ int App::start_cubed_application(int argc, char** argv) {
         
     }
     return 1;
+}
+
+float App::delte_time() {
+    return delta_time;
+}
+
+float App::get_fps() {
+    return fps;
 }

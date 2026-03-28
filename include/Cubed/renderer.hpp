@@ -30,11 +30,13 @@ private:
     GLuint m_proj_loc;
 
     GLuint m_sky_vbo;
+    GLuint m_text_vbo;
     GLuint m_outline_indices_vbo;
     GLuint m_outline_vbo;
     GLuint m_ui_vbo;
 
     GLuint m_sky_program;
+    GLuint m_text_program;
     GLuint m_outline_program;
     GLuint m_ui_program;
     GLuint m_world_program;
@@ -47,5 +49,7 @@ private:
     std::vector<Vertex2D> m_ui;
     void render_outline();
     void render_sky();
+    void render_text(); 
     void render_ui();
+    
 };

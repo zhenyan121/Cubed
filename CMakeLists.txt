@@ -16,6 +16,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 
 find_package(OpenGL REQUIRED)
+find_package(Freetype REQUIRED)
 if (UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(EGL REQUIRED egl)
@@ -75,6 +76,7 @@ add_executable(${PROJECT_NAME}
     src/texture_manager.cpp
     src/tools/math_tools.cpp
     src/tools/shader_tools.cpp
+    src/tools/font.cpp
     src/tools/log.cpp
     src/window.cpp
 )
@@ -102,6 +104,7 @@ target_link_libraries(${PROJECT_NAME}
         glm::glm
         OpenGL::GL
         soil2
+        Freetype::Freetype
 )
 
 if (UNIX AND NOT APPLE)

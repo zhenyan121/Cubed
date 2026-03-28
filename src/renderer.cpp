@@ -1,9 +1,11 @@
+#include <Cubed/app.hpp>
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/renderer.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
@@ -23,6 +25,7 @@ Renderer::~Renderer() {
     glDeleteBuffers(1, &m_outline_indices_vbo);
     glDeleteBuffers(1, &m_sky_vbo);
     glDeleteBuffers(1, &m_ui_vbo);
+    glDeleteBuffers(1, &m_text_vbo);
     glBindVertexArray(0);
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
     glDeleteProgram(m_world_program);
@@ -45,18 +48,21 @@ void Renderer::init() {
     m_outline_program = Shader::create_shader_program("shaders/outline_v_shader.glsl", "shaders/outline_f_shader.glsl");
     m_sky_program = Shader::create_shader_program("shaders/sky_v_shader.glsl", "shaders/sky_f_shader.glsl");
     m_ui_program = Shader::create_shader_program("shaders/ui_v_shader.glsl", "shaders/ui_f_shader.glsl");
-    
+    m_text_program = Shader::create_shader_program("shaders/text_v_shader.glsl", "shaders/text_f_shader.glsl");
+
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     #ifndef NDEBUG    
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param) {
         LOG::info("GL Debug: {}", reinterpret_cast<const char*>(message));
     }, nullptr);
     #endif
-
 
     m_vao.resize(NUM_VAO);
     glGenVertexArrays(NUM_VAO, m_vao.data());
@@ -91,6 +97,9 @@ void Renderer::init() {
 
     glBufferData(GL_ARRAY_BUFFER, m_ui.size() * sizeof(Vertex2D), m_ui.data(), GL_STATIC_DRAW);
 
+    glGenBuffers(1, &m_text_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_text_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)* 6 * 4, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -118,6 +127,8 @@ void Renderer::render() {
     render_outline();
 
     render_ui();
+
+    render_text();
 }
 
 void Renderer::render_outline() {
@@ -168,6 +179,16 @@ void Renderer::render_sky() {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glEnable(GL_DEPTH_TEST);
     
+}
+
+void Renderer::render_text() {
+    glUseProgram(m_text_program);
+    glDisable(GL_DEPTH_TEST);
+    m_proj_loc = glGetUniformLocation(m_text_program, "projection");
+
+    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
+    Font::render_text(m_text_program, m_text_vbo, std::string{"fps" + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::render_ui() {

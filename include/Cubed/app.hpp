@@ -16,9 +16,11 @@ public:
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     static void window_focus_callback(GLFWwindow* window, int focused);
     static void window_reshape_callback(GLFWwindow* window, int new_width, int new_height);
+
     static int start_cubed_application(int argc, char** argv);
     
-    
+    static float delte_time();
+    static float get_fps();
 private:
     Camera m_camera;
     TextureManager m_texture_manager;
@@ -30,7 +32,12 @@ private:
     
     GLuint m_texture_array;
     
-    
+    inline static double last_time = glfwGetTime();
+    inline static double current_time = glfwGetTime();
+    inline static double delta_time = 0.0f;
+    inline static double fps_time_count = 0.0f;
+    inline static int frame_count = 0;
+    inline static int fps;
     
     
     void init();
