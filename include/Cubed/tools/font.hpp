@@ -16,12 +16,14 @@ struct Character {
     GLuint advance;
 };
 
+class Shader;
+
 class Font {
 public:
     Font();
     ~Font();
 
-    static void render_text(GLuint program, const std::string& text, float x, float y, float scale, const glm::vec3& color);
+    static void render_text(const Shader& shader, const std::string& text, float x, float y, float scale, const glm::vec3& color);
 
 private:
     FT_Library m_ft;

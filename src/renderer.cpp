@@ -5,6 +5,7 @@
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/renderer.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
@@ -28,10 +29,6 @@ Renderer::~Renderer() {
     glDeleteBuffers(1, &m_text_vbo);
     glBindVertexArray(0);
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
-    glDeleteProgram(m_world_program);
-    glDeleteProgram(m_outline_program);
-    glDeleteProgram(m_sky_program);
-    glDeleteProgram(m_ui_program);
 }
 
 
@@ -44,12 +41,17 @@ void Renderer::init() {
     LOG::info("OpenGL Version: {}.{}", GLVersion.major, GLVersion.minor);
     LOG::info("Renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 
-    m_world_program = Shader::create_shader_program("shaders/block_v_shader.glsl", "shaders/block_f_shader.glsl");
-    m_outline_program = Shader::create_shader_program("shaders/outline_v_shader.glsl", "shaders/outline_f_shader.glsl");
-    m_sky_program = Shader::create_shader_program("shaders/sky_v_shader.glsl", "shaders/sky_f_shader.glsl");
-    m_ui_program = Shader::create_shader_program("shaders/ui_v_shader.glsl", "shaders/ui_f_shader.glsl");
-    m_text_program = Shader::create_shader_program("shaders/text_v_shader.glsl", "shaders/text_f_shader.glsl");
+    Shader world_shader{"world", "shaders/block_v_shader.glsl", "shaders/block_f_shader.glsl"};
+    Shader outline_shader{"outline", "shaders/outline_v_shader.glsl", "shaders/outline_f_shader.glsl"};
+    Shader sky_shdaer{"sky", "shaders/sky_v_shader.glsl", "shaders/sky_f_shader.glsl"};
+    Shader ui_shdaer{"ui", "shaders/ui_v_shader.glsl", "shaders/ui_f_shader.glsl"};
+    Shader text_shdaer{"text", "shaders/text_v_shader.glsl", "shaders/text_f_shader.glsl"};
 
+    m_shaders.insert({world_shader.hash(), std::move(world_shader)});
+    m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
+    m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
+    m_shaders.insert({ui_shdaer.hash(), std::move(ui_shdaer)});
+    m_shaders.insert({text_shdaer.hash(), std::move(text_shdaer)});
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -103,26 +105,20 @@ void Renderer::init() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+const Shader& Renderer::get_shader(const std::string& name) const {
+    auto it = m_shaders.find(HASH::str(name));
+    CUBED_ASSERT_MSG(it != m_shaders.end(), "Shader don't find, check the name");
+    return it->second;
+}
+
 void Renderer::render() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(m_vao[0]);
     render_sky();
-    glUseProgram(m_world_program);
     
-    m_mv_loc = glGetUniformLocation(m_world_program, "mv_matrix");
-    m_proj_loc = glGetUniformLocation(m_world_program, "proj_matrix");
-    glActiveTexture(GL_TEXTURE0);
-
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_texture_array());
-    m_m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    m_v_mat = m_camera.get_camera_lookat();
-    m_mv_mat = m_v_mat * m_m_mat;  
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(m_proj_loc, 1 ,GL_FALSE, glm::value_ptr(m_p_mat));
-    m_mvp_mat = m_p_mat * m_mv_mat;
-    m_world.render(m_mvp_mat);
+    render_world();
     
     render_outline();
 
@@ -132,10 +128,11 @@ void Renderer::render() {
 }
 
 void Renderer::render_outline() {
-    glUseProgram(m_outline_program);
+    const auto& shader = get_shader("outline");
+    shader.use();
 
-    m_mv_loc = glGetUniformLocation(m_outline_program, "mv_matrix");
-    m_proj_loc = glGetUniformLocation(m_outline_program, "proj_matrix");
+    m_mv_loc = shader.loc("mv_matrix");
+    m_proj_loc = shader.loc("proj_matrix");
     
     const auto& block_pos = m_world.get_look_block_pos("TestPlayer");
 
@@ -159,10 +156,12 @@ void Renderer::render_outline() {
 }
 
 void Renderer::render_sky() {
-    glUseProgram(m_sky_program);
+    const auto& shader = get_shader("sky");
 
-    m_mv_loc = glGetUniformLocation(m_sky_program, "mv_matrix");
-    m_proj_loc = glGetUniformLocation(m_sky_program, "proj_matrix");
+    shader.use();
+
+    m_mv_loc = shader.loc("mv_matrix");
+    m_proj_loc = shader.loc("proj_matrix");
 
     m_m_mat = glm::translate(glm::mat4(1.0f), m_camera.get_camera_pos() - glm::vec3(0.5f, 0.5f, 0.5f));
     m_v_mat = m_camera.get_camera_lookat();
@@ -182,22 +181,26 @@ void Renderer::render_sky() {
 }
 
 void Renderer::render_text() {
-    glUseProgram(m_text_program);
+    const auto& shader = get_shader("text");
+    shader.use();
+
     glDisable(GL_DEPTH_TEST);
-    m_proj_loc = glGetUniformLocation(m_text_program, "projection");
+    m_proj_loc = shader.loc("projection");
 
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
-    Font::render_text(m_text_program, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    Font::render_text(m_text_program, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
+    Font::render_text(shader, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    Font::render_text(shader, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
     glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::render_ui() {
-    glUseProgram(m_ui_program);
+    const auto& shader = get_shader("ui");
+    shader.use();
+
     glDisable(GL_DEPTH_TEST);
 
-    m_mv_loc = glGetUniformLocation(m_ui_program, "m_matrix");
-    m_proj_loc = glGetUniformLocation(m_ui_program, "proj_matrix");
+    m_mv_loc = shader.loc("m_matrix");
+    m_proj_loc = shader.loc("proj_matrix");
 
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_ui_m_matrix));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
@@ -215,7 +218,7 @@ void Renderer::render_ui() {
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_ui_array());
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glEnable(GL_DEPTH_TEST);
@@ -229,4 +232,22 @@ void Renderer::update_proj_matrix(float aspect, float width, float height) {
     m_ui_m_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(width / 2.0f, height / 2.0f, 0.0)) *
                 glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 1.0f));
     
+}
+
+void Renderer::render_world() {
+    const auto& shader = get_shader("world");
+    shader.use();
+    
+    m_mv_loc = shader.loc("mv_matrix");
+    m_proj_loc = shader.loc("proj_matrix");
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_texture_array());
+    m_m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    m_v_mat = m_camera.get_camera_lookat();
+    m_mv_mat = m_v_mat * m_m_mat;  
+    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
+    glUniformMatrix4fv(m_proj_loc, 1 ,GL_FALSE, glm::value_ptr(m_p_mat));
+    m_mvp_mat = m_p_mat * m_mv_mat;
+    m_world.render(m_mvp_mat);
 }

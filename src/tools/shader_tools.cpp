@@ -6,11 +6,11 @@
 #include <Cubed/tools/log.hpp>
 
 
-namespace Shader {
+namespace Tools {
 
     GLuint create_shader_program(const std::string& v_shader_path, const std::string& f_shader_path) {
-        std::string v_shader_str = Shader::read_shader_source(v_shader_path);
-        std::string f_shader_str = Shader::read_shader_source(f_shader_path);
+        std::string v_shader_str = Tools::read_shader_source(v_shader_path);
+        std::string f_shader_str = Tools::read_shader_source(f_shader_path);
         const char *v_shader_source = v_shader_str.c_str();
         const char *f_shader_source = f_shader_str.c_str();
 
@@ -21,19 +21,19 @@ namespace Shader {
         glShaderSource(v_shader, 1, &v_shader_source, NULL);
         glShaderSource(f_shader, 1, &f_shader_source, NULL);
         glCompileShader(v_shader);
-        Shader::check_opengl_error();
+        Tools::check_opengl_error();
         glGetShaderiv(v_shader, GL_COMPILE_STATUS, &vc);
         if (vc != 1) {
             LOG::error("vertex compilation failed");
-            Shader::print_shader_log(v_shader);
+            Tools::print_shader_log(v_shader);
             CUBED_ASSERT(0);
         }
         glCompileShader(f_shader);         
-        Shader::check_opengl_error();
+        Tools::check_opengl_error();
         glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
         if (fc != 1) {
             LOG::error("vertex compilation failed");
-            Shader::print_shader_log(f_shader);
+            Tools::print_shader_log(f_shader);
             CUBED_ASSERT(0);
         }
         GLuint vf_program = glCreateProgram();
@@ -42,11 +42,11 @@ namespace Shader {
         glLinkProgram(vf_program);
 
         GLint linked;
-        Shader::check_opengl_error();
+        Tools::check_opengl_error();
         glGetProgramiv(vf_program, GL_LINK_STATUS, &linked);
         if (linked != 1) {
             LOG::error("linking failed");
-            Shader::print_program_info(vf_program);
+            Tools::print_program_info(vf_program);
             CUBED_ASSERT(0);
         }
         glDeleteShader(v_shader);

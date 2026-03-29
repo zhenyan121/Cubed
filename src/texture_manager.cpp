@@ -34,7 +34,7 @@ void TextureManager::load_block_status(unsigned id) {
     CUBED_ASSERT_MSG(id < MAX_BLOCK_STATUS, "Exceed the max status sum limit");
     std::string path = "assets/texture/status/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
-    image_data = (Shader::load_image_data(path));
+    image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
                         0 ,0, id,
@@ -42,7 +42,7 @@ void TextureManager::load_block_status(unsigned id) {
                         GL_RGBA, GL_UNSIGNED_BYTE,
                         image_data
                     );
-    Shader::delete_image_data(image_data);
+    Tools::delete_image_data(image_data);
 }
 
 void TextureManager::load_block_texture(unsigned id) {
@@ -55,15 +55,15 @@ void TextureManager::load_block_texture(unsigned id) {
     unsigned char* image_data[6];
 
     std::string block_texture_path = "assets/texture/block/" + name;
-    image_data[0] = (Shader::load_image_data(block_texture_path + "/front.png"));
-    image_data[1] = (Shader::load_image_data(block_texture_path + "/right.png"));
-    image_data[2] = (Shader::load_image_data(block_texture_path + "/back.png"));
-    image_data[3] = (Shader::load_image_data(block_texture_path + "/left.png"));
-    image_data[4] = (Shader::load_image_data(block_texture_path + "/top.png"));
-    image_data[5] = (Shader::load_image_data(block_texture_path + "/base.png"));
+    image_data[0] = (Tools::load_image_data(block_texture_path + "/front.png"));
+    image_data[1] = (Tools::load_image_data(block_texture_path + "/right.png"));
+    image_data[2] = (Tools::load_image_data(block_texture_path + "/back.png"));
+    image_data[3] = (Tools::load_image_data(block_texture_path + "/left.png"));
+    image_data[4] = (Tools::load_image_data(block_texture_path + "/top.png"));
+    image_data[5] = (Tools::load_image_data(block_texture_path + "/base.png"));
     
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     for (int i = 0; i < 6; i++) {
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
             0, 0, id * 6 + i,
@@ -71,8 +71,8 @@ void TextureManager::load_block_texture(unsigned id) {
             GL_RGBA, GL_UNSIGNED_BYTE,
             image_data[i]
             );
-        Shader::check_opengl_error();
-        Shader::delete_image_data(image_data[i]);
+        Tools::check_opengl_error();
+        Tools::delete_image_data(image_data[i]);
     }
 
 }
@@ -82,7 +82,7 @@ void TextureManager::load_ui_texture(unsigned id) {
 
     std::string path = "assets/texture/ui/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
-    image_data = (Shader::load_image_data(path));
+    image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
                         0 ,0, id,
@@ -90,7 +90,7 @@ void TextureManager::load_ui_texture(unsigned id) {
                         GL_RGBA, GL_UNSIGNED_BYTE,
                         image_data
                     );
-    Shader::delete_image_data(image_data);
+    Tools::delete_image_data(image_data);
 
 }
 
@@ -99,28 +99,28 @@ void TextureManager::init_texture() {
     MapTable::init_map();
 
     glGenTextures(1, &m_texture_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexImage3D(GL_TEXTURE_2D_ARRAY,
         0, GL_RGBA,
         16, 16,
         MAX_BLOCK_NUM * 6,
         0, GL_RGBA,
         GL_UNSIGNED_BYTE, nullptr);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     for (int i = 0; i < MAX_BLOCK_NUM; i++) {
         load_block_texture(i);
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
 
     GLfloat max_aniso = 0.0f;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
@@ -130,28 +130,28 @@ void TextureManager::init_texture() {
     }    
 
     glGenTextures(1, &m_block_status_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexImage3D(GL_TEXTURE_2D_ARRAY,
         0, GL_RGBA,
         16, 16,
         MAX_BLOCK_STATUS,
         0, GL_RGBA,
         GL_UNSIGNED_BYTE, nullptr);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     for (int i = 0; i < MAX_BLOCK_STATUS; i++) {
         load_block_status(i);
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
 
     if (max_aniso > 0.0f) {
         LOG::info("Support anisotropic filtering max_aniso is {}", max_aniso);
@@ -159,16 +159,16 @@ void TextureManager::init_texture() {
     }
     
     glGenTextures(1, &m_ui_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     glTexImage3D(GL_TEXTURE_2D_ARRAY,
         0, GL_RGBA,
         16, 16,
         MAX_UI_NUM,
         0, GL_RGBA,
         GL_UNSIGNED_BYTE, nullptr);
-    Shader::check_opengl_error();
+    Tools::check_opengl_error();
     for (int i = 0; i < MAX_UI_NUM; i++) {
         load_ui_texture(i);
     }

@@ -1,4 +1,5 @@
 #include <Cubed/config.hpp>
+#include <Cubed/shader.hpp>
 #include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
 
@@ -90,10 +91,10 @@ void Font::setup_font_character() {
 
 
 
-void Font::render_text(GLuint program, const std::string& text, float x, float y, float scale, const glm::vec3& color) {
+void Font::render_text(const Shader& shader, const std::string& text, float x, float y, float scale, const glm::vec3& color) {
     static Font font;
-    glUseProgram(program);
-    glUniform3f(glGetUniformLocation(program, "textColor"), color.x, color.y, color.z);
+
+    glUniform3f(shader.loc("textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     
     std::vector<Vertex2D> vertices;

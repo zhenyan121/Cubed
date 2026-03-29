@@ -4,7 +4,7 @@
 #include <SOIL2.h>
 #include <string>
 
-namespace Shader {
+namespace Tools {
     GLuint create_shader_program(const std::string& v_shader_path, const std::string& f_shader_path);
     void print_shader_log(GLuint shader);
     void print_program_info(int prog);
