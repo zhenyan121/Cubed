@@ -284,7 +284,7 @@ void Player::update_move(float delta_time) {
     update_direction();
 
     move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
-    static float up_a = 0.0f;
+    
     static float y_a = 0.0f;
     if (m_move_state.up && can_up) {
         up_a = 100.f;
@@ -362,7 +362,12 @@ void Player::update_y_move() {
                     if (player_box.intersects(block_box)) {
                         m_player_pos.y -= move_distance.y;
                         down_speed = 0.0f;
-                        can_up = true;
+                        if (move_distance.y > 0) {
+                            up_a = 0;
+                        }
+                        if (move_distance.y < 0) {
+                            can_up = true;
+                        }
                         return;
                     }
                 }
