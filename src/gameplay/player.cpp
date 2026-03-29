@@ -254,8 +254,15 @@ void Player::update_lookup_block() {
         if (Input::get_input_state().mouse_state.right) {
             glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
             if (!m_world.is_block(near_pos)) {
-                glm::ivec3 p_pos = glm::floor(m_player_pos);
-                if ((near_pos != p_pos) && (near_pos != (p_pos + glm::ivec3(0 ,1, 0))) ) {
+                auto x= near_pos.x;
+                auto y = near_pos.y;
+                auto z = near_pos.z;
+                AABB block_box = {
+                        glm::vec3{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)},
+                        glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
+                    };
+                AABB player_box = get_aabb();
+                if (!player_box.intersects(block_box)) {
                     m_world.set_block(near_pos, 1);
                 }
                 
