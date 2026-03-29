@@ -1,6 +1,7 @@
 #include <Cubed/app.hpp>
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
+#include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/renderer.hpp>
@@ -12,6 +13,8 @@
 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <format>
 Renderer::Renderer(const Camera& camera, World& world, const TextureManager& texture_manager):
     m_camera(camera),
     m_texture_manager(texture_manager),
@@ -190,6 +193,10 @@ void Renderer::render_text() {
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
     Font::render_text(shader, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
     Font::render_text(shader, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
+    const auto& player = m_world.get_player("TestPlayer");
+    const auto& pos = player.get_player_pos();
+    std::string player_pos = std::format("x: {:.2f} y: {:.2f} z: {:.2f}", pos.x, pos.y, pos.z);
+    Font::render_text(shader, player_pos, 0.0f, 150.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
     glEnable(GL_DEPTH_TEST);
 }
 

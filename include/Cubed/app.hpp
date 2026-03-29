@@ -30,14 +30,14 @@ private:
     Window m_window{m_renderer};
     
     
-    GLuint m_texture_array;
+    GLuint m_texture_array = 0;
     
     inline static double last_time = glfwGetTime();
     inline static double current_time = glfwGetTime();
     inline static double delta_time = 0.0f;
     inline static double fps_time_count = 0.0f;
     inline static int frame_count = 0;
-    inline static int fps;
+    inline static int fps = 0;
     
     
     void init();

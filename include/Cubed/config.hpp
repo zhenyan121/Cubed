@@ -103,13 +103,13 @@ constexpr float SQUARE_TEXTURE_POS[6][2] = {
     };
 
 struct Vertex {
-    float x, y, z;
-    float s, t;
-    float layer;
+    float x = 0.0f, y = 0.0f, z = 0.0f;
+    float s = 0.0f, t = 0.0f;
+    float layer = 0.0f;
 };
 
 struct Vertex2D {
-    float x, y;
-    float s, t;
-    float layer;
+    float x = 0.0f, y = 0.0f;
+    float s = 0.0f, t = 0.0f;
+    float layer = 0.0f;
 };

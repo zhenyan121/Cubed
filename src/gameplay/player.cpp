@@ -1,6 +1,7 @@
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/map_table.hpp>
+#include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 #include <GLFW/glfw3.h>
 
@@ -14,6 +15,27 @@ Player::Player(World& world, const std::string& name) :
 Player::~Player() {
 
 }
+
+AABB Player::get_aabb() const {
+    float half_width = m_size.x / 2.0f;
+    float half_depth = m_size.z / 2.0f;
+
+    glm::vec3 min{
+        m_player_pos.x - half_width,
+        m_player_pos.y,
+        m_player_pos.z - half_depth
+    };
+
+    glm::vec3 max {
+        m_player_pos.x + half_width,
+        m_player_pos.y + m_size.y,
+        m_player_pos.z + half_depth
+    };
+
+    return AABB{min, max};
+
+}
+
 const glm::vec3& Player::get_front() const {
     return m_front;
 }
@@ -109,152 +131,8 @@ void Player::set_player_pos(const glm::vec3& pos) {
 }
 
 void Player::update(float delta_time) {
-    static float speed = 0;
-    static glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
-    if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
-        direction = glm::vec3(0.0f, 0.0f, 0.0f);
-        speed += ACCELERATION * delta_time;
-        if (speed > m_speed) {
-            speed = m_speed;
-        }
-    } else {
-        speed += -DECELERATION * delta_time;
-        if (speed < 0) {
-            speed = 0;
-            direction = glm::vec3(0.0f, 0.0f, 0.0f);
-        }
-    }
-
-    m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
-    glm::vec3 move_dir_front = glm::vec3(0.0f);
-    glm::vec3 move_dir_right = glm::vec3(0.0f);
-    glm::vec3 move_dir = glm::vec3(0.0f);
-    if (m_move_state.forward) {
-        move_dir_front += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
-
-    }
-    if (m_move_state.back) {
-        move_dir_front -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
-
-    }
-    if (m_move_state.left) {
-        move_dir_right -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
-
-    }
-    if (m_move_state.right) {
-        move_dir_right += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
-    }
-    move_dir = move_dir_front + move_dir_right;
-
-    if (glm::length(move_dir) > 0.001f) {
-        direction = glm::normalize(move_dir);    
-    }
-
-    if (glm::length(direction) > 0.001f) {
-        auto new_pos = m_player_pos + direction * speed * delta_time;
-        new_pos.y += 1.0f;
-        if (m_world.can_move(new_pos)) {
-            new_pos.y -= 1.0f;
-            m_player_pos = new_pos;
-        } else {
-            if (glm::length(move_dir_front) > 0.001f) {
-                if (std::abs(move_dir_front.x) > std::abs(move_dir_front.z)) {
-                    move_dir_front.z = 0.0f;
-                } else {
-                    move_dir_front.x = 0.0f;
-                }
-                direction = glm::normalize(move_dir_front);
-                auto new_pos = m_player_pos + direction * speed * delta_time;
-                new_pos.y += 1.0f;
-                if (m_world.can_move(new_pos)) {
-                    new_pos.y -= 1.0f;
-                    m_player_pos = new_pos;
-                } else {
-                    direction = glm::vec3(0.0f, 0.0f, 0.0f);
-                }
-            }
-            if (glm::length(move_dir_right) > 0.001f) {
-                if (std::abs(move_dir_right.x) > std::abs(move_dir_right.z)) {
-                    move_dir_right.z = 0.0f;
-                } else {
-                    move_dir_right.x = 0.0f;
-                }
-                direction = glm::normalize(move_dir_right);
-                auto new_pos = m_player_pos + direction * speed * delta_time;
-                new_pos.y += 1.0f;
-                if (m_world.can_move(new_pos)) {
-                    new_pos.y -= 1.0f;
-                    m_player_pos = new_pos;
-                } else {
-                    direction = glm::vec3(0.0f, 0.0f, 0.0f);
-                }
-            }
-        }
-    }
-    
-
-    
-
-    if (m_move_state.up) {
-        auto new_pos = m_player_pos + glm::vec3(0.0f, 1.0f, 0.0f) * speed * 2.0f * delta_time;
-        new_pos.y += 2.0f;
-        if (!m_world.is_block(glm::floor(new_pos))) {
-            new_pos.y -= 2.0f;
-            m_player_pos = new_pos;
-        }
-    }
-
-    /*
-    if (m_move_state.down) {
-        m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * speed;
-    }
-    */
-    // calculate the block that is looked 
-    glm::ivec3 block_pos;
-    glm::vec3 block_normal;
-    if(ray_cast(glm::vec3(m_player_pos.x, (m_player_pos.y + 1.6f), m_player_pos.z), m_front, block_pos, block_normal)) {
-        m_look_block = std::move(LookBlock{block_pos, glm::floor(block_normal)});
-    } else {
-        m_look_block = std::nullopt;
-    }
-
-    if (m_look_block != std::nullopt) {
-        if (Input::get_input_state().mouse_state.left) {
-            if (m_world.is_block(m_look_block->pos)) {
-                m_world.set_block(m_look_block->pos, 0);
-                
-            }
-            Input::get_input_state().mouse_state.left = false;
-        }
-        if (Input::get_input_state().mouse_state.right) {
-            glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
-            if (!m_world.is_block(near_pos)) {
-                glm::ivec3 p_pos = glm::floor(m_player_pos);
-                if ((near_pos != p_pos) && (near_pos != (p_pos + glm::ivec3(0 ,1, 0))) && (near_pos != (p_pos + glm::ivec3(0, 2, 0)))) {
-                    m_world.set_block(near_pos, 1);
-                }
-                
-            }
-            Input::get_input_state().mouse_state.right = false;
-        }
-    }
-
-
-    static float down_speed = 0.0f;
-
-    if (!m_world.is_block(glm::floor(m_player_pos)) && !m_move_state.up) {
-        down_speed += G * delta_time;
-        m_player_pos -= glm::vec3(0.0f, 1.0f, 0.0f) * down_speed * delta_time;
-    } else {
-        down_speed = 0.0f;
-    }
-
-    if (m_player_pos.y < -50.0f) {
-        m_player_pos = glm::vec3(0.0f, 16.0f, 0.0f);
-    }
-
-
-
+    update_move(delta_time);
+    update_lookup_block();
 }
 
 void Player::update_player_move_state(int key, int action) {
@@ -325,4 +203,198 @@ void Player::update_front_vec(float offset_x, float offset_y) {
     m_front.z = -cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
     
     m_front = glm::normalize(m_front);
+}
+
+void Player::update_direction() {
+    m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    glm::vec3 move_dir_front = glm::vec3(0.0f);
+    glm::vec3 move_dir_right = glm::vec3(0.0f);
+    glm::vec3 move_dir = glm::vec3(0.0f);
+    if (m_move_state.forward) {
+        move_dir_front += glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+
+    }
+    if (m_move_state.back) {
+        move_dir_front -= glm::normalize(glm::vec3(m_front.x, 0.0f, m_front.z));
+
+    }
+    if (m_move_state.left) {
+        move_dir_right -= glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
+
+    }
+    if (m_move_state.right) {
+        move_dir_right += glm::normalize(glm::vec3(m_right.x, 0.0f, m_right.z));
+    }
+    move_dir = move_dir_front + move_dir_right;
+
+    if (glm::length(move_dir) > 0.001f) {
+        direction = glm::normalize(move_dir);    
+    }
+}
+
+void Player::update_lookup_block() {
+    // calculate the block that is looked 
+    glm::ivec3 block_pos;
+    glm::vec3 block_normal;
+    if(ray_cast(glm::vec3(m_player_pos.x, (m_player_pos.y + 1.6f), m_player_pos.z), m_front, block_pos, block_normal)) {
+        m_look_block = LookBlock{block_pos, glm::floor(block_normal)};
+    } else {
+        m_look_block = std::nullopt;
+    }
+
+    if (m_look_block != std::nullopt) {
+        if (Input::get_input_state().mouse_state.left) {
+            if (m_world.is_block(m_look_block->pos)) {
+                m_world.set_block(m_look_block->pos, 0);
+                
+            }
+            Input::get_input_state().mouse_state.left = false;
+        }
+        if (Input::get_input_state().mouse_state.right) {
+            glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
+            if (!m_world.is_block(near_pos)) {
+                glm::ivec3 p_pos = glm::floor(m_player_pos);
+                if ((near_pos != p_pos) && (near_pos != (p_pos + glm::ivec3(0 ,1, 0))) ) {
+                    m_world.set_block(near_pos, 1);
+                }
+                
+            }
+            Input::get_input_state().mouse_state.right = false;
+        }
+    }
+}
+
+void Player::update_move(float delta_time) {
+    // calculate speed
+    if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
+        direction = glm::vec3(0.0f, 0.0f, 0.0f);
+        speed += ACCELERATION * delta_time;
+        if (speed > m_speed) {
+            speed = m_speed;
+        }
+    } else {
+        speed += -DECELERATION * delta_time;
+        if (speed < 0) {
+            speed = 0;
+            direction = glm::vec3(0.0f, 0.0f, 0.0f);
+        }
+    }
+
+    update_direction();
+
+    move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
+    static float up_a = 0.0f;
+    static float y_a = 0.0f;
+    if (m_move_state.up && can_up) {
+        up_a = 100.f;
+        can_up = false;
+        
+    }
+    
+    y_a = -G + up_a;
+    down_speed += y_a * delta_time;
+    move_distance.y = down_speed * delta_time;
+    up_a -= 490.0f * delta_time;
+    if (up_a < 0.0f) {
+        up_a = 0.0f;
+    }
+    // y
+    update_y_move();
+    // x
+    update_x_move();
+
+    update_z_move();
+
+    if (m_player_pos.y < -15.0f) {
+        m_player_pos.y = 15.0f;
+    }
+
+}
+
+void Player::update_x_move() {
+    m_player_pos.x += move_distance.x;
+    AABB player_box = get_aabb();
+    int minx = std::floor(player_box.min.x);
+    int maxx = std::floor(player_box.max.x);
+    int miny = std::floor(player_box.min.y);
+    int maxy = std::floor(player_box.max.y);
+    int minz = std::floor(player_box.min.z);
+    int maxz = std::floor(player_box.max.z);
+
+    for (int x = minx; x <= maxx; ++x) {
+        for (int y = miny; y <= maxy; ++y) {
+            for (int z = minz; z <= maxz; ++z) {
+                if (m_world.is_block(glm::vec3{x, y, z})) {
+                    AABB block_box = {
+                        glm::vec3{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)},
+                        glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
+                    };
+                    if (player_box.intersects(block_box)) {
+                        
+                        m_player_pos.x -= move_distance.x;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Player::update_y_move() {
+    m_player_pos.y += move_distance.y;
+    AABB player_box = get_aabb();
+    int minx = std::floor(player_box.min.x);
+    int maxx = std::floor(player_box.max.x);
+    int miny = std::floor(player_box.min.y);
+    int maxy = std::floor(player_box.max.y);
+    int minz = std::floor(player_box.min.z);
+    int maxz = std::floor(player_box.max.z);
+
+    for (int x = minx; x <= maxx; ++x) {
+        for (int y = miny; y <= maxy; ++y) {
+            for (int z = minz; z <= maxz; ++z) {
+                if (m_world.is_block(glm::vec3{x, y, z})) {
+                    AABB block_box = {
+                        glm::vec3{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)},
+                        glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
+                    };
+                    if (player_box.intersects(block_box)) {
+                        m_player_pos.y -= move_distance.y;
+                        down_speed = 0.0f;
+                        can_up = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Player::update_z_move() {
+    m_player_pos.z += move_distance.z;
+    AABB player_box = get_aabb();
+    int minx = std::floor(player_box.min.x);
+    int maxx = std::floor(player_box.max.x);
+    int miny = std::floor(player_box.min.y);
+    int maxy = std::floor(player_box.max.y);
+    int minz = std::floor(player_box.min.z);
+    int maxz = std::floor(player_box.max.z);
+
+    for (int x = minx; x <= maxx; ++x) {
+        for (int y = miny; y <= maxy; ++y) {
+            for (int z = minz; z <= maxz; ++z) {
+                if (m_world.is_block(glm::vec3{x, y, z})) {
+                    AABB block_box = {
+                        glm::vec3{static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)},
+                        glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
+                    };
+                    if (player_box.intersects(block_box)) {
+                        m_player_pos.z -= move_distance.z;
+                        return;
+                    }
+                }
+            }
+        }
+    }
 }
