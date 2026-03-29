@@ -33,7 +33,7 @@ void Window::update_viewport() {
 
 void Window::init() {
     if (!glfwInit()) {
-        LOG::error("glfwinit fail");
+        Logger::error("glfwinit fail");
         exit(EXIT_FAILURE);        
     }
 
@@ -50,7 +50,7 @@ void Window::init() {
     if (glfwRawMouseMotionSupported()) {
         glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     } else {
-        LOG::warn("Don,t support Raw Mouse Motion");
+        Logger::warn("Don,t support Raw Mouse Motion");
     }
 
     GLFWmonitor* primary = glfwGetPrimaryMonitor();

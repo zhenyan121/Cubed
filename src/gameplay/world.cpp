@@ -38,7 +38,7 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     if (world_z >= 0) {
         chunk_z = world_z / CHUCK_SIZE;
     }
-    //LOG::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
+    //Logger::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
     CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk not find");
     
@@ -76,7 +76,7 @@ const std::optional<LookBlock>& World::get_look_block_pos(const std::string& nam
     static std::optional<LookBlock> null_look_block = std::nullopt;
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {
-        LOG::error("Can't find player {}", name);
+        Logger::error("Can't find player {}", name);
         CUBED_ASSERT(0);
         return null_look_block;
     }
@@ -88,7 +88,7 @@ const std::optional<LookBlock>& World::get_look_block_pos(const std::string& nam
 Player& World::get_player(const std::string& name){
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {
-        LOG::error("Can't find player {}", name);
+        Logger::error("Can't find player {}", name);
         CUBED_ASSERT(0);
     }
     
@@ -107,7 +107,7 @@ void World::init_world() {
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
-    LOG::info("World init finfish");
+    Logger::info("World init finfish");
 
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;

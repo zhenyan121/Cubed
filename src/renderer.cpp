@@ -35,11 +35,11 @@ Renderer::~Renderer() {
 
 void Renderer::init() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        LOG::error("Failed to initialize glad");
+        Logger::error("Failed to initialize glad");
         exit(EXIT_FAILURE);
     }
-    LOG::info("OpenGL Version: {}.{}", GLVersion.major, GLVersion.minor);
-    LOG::info("Renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    Logger::info("OpenGL Version: {}.{}", GLVersion.major, GLVersion.minor);
+    Logger::info("Renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 
     Shader world_shader{"world", "shaders/block_v_shader.glsl", "shaders/block_f_shader.glsl"};
     Shader outline_shader{"outline", "shaders/outline_v_shader.glsl", "shaders/outline_f_shader.glsl"};
@@ -62,7 +62,7 @@ void Renderer::init() {
     #ifndef NDEBUG    
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param) {
-        LOG::info("GL Debug: {}", reinterpret_cast<const char*>(message));
+        Logger::log(Logger::Level::DEBUG, std::source_location::current(),"GL Debug: {}", reinterpret_cast<const char*>(message));
     }, nullptr);
     #endif
 

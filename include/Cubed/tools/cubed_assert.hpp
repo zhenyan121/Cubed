@@ -6,10 +6,10 @@ namespace Assert {
              std::string_view message = ""        
             ) {
     
-        LOG::error("Assertion failed: {} at {}: {} in function {}",
+        Logger::error("Assertion failed: {} at {}: {} in function {}",
              condition, file, line, func);
         if (message.size()) {
-            LOG::error("Message: {}", message);
+            Logger::error("Message: {}", message);
         }
         std::abort();
 

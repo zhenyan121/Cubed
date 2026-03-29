@@ -9,10 +9,10 @@
 Font::Font() {
 
     if (FT_Init_FreeType(&m_ft)) {
-        LOG::error("FREETYPE: Could not init FreeType Library");
+        Logger::error("FREETYPE: Could not init FreeType Library");
     }
     if (FT_New_Face(m_ft, "assets/fonts/IBMPlexSans-Regular.ttf", 0, &m_face)) {
-        LOG::error("FREETYPE: Failed to load font");
+        Logger::error("FREETYPE: Failed to load font");
     }
 
     FT_Set_Pixel_Sizes(m_face, 0, 48); 
@@ -30,7 +30,7 @@ Font::~Font() {
 
 void Font::load_character(char8_t c) {
     if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
-            LOG::error("FREETYTPE: Failed to load Glyph");
+            Logger::error("FREETYTPE: Failed to load Glyph");
             return;
         }
         const auto& width = m_face->glyph->bitmap.width;
@@ -102,7 +102,7 @@ void Font::render_text(const Shader& shader, const std::string& text, float x, f
     for (char8_t c : text) {
         auto it = font.m_characters.find(c);
         if (it == font.m_characters.end()) {
-            LOG::error("Can't find character {}", static_cast<char>(c));
+            Logger::error("Can't find character {}", static_cast<char>(c));
             continue;
         }
         Character& ch = it->second;

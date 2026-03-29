@@ -24,7 +24,7 @@ namespace Tools {
         Tools::check_opengl_error();
         glGetShaderiv(v_shader, GL_COMPILE_STATUS, &vc);
         if (vc != 1) {
-            LOG::error("vertex compilation failed");
+            Logger::error("vertex compilation failed");
             Tools::print_shader_log(v_shader);
             CUBED_ASSERT(0);
         }
@@ -32,7 +32,7 @@ namespace Tools {
         Tools::check_opengl_error();
         glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
         if (fc != 1) {
-            LOG::error("vertex compilation failed");
+            Logger::error("vertex compilation failed");
             Tools::print_shader_log(f_shader);
             CUBED_ASSERT(0);
         }
@@ -45,7 +45,7 @@ namespace Tools {
         Tools::check_opengl_error();
         glGetProgramiv(vf_program, GL_LINK_STATUS, &linked);
         if (linked != 1) {
-            LOG::error("linking failed");
+            Logger::error("linking failed");
             Tools::print_program_info(vf_program);
             CUBED_ASSERT(0);
         }
@@ -63,7 +63,7 @@ namespace Tools {
         if (len > 0) {
             log = (char*)malloc(len);
             glGetShaderInfoLog(shader, len, &ch_written, log);
-            LOG::info("Shader Info Log: {}", log);
+            Logger::info("Shader Info Log: {}", log);
             free(log);
         }
 
@@ -78,7 +78,7 @@ namespace Tools {
         if (len > 0) {
             log = (char*)malloc(len);
             glGetProgramInfoLog(prog, len, &ch_written, log);
-            LOG::info("Program Info Log: {}", log);
+            Logger::info("Program Info Log: {}", log);
             free(log);
         }
     }
@@ -87,7 +87,7 @@ namespace Tools {
         bool found_error = false;
         int gl_err = glGetError();
         while (gl_err != GL_NO_ERROR) {
-            LOG::error("glEorr: {}", gl_err);
+            Logger::error("glEorr: {}", gl_err);
             found_error = true;
             gl_err = glGetError();
         }
@@ -101,7 +101,7 @@ namespace Tools {
         std::ifstream file_stream(file_path, std::ios::in);
 
         if (!file_stream.is_open()) {
-            LOG::error("{} not exist", file_path);
+            Logger::error("{} not exist", file_path);
         }
 
         std::string line = "";

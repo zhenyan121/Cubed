@@ -156,10 +156,10 @@ int App::start_cubed_application(int argc, char** argv) {
 
         return 0;
     } catch (std::exception& e) {
-        LOG::error("{}", e.what());
+        Logger::error("{}", e.what());
         
     } catch (...) {
-        LOG::error("Unkown error");
+        Logger::error("Unkown error");
         
     }
     return 1;

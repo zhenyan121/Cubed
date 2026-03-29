@@ -14,7 +14,7 @@ TextureManager::~TextureManager() {
 void TextureManager::delet_texture() {
     glDeleteTextures(1, &m_texture_array);
     glDeleteTextures(1, &m_block_status_array);
-    LOG::info("Successfully delete all texture");
+    Logger::info("Successfully delete all texture");
 }
 
 GLuint TextureManager::get_block_status_array() const{
@@ -125,7 +125,7 @@ void TextureManager::init_texture() {
     GLfloat max_aniso = 0.0f;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
     if (max_aniso > 0.0f) {
-        LOG::info("Support anisotropic filtering max_aniso is {}", max_aniso);
+        Logger::info("Support anisotropic filtering max_aniso is {}", max_aniso);
         glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
     }    
 
@@ -154,7 +154,7 @@ void TextureManager::init_texture() {
     Tools::check_opengl_error();
 
     if (max_aniso > 0.0f) {
-        LOG::info("Support anisotropic filtering max_aniso is {}", max_aniso);
+        Logger::info("Support anisotropic filtering max_aniso is {}", max_aniso);
         glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
     }
     

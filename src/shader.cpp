@@ -40,7 +40,7 @@ Shader& Shader::operator=(Shader&& shader) {
 
 void Shader::create(const std::string& name, const std::string& v_shader_path, const std::string& f_shader_path) {
     if (!m_program) {
-        LOG::warn("Shader has already created !");
+        Logger::warn("Shader has already created !");
         return;
     }
     m_program = Tools::create_shader_program(v_shader_path, f_shader_path);
@@ -50,7 +50,7 @@ void Shader::create(const std::string& name, const std::string& v_shader_path, c
 
 std::size_t Shader::hash() const {
     if (!m_hash) {
-        LOG::warn("Shader has already created !");
+        Logger::warn("Shader has already created !");
         return 0;
     }
     return m_hash;
@@ -60,7 +60,7 @@ GLuint Shader::loc(const std::string& loc) const {
     CUBED_ASSERT_MSG(m_program != 0, "Shader program not created");
     GLint pos = glGetUniformLocation(m_program, loc.c_str());
     if (pos == -1) {
-        LOG::info("Shader name {}, loc name {}, pos {}", m_name, loc, pos);
+        Logger::info("Shader name {}, loc name {}, pos {}", m_name, loc, pos);
         CUBED_ASSERT_MSG(pos == -1, "Can't find UniformLocation");
     }
     return static_cast<GLuint>(pos);
@@ -68,7 +68,7 @@ GLuint Shader::loc(const std::string& loc) const {
 
 const std::string& Shader::name() const {
     if (m_name == "-1") {
-        LOG::warn("Shader has already created !");
+        Logger::warn("Shader has already created !");
         
     }
     return m_name;
