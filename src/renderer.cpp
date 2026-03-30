@@ -71,7 +71,6 @@ void Renderer::init() {
 
     m_vao.resize(NUM_VAO);
     glGenVertexArrays(NUM_VAO, m_vao.data());
-    glBindVertexArray(m_vao[0]);
     glBindVertexArray(0);
     glGenBuffers(1, &m_outline_vbo);
 
@@ -81,7 +80,6 @@ void Renderer::init() {
     glGenBuffers(1, &m_outline_indices_vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_outline_indices_vbo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(OUTLINE_CUBE_INDICES), OUTLINE_CUBE_INDICES, GL_STATIC_DRAW);
-    
     glGenBuffers(1, &m_sky_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_sky_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(VERTICES_POS), VERTICES_POS, GL_STATIC_DRAW);
@@ -118,16 +116,18 @@ void Renderer::render() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_DEPTH_BUFFER_BIT);
+
     glBindVertexArray(m_vao[0]);
     render_sky();
-    
+    glBindVertexArray(m_vao[1]);
     render_world();
-    
+    glBindVertexArray(m_vao[2]);
     render_outline();
-
+    glBindVertexArray(m_vao[3]);
     render_ui();
-
+    glBindVertexArray(m_vao[4]);
     render_text();
+    glBindVertexArray(0);
 }
 
 void Renderer::render_outline() {
@@ -159,10 +159,10 @@ void Renderer::render_outline() {
 }
 
 void Renderer::render_sky() {
+    
     const auto& shader = get_shader("sky");
 
     shader.use();
-
     m_mv_loc = shader.loc("mv_matrix");
     m_proj_loc = shader.loc("proj_matrix");
 
@@ -178,6 +178,7 @@ void Renderer::render_sky() {
     glEnableVertexAttribArray(0);
 
     glDisable(GL_DEPTH_TEST);
+
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glEnable(GL_DEPTH_TEST);
     
@@ -191,12 +192,16 @@ void Renderer::render_text() {
     m_proj_loc = shader.loc("projection");
 
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
+    
     Font::render_text(shader, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    
     Font::render_text(shader, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
+    
     const auto& player = m_world.get_player("TestPlayer");
     const auto& pos = player.get_player_pos();
     std::string player_pos = std::format("x: {:.2f} y: {:.2f} z: {:.2f}", pos.x, pos.y, pos.z);
     Font::render_text(shader, player_pos, 0.0f, 150.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
+    
     glEnable(GL_DEPTH_TEST);
 }
 

@@ -2,6 +2,7 @@
 #include <Cubed/shader.hpp>
 #include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
+#include <Cubed/tools/shader_tools.hpp>
 
 
 
@@ -96,7 +97,6 @@ void Font::render_text(const Shader& shader, const std::string& text, float x, f
 
     glUniform3f(shader.loc("textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
-    
     std::vector<Vertex2D> vertices;
 
     for (char8_t c : text) {
@@ -136,7 +136,7 @@ void Font::render_text(const Shader& shader, const std::string& text, float x, f
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 6);
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     glDeleteBuffers(1, &vbo);

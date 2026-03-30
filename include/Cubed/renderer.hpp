@@ -12,7 +12,7 @@ class TextureManager;
 class World;
 class Renderer {
 public:
-    constexpr static int NUM_VAO = 1;
+    constexpr static int NUM_VAO = 5;
 
     Renderer(const Camera& camera, World& world, const TextureManager& texture_manager);
     ~Renderer();
