@@ -9,8 +9,8 @@ public:
     ~Shader();
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
-    Shader(Shader&& shader);
-    Shader& operator=(Shader&& shader);
+    Shader(Shader&& shader) noexcept;
+    Shader& operator=(Shader&& shader) noexcept;
 
     void create(const std::string& name, const std::string& v_shader_path, const std::string& f_shader_path);
     std::size_t hash() const;

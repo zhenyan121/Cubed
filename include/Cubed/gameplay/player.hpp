@@ -21,11 +21,11 @@ private:
     
     float m_sensitivity = 0.15f;
 
-    float m_speed = 4.5f;
-    float down_speed = 0.0f;
+    float max_speed = 4.5f;
+    float y_speed = 0.0f;
     bool can_up = true;
-    float up_a = 0.0f;
     float speed = 0;
+    
     glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 move_distance {0.0f, 0.0f, 0.0f};
     // player is tow block tall, the pos is the lower pos

@@ -277,8 +277,8 @@ void Player::update_move(float delta_time) {
     if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
         direction = glm::vec3(0.0f, 0.0f, 0.0f);
         speed += ACCELERATION * delta_time;
-        if (speed > m_speed) {
-            speed = m_speed;
+        if (speed > max_speed) {
+            speed = max_speed;
         }
     } else {
         speed += -DECELERATION * delta_time;
@@ -292,20 +292,14 @@ void Player::update_move(float delta_time) {
 
     move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
     
-    static float y_a = 0.0f;
     if (m_move_state.up && can_up) {
-        up_a = 100.f;
+        y_speed = 7.5;
         can_up = false;
         
     }
-    
-    y_a = -G + up_a;
-    down_speed += y_a * delta_time;
-    move_distance.y = down_speed * delta_time;
-    up_a -= 490.0f * delta_time;
-    if (up_a < 0.0f) {
-        up_a = 0.0f;
-    }
+
+    y_speed += -G * delta_time;
+    move_distance.y = y_speed * delta_time;
     // y
     update_y_move();
     // x
@@ -314,7 +308,7 @@ void Player::update_move(float delta_time) {
     update_z_move();
 
     if (m_player_pos.y < -15.0f) {
-        m_player_pos.y = 15.0f;
+        m_player_pos = glm::vec3(0.0f, 20.0f, 0.0f);
     }
 
 }
@@ -368,10 +362,7 @@ void Player::update_y_move() {
                     };
                     if (player_box.intersects(block_box)) {
                         m_player_pos.y -= move_distance.y;
-                        down_speed = 0.0f;
-                        if (move_distance.y > 0) {
-                            up_a = 0;
-                        }
+                        y_speed = 0.0f;
                         if (move_distance.y < 0) {
                             can_up = true;
                         }

@@ -14,7 +14,7 @@ Shader::Shader(const std::string& name, const std::string& v_shader_path, const 
     m_hash = HASH::str(name);
 }
 
-Shader::Shader(Shader&& shader) :
+Shader::Shader(Shader&& shader) noexcept:
     m_hash(shader.m_hash),
     m_program(shader.m_program),
     m_name(std::move(shader.m_name))
@@ -29,7 +29,7 @@ Shader::~Shader() {
     }
 }
 
-Shader& Shader::operator=(Shader&& shader) {
+Shader& Shader::operator=(Shader&& shader) noexcept{
     m_hash = shader.m_hash;
     m_name = std::move(shader.m_name);
     m_program = shader.m_program;
