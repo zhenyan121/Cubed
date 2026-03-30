@@ -102,7 +102,7 @@ void World::init_world() {
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
-    Logger::info("World init finfish");
+    Logger::info("Chunk Init Finish");
 
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
@@ -116,8 +116,10 @@ void World::init_world() {
         chunk.gen_vertex_data();
         
     }
+    Logger::info("Chunk Block Init Finish");
     // init players
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+    Logger::info("TestPlayer Create Finish");
 }
 
 void World::render(const glm::mat4& mvp_matrix) {

@@ -20,6 +20,8 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 }
 void App::init() {
     m_window.init();
+    Logger::info("Window Init Success");
+
     glfwSetWindowUserPointer(m_window.get_glfw_window(), this);
     
     glfwSetCursorPosCallback(m_window.get_glfw_window(), cursor_position_callback);
@@ -30,11 +32,15 @@ void App::init() {
     
    
     m_renderer.init();
+    Logger::info("Renderer Init Success");
     m_window.update_viewport();
     //MapTable::init_map();
     m_texture_manager.init_texture();
+    Logger::info("Texture Load Success");
     m_world.init_world();
+    Logger::info("World Init Success");
     m_texture_array = m_texture_manager.get_texture_array();
+
     m_camera.camera_init(&m_world.get_player("TestPlayer"));
     
 }
@@ -150,8 +156,8 @@ int App::start_cubed_application(int argc, char** argv) {
     App app;
 
     try {
-
         app.init();
+        Logger::info("Game Init Finish Start Run...");
         app.run();
 
         return 0;

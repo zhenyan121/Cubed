@@ -97,7 +97,7 @@ void TextureManager::load_ui_texture(unsigned id) {
 void TextureManager::init_texture() {
 
     MapTable::init_map();
-
+    Logger::info("Map Init Success");
     glGenTextures(1, &m_texture_array);
     Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
@@ -112,7 +112,7 @@ void TextureManager::init_texture() {
     for (int i = 0; i < MAX_BLOCK_NUM; i++) {
         load_block_texture(i);
     }
-
+    Logger::info("Block Texture Load Success");
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
     Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

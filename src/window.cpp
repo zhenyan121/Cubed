@@ -33,7 +33,7 @@ void Window::update_viewport() {
 
 void Window::init() {
     if (!glfwInit()) {
-        Logger::error("glfwinit fail");
+        Logger::error("glfw init fail");
         exit(EXIT_FAILURE);        
     }
 
