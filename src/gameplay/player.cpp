@@ -172,6 +172,14 @@ void Player::update_player_move_state(int key, int action) {
         case GLFW_KEY_SPACE:
             if (action == GLFW_PRESS) {
                 m_move_state.up = true;
+                if (space_on) {
+                    is_fly = !is_fly ? true : false;
+                    y_speed = 0.0f;
+                    space_on = false;
+                    space_on_time = 0.0f;
+                } else {
+                    space_on = true;
+                }
             }
             if (action == GLFW_RELEASE) {
                 m_move_state.up = false;
@@ -185,6 +193,7 @@ void Player::update_player_move_state(int key, int action) {
                 m_move_state.down = false;
             }
             break;
+        
     }
 }
 
@@ -273,6 +282,14 @@ void Player::update_lookup_block() {
 }
 
 void Player::update_move(float delta_time) {
+    if (space_on) {
+        space_on_time += delta_time;
+        if (space_on_time >= MAX_SPACE_ON_TIME) {
+            space_on = false;
+            space_on_time = 0.0f;
+        }
+    }
+    
     // calculate speed
     if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
         direction = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -292,26 +309,31 @@ void Player::update_move(float delta_time) {
 
     move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
     
-    /*
-    if (m_move_state.up && can_up) {
+    if (is_fly) {
+        if (m_move_state.up) {
+        y_speed = 7.5f;
+        }
+
+        if (m_move_state.down) {
+            y_speed = -7.5f;
+        }
+
+        if (!m_move_state.down && !m_move_state.up) {
+            y_speed = 0.0f;
+        }
+    } else {
+        if (m_move_state.up && can_up) {
         y_speed = 7.5;
         can_up = false;
         
-    }
+        }
 
-    y_speed += -G * delta_time;
-    */
-    if (m_move_state.up) {
-        y_speed = 7.5f;
+        y_speed += -G * delta_time;
     }
-
-    if (m_move_state.down) {
-        y_speed = -7.5f;
-    }
-
-    if (!m_move_state.down && !m_move_state.up) {
-        y_speed = 0.0f;
-    }
+    
+    
+    
+    
 
     move_distance.y = y_speed * delta_time;
     // y
@@ -379,6 +401,7 @@ void Player::update_y_move() {
                         y_speed = 0.0f;
                         if (move_distance.y < 0) {
                             can_up = true;
+                            is_fly = false;
                         }
                         return;
                     }

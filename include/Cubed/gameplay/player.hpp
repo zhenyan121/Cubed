@@ -15,7 +15,9 @@ class Player {
 private:
     constexpr static float ACCELERATION = 10.0f;   
     constexpr static float DECELERATION = 15.0f;
-    constexpr static float G = 22.5f; 
+    constexpr static float G = 22.5f;
+
+    constexpr static float MAX_SPACE_ON_TIME = 0.3f; 
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     
@@ -25,6 +27,11 @@ private:
     float max_speed = 7.5f;
     float y_speed = 0.0f;
     bool can_up = true;
+    
+    float space_on_time = 0.0f;
+    bool space_on = false;
+    bool is_fly = false;
+    
     float speed = 0;
     
     glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
