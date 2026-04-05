@@ -66,9 +66,15 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             if (action == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
+            break;
         case GLFW_KEY_F11:
             if (action == GLFW_PRESS) {
                 app->m_window.toggle_fullscreen();
+            }
+            break;
+        case GLFW_KEY_R:
+            if (action == GLFW_PRESS) {
+                app->m_world.need_gen();
             }
             break;
             

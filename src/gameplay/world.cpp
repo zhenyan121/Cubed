@@ -4,6 +4,9 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/math_tools.hpp>
+
+#include <unordered_set>
+
 World::World() {
     
 }
@@ -20,19 +23,7 @@ bool World::can_move(const AABB& player_box) const{
 }
 
 const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
-    int chunk_x, chunk_z;
-    if (world_x < 0) {
-        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_x >= 0) {
-        chunk_x = world_x / CHUCK_SIZE;
-    }
-    if (world_z < 0) {
-        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_z >= 0) {
-        chunk_z = world_z / CHUCK_SIZE;
-    }
+    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
     //Logger::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
     CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk not find");
@@ -145,6 +136,84 @@ void World::render(const glm::mat4& mvp_matrix) {
     }
 
 }
+
+std::pair<int, int> World::chunk_pos(int world_x, int world_z) {
+    int chunk_x, chunk_z;
+    if (world_x < 0) {
+        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_x >= 0) {
+        chunk_x = world_x / CHUCK_SIZE;
+    }
+    if (world_z < 0) {
+        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
+    }
+    if (world_z >= 0) {
+        chunk_z = world_z / CHUCK_SIZE;
+    }
+    return {chunk_x, chunk_z};
+}
+
+void World::gen_chunks() {
+    Logger::info("start gen chunks");
+    const auto& player =  get_player("TestPlayer");
+    const auto& player_pos = player.get_player_pos();
+
+    int x = std::floor(player_pos.x);
+    int z = std::floor(player_pos.z);
+    auto [chunk_x, chunk_z] = chunk_pos(x, z);
+    std::unordered_set<ChunkPos, ChunkPos::Hash> cur_chunks;
+    std::vector<ChunkPos> pre_gen_chunks;
+    cur_chunks.reserve(DISTANCE * DISTANCE);
+    int half = DISTANCE / 2;
+    for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
+        for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
+            cur_chunks.emplace(u, v);
+        }
+    }
+    CUBED_ASSERT_MSG(!cur_chunks.empty(), "cur chunks is empty!!");
+    Logger::info("Cur Chunk pos gen finish, size {}", cur_chunks.size());
+
+    for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
+        if (cur_chunks.find(it->first) == cur_chunks.end()) {
+            it = m_chunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto pos: cur_chunks) {
+        auto it = m_chunks.find(pos);
+        if (it == m_chunks.end()) {
+            m_chunks.emplace(pos, Chunk(*this, pos));
+            pre_gen_chunks.push_back(pos);
+        }
+    }
+
+    Logger::info("start to init new chunk");
+
+    for (const auto& pos : pre_gen_chunks) {
+        auto it = m_chunks.find(pos);
+        CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk Don't find");
+        //Logger::info("Init Chunk {} {}", pos.x, pos.z);
+        it->second.init_chunk();
+        
+    }
+    
+    // After block gen fininshed
+    for (auto& chunk_map : m_chunks) {
+        auto& [chunk_pos, chunk] = chunk_map;
+
+        chunk.gen_vertex_data();
+        
+    }
+    Logger::info("gen chunks finish");
+}
+
+void World::need_gen() {
+    need_gen_chunk = true;
+}
+
 bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents) {
     for (const auto& plane : m_planes) {
         // distance
@@ -333,5 +402,9 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 void World::update(float delta_time) {
     for (auto& player : m_players) {
         player.second.update(delta_time);
+    }
+    if (need_gen_chunk) {
+        gen_chunks();
+        need_gen_chunk = false;
     }
 }

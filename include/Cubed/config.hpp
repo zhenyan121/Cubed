@@ -1,6 +1,4 @@
 #pragma once
-constexpr int WORLD_SIZE_X = 32;
-constexpr int WORLD_SIZE_Z = 32;
 constexpr int WORLD_SIZE_Y = 256;
 constexpr int MAX_BLOCK_NUM = 2;
 constexpr int MAX_UI_NUM = 1;
