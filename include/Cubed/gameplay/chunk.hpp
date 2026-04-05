@@ -16,6 +16,9 @@ private:
     std::vector<uint8_t> m_blocks;
     GLuint m_vbo = 0;
     std::vector<Vertex> m_vertexs_data;
+    
+    float frequency = 0.01f;
+    float height = 80;
 
 public:
     Chunk(World& world, ChunkPos chunk_pos);

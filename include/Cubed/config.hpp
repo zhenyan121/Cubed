@@ -1,15 +1,17 @@
 #pragma once
 constexpr int WORLD_SIZE_X = 32;
 constexpr int WORLD_SIZE_Z = 32;
-constexpr int WORLD_SIZE_Y = 16;
+constexpr int WORLD_SIZE_Y = 256;
 constexpr int MAX_BLOCK_NUM = 2;
 constexpr int MAX_UI_NUM = 1;
 
 constexpr int CHUCK_SIZE = 16;
-constexpr int DISTANCE = 8;
+constexpr int DISTANCE = 16;
 constexpr int MAX_BLOCK_STATUS = 1;
 constexpr int MAX_CHARACTER = 128;
 constexpr float FOV = 70.0f;
+
+constexpr int SEED = 999;
 
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====

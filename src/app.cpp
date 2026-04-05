@@ -3,6 +3,7 @@
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
+#include <Cubed/tools/perlin_noise.hpp>
 
 #include <exception>
 
@@ -30,7 +31,8 @@ void App::init() {
     glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
     glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
     
-   
+    PerlinNoise::init();
+    
     m_renderer.init();
     Logger::info("Renderer Init Success");
     m_window.update_viewport();

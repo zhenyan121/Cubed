@@ -93,6 +93,7 @@ add_executable(${PROJECT_NAME}
     src/tools/shader_tools.cpp
     src/tools/font.cpp
     src/tools/log.cpp
+    src/tools/perlin_noise.cpp
     src/window.cpp
 )
 

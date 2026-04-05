@@ -102,7 +102,6 @@ void World::init_world() {
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
-    Logger::info("Chunk Init Finish");
 
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
@@ -126,8 +125,8 @@ void World::render(const glm::mat4& mvp_matrix) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
     for (const auto& chunk_map : m_chunks) {
         const auto& [pos, chunk] = chunk_map;
-        glm::vec3 center = glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2));
-        if (is_aabb_in_frustum(center, glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(CHUCK_SIZE / 2)))) {
+        glm::vec3 center = glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y/ 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2));
+        if (is_aabb_in_frustum(center, glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y / 2), static_cast<float>(CHUCK_SIZE / 2)))) {
             glBindBuffer(GL_ARRAY_BUFFER, chunk.get_vbo());
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, s));
@@ -190,7 +189,7 @@ bool World::is_block(const glm::ivec3& block_pos) const{
     y = world_y;
     x = world_x - chunk_x * CHUCK_SIZE;
     z = world_z - chunk_z * CHUCK_SIZE;
-    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= CHUCK_SIZE || z >= CHUCK_SIZE) {
+    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE) {
         return false;
     }
     auto id = chunk_blocks[Chunk::get_index(x, y, z)];
@@ -232,7 +231,7 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
     y = world_y;
     x = world_x - chunk_x * CHUCK_SIZE;
     z = world_z - chunk_z * CHUCK_SIZE;
-    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= CHUCK_SIZE || z >= CHUCK_SIZE) {
+    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE) {
         return ;
     }
 

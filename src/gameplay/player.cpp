@@ -292,6 +292,7 @@ void Player::update_move(float delta_time) {
 
     move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
     
+    /*
     if (m_move_state.up && can_up) {
         y_speed = 7.5;
         can_up = false;
@@ -299,6 +300,19 @@ void Player::update_move(float delta_time) {
     }
 
     y_speed += -G * delta_time;
+    */
+    if (m_move_state.up) {
+        y_speed = 7.5f;
+    }
+
+    if (m_move_state.down) {
+        y_speed = -7.5f;
+    }
+
+    if (!m_move_state.down && !m_move_state.up) {
+        y_speed = 0.0f;
+    }
+
     move_distance.y = y_speed * delta_time;
     // y
     update_y_move();
@@ -308,7 +322,7 @@ void Player::update_move(float delta_time) {
     update_z_move();
 
     if (m_player_pos.y < -15.0f) {
-        m_player_pos = glm::vec3(0.0f, 20.0f, 0.0f);
+        m_player_pos = glm::vec3(0.0f, 100.0f, 0.0f);
     }
 
 }
