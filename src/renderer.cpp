@@ -237,8 +237,14 @@ void Renderer::render_ui() {
 
 }
 
+void Renderer::update_fov(float fov) {
+    m_fov = fov;
+    m_p_mat = glm::perspective(glm::radians(fov), m_aspect, 0.1f, 1000.0f); 
+}
+
 void Renderer::update_proj_matrix(float aspect, float width, float height) {
-    m_p_mat = glm::perspective(glm::radians(FOV), aspect, 0.1f, 1000.0f); 
+    m_aspect = aspect;
+    m_p_mat = glm::perspective(glm::radians(m_fov), aspect, 0.1f, 1000.0f); 
     m_ui_proj = glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
     // scale and then translate
     m_ui_m_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(width / 2.0f, height / 2.0f, 0.0)) *

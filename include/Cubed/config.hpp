@@ -7,7 +7,7 @@ constexpr int CHUCK_SIZE = 16;
 constexpr int DISTANCE = 16;
 constexpr int MAX_BLOCK_STATUS = 1;
 constexpr int MAX_CHARACTER = 128;
-constexpr float FOV = 70.0f;
+constexpr float NORMAL_FOV = 70.0f;
 
 constexpr int SEED = 999;
 

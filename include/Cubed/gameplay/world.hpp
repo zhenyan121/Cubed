@@ -19,7 +19,6 @@ private:
     std::pair<int, int> chunk_pos(int world_x, int world_z);
     void gen_chunks();
 
-    
 
 public:
     

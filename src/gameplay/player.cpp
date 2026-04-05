@@ -40,6 +40,10 @@ const glm::vec3& Player::get_front() const {
     return m_front;
 }
 
+const Gait& Player::get_gait() const {
+    return m_gait;
+}
+
 const std::optional<LookBlock>& Player::get_look_block_pos() const {
     return m_look_block;
 }
@@ -143,6 +147,7 @@ void Player::update_player_move_state(int key, int action) {
             }
             if (action == GLFW_RELEASE) {
                 m_move_state.forward = false;
+                m_gait = Gait::WALK;
             }
             break;
         case GLFW_KEY_S:
@@ -193,7 +198,11 @@ void Player::update_player_move_state(int key, int action) {
                 m_move_state.down = false;
             }
             break;
-        
+        case GLFW_KEY_LEFT_CONTROL:
+            if (action == GLFW_PRESS) {
+                m_gait = Gait::RUN;
+            }
+            break;
     }
 }
 
@@ -282,6 +291,13 @@ void Player::update_lookup_block() {
 }
 
 void Player::update_move(float delta_time) {
+    if (m_gait == Gait::RUN) {
+        max_speed = RUN_SPEED;
+    }
+    if (m_gait == Gait::WALK) {
+        max_speed = WALK_SPEED;
+    }
+
     if (space_on) {
         space_on_time += delta_time;
         if (space_on_time >= MAX_SPACE_ON_TIME) {
@@ -368,7 +384,7 @@ void Player::update_x_move() {
                         glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
                     };
                     if (player_box.intersects(block_box)) {
-                        
+                        m_gait = Gait::WALK;
                         m_player_pos.x -= move_distance.x;
                         return;
                     }
@@ -430,6 +446,7 @@ void Player::update_z_move() {
                         glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1), static_cast<float>(z + 1)}
                     };
                     if (player_box.intersects(block_box)) {
+                        m_gait = Gait::WALK;
                         m_player_pos.z -= move_distance.z;
                         return;
                     }

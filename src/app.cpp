@@ -138,7 +138,7 @@ void App::run() {
         
     }
 }
-
+static Gait player_gait = Gait::WALK;
 void App::update() {
     glfwPollEvents();
     current_time = glfwGetTime();
@@ -155,7 +155,16 @@ void App::update() {
     }
     m_world.update(delta_time);
     m_camera.update_move_camera();
-
+    const auto& player= m_world.get_player("TestPlayer");
+    if (player_gait != player.get_gait()) {
+        player_gait = player.get_gait();
+        if (player_gait == Gait::WALK) {
+            m_renderer.update_fov(NORMAL_FOV);
+        }
+        if (player_gait == Gait::RUN) {
+            m_renderer.update_fov(NORMAL_FOV + 3.0f);
+        }
+    }
 
 }
 

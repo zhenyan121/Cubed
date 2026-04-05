@@ -19,6 +19,7 @@ public:
     void init();
     const Shader& get_shader(const std::string& name) const;
     void render();
+    void update_fov(float fov);
     void update_proj_matrix(float aspect, float width, float height);
 private:
     
@@ -26,6 +27,8 @@ private:
     const TextureManager& m_texture_manager;
     World& m_world;
 
+    float m_aspect = 0.0f;
+    float m_fov = NORMAL_FOV;
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat;
     
     GLuint m_mv_loc;

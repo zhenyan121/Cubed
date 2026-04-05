@@ -9,10 +9,17 @@
 #include <optional>
 #include <string>
 
+enum class Gait{
+    WALK,
+    RUN
+};
+
 class World;
 
 class Player {
 private:
+    constexpr static float WALK_SPEED = 4.5f;
+    constexpr static float RUN_SPEED = 7.0f;
     constexpr static float ACCELERATION = 10.0f;   
     constexpr static float DECELERATION = 15.0f;
     constexpr static float G = 22.5f;
@@ -23,8 +30,7 @@ private:
     
     float m_sensitivity = 0.15f;
 
-    //float max_speed = 4.5f;
-    float max_speed = 7.5f;
+    float max_speed = WALK_SPEED;
     float y_speed = 0.0f;
     bool can_up = true;
     
@@ -41,6 +47,7 @@ private:
     glm::vec3 m_front {0, 0, -1};
     glm::vec3 m_right {0, 0, 0};
     glm::vec3 m_size {0.6f, 1.8f, 0.6f};
+    Gait m_gait = Gait::WALK;
     MoveState m_move_state {};
 
     std::optional<LookBlock> m_look_block = std::nullopt;
@@ -61,6 +68,7 @@ public:
     ~Player();
     AABB get_aabb() const;
     const glm::vec3& get_front() const;
+    const Gait& get_gait() const;
     const std::optional<LookBlock>& get_look_block_pos() const;
     const glm::vec3& get_player_pos() const;
     const MoveState& get_move_state() const;
