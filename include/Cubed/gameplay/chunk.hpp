@@ -10,6 +10,9 @@ class World;
 
 class Chunk {
 private:
+
+    bool m_is_gened = false;
+    bool m_dirty = false;
     ChunkPos m_chunk_pos;
     World& m_world;
     // the index is a array of block id
@@ -31,7 +34,9 @@ public:
     GLuint get_vbo() const;
     const std::vector<Vertex>& get_vertex_data() const;
     void init_chunk();
-
+    bool is_dirty() const;
+    void mark_dirty();
+    void clear_dirty();
     void set_chunk_block(int index, unsigned id);
     
 };

@@ -29,7 +29,11 @@ int Chunk::get_index(int x, int y, int z) {
 
 void Chunk::gen_vertex_data() {
     m_vertexs_data.clear();
-    glDeleteBuffers(1, &m_vbo);
+    if (m_vbo != 0) {
+        glDeleteBuffers(1, &m_vbo);
+        m_vbo = 0;
+    }
+    
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int y = 0; y < WORLD_SIZE_Y; y++) {
             for (int z = 0; z < CHUCK_SIZE; z++) {
@@ -67,6 +71,8 @@ void Chunk::gen_vertex_data() {
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertexs_data.size() * sizeof(Vertex), m_vertexs_data.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    
 
 }
 
@@ -107,14 +113,25 @@ void Chunk::init_chunk() {
         }
     }
 
+    m_is_gened = true;
     
+}
+
+bool Chunk::is_dirty() const{
+    return m_dirty;
+}
+
+void Chunk::mark_dirty() {
+    m_dirty = true;
+}
+
+void Chunk::clear_dirty() {
+    m_dirty = false;
 }
 
 void Chunk::set_chunk_block(int index ,unsigned id) {
     m_blocks[index] = id;
-    glDeleteBuffers(1, &m_vbo);
-    
-    gen_vertex_data();
+    mark_dirty();
 }
 
 

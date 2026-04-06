@@ -291,6 +291,10 @@ void Player::update_lookup_block() {
 }
 
 void Player::update_move(float delta_time) {
+    // if frame rate less than 1 frame per second, don't update
+    if (delta_time > 1.0f) {
+        return;
+    }
     if (m_gait == Gait::RUN) {
         max_speed = RUN_SPEED;
     }
@@ -347,10 +351,6 @@ void Player::update_move(float delta_time) {
         y_speed += -G * delta_time;
     }
     
-    
-    
-    
-
     move_distance.y = y_speed * delta_time;
     // y
     update_y_move();
@@ -360,7 +360,8 @@ void Player::update_move(float delta_time) {
     update_z_move();
 
     if (m_player_pos.y < -15.0f) {
-        m_player_pos = glm::vec3(0.0f, 100.0f, 0.0f);
+        Logger::warn("y is tow low");
+        m_player_pos += glm::vec3(1.0f, 100.0f, 1.0f);
     }
 
 }

@@ -17,9 +17,22 @@ struct Block : public BlockTexture{
 };
 
 struct BlockRenderData {
-    glm::vec3 pos;
     std::vector<bool> draw_face;
     unsigned block_id;
+    BlockRenderData() = default;
+    BlockRenderData(const BlockRenderData&) = default;
+    BlockRenderData& operator=(const BlockRenderData&) = default;
+    BlockRenderData(BlockRenderData&& data) :
+        draw_face(std::move(data.draw_face)),
+        block_id(data.block_id)
+    {
+        
+    }
+    BlockRenderData& operator=(BlockRenderData&& data) {
+        draw_face = std::move(data.draw_face);
+        block_id = data.block_id;
+        return *this;
+    }
 };
 
 struct LookBlock {

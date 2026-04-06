@@ -130,7 +130,8 @@ void App::render() {
 }
 
 void App::run() {
-
+    
+    last_time = glfwGetTime();
     while(!glfwWindowShouldClose(m_window.get_glfw_window())) {
         
         update();

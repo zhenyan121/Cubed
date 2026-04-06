@@ -11,6 +11,16 @@ struct ChunkPos {
             return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
         }
     };
+
+    ChunkPos operator+(const ChunkPos& pos) const{
+        return ChunkPos{x + pos.x, z + pos.z};
+    }
+
+    ChunkPos& operator+=(const ChunkPos& pos) {
+        x += pos.x;
+        z += pos.z;
+        return *this;
+    };
 };
 
 

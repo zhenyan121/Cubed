@@ -16,7 +16,7 @@ private:
     std::unordered_map<std::size_t, Player> m_players;
     std::vector<glm::vec4> m_planes;
 
-    std::pair<int, int> chunk_pos(int world_x, int world_z);
+    std::pair<int, int> chunk_pos(int world_x, int world_z) const;
     void gen_chunks();
 
 

@@ -33,6 +33,7 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
     y = world_y;
     x = world_x - chunk_x * CHUCK_SIZE;
     z = world_z - chunk_z * CHUCK_SIZE;
+    //BlockRenderData m_block_render_data;
     // block id
     m_block_render_data.block_id = chunk_blocks[Chunk::get_index(x, y, z)];
     if (m_block_render_data.block_id == 0) {
@@ -83,6 +84,7 @@ Player& World::get_player(const std::string& name){
 
 
 void World::init_world() {
+    auto t1 = std::chrono::system_clock::now();
     for (int s = 0; s < DISTANCE; s++) {
         for (int t = 0; t < DISTANCE; t++) {
             int ns = s - DISTANCE / 2;
@@ -106,7 +108,9 @@ void World::init_world() {
         chunk.gen_vertex_data();
         
     }
-    Logger::info("Chunk Block Init Finish");
+    auto t2 = std::chrono::system_clock::now();
+    auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
     // init players
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
     Logger::info("TestPlayer Create Finish");
@@ -127,7 +131,7 @@ void World::render(const glm::mat4& mvp_matrix) {
             glEnableVertexAttribArray(1);
             glEnableVertexAttribArray(2);
 
-            glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size() * 3);
+            glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size());
             glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         }
@@ -137,7 +141,7 @@ void World::render(const glm::mat4& mvp_matrix) {
 
 }
 
-std::pair<int, int> World::chunk_pos(int world_x, int world_z) {
+std::pair<int, int> World::chunk_pos(int world_x, int world_z) const{
     int chunk_x, chunk_z;
     if (world_x < 0) {
         chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
@@ -155,7 +159,6 @@ std::pair<int, int> World::chunk_pos(int world_x, int world_z) {
 }
 
 void World::gen_chunks() {
-    Logger::info("start gen chunks");
     const auto& player =  get_player("TestPlayer");
     const auto& player_pos = player.get_player_pos();
 
@@ -172,7 +175,6 @@ void World::gen_chunks() {
         }
     }
     CUBED_ASSERT_MSG(!cur_chunks.empty(), "cur chunks is empty!!");
-    Logger::info("Cur Chunk pos gen finish, size {}", cur_chunks.size());
 
     for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
         if (cur_chunks.find(it->first) == cur_chunks.end()) {
@@ -189,25 +191,26 @@ void World::gen_chunks() {
             pre_gen_chunks.push_back(pos);
         }
     }
-
-    Logger::info("start to init new chunk");
-
+    if (pre_gen_chunks.empty()) {
+        return;
+    }
+    static const ChunkPos CHUNK_DIR[] {
+        {1, 0}, {-1, 0}, {0, -1}, {0, 1}
+    };
     for (const auto& pos : pre_gen_chunks) {
         auto it = m_chunks.find(pos);
         CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk Don't find");
         //Logger::info("Init Chunk {} {}", pos.x, pos.z);
         it->second.init_chunk();
-        
+        it->second.mark_dirty();
+        for (const auto& dir : CHUNK_DIR) {
+            auto it = m_chunks.find(pos + dir);
+            if (it != m_chunks.end()) {
+                it->second.mark_dirty();
+            }
+        }
     }
     
-    // After block gen fininshed
-    for (auto& chunk_map : m_chunks) {
-        auto& [chunk_pos, chunk] = chunk_map;
-
-        chunk.gen_vertex_data();
-        
-    }
-    Logger::info("gen chunks finish");
 }
 
 void World::need_gen() {
@@ -228,24 +231,12 @@ bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_ex
     return true;
 }
 bool World::is_block(const glm::ivec3& block_pos) const{
-    int chunk_x, chunk_z;
+    
     int world_x, world_y, world_z;
     world_x = block_pos.x;
     world_y = block_pos.y;
     world_z = block_pos.z;
-
-    if (world_x < 0) {
-        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_x >= 0) {
-        chunk_x = world_x / CHUCK_SIZE;
-    }
-    if (world_z < 0) {
-        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_z >= 0) {
-        chunk_z = world_z / CHUCK_SIZE;
-    }
+    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
 
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -271,24 +262,12 @@ bool World::is_block(const glm::ivec3& block_pos) const{
 
 void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 
-    int chunk_x, chunk_z;
+    
     int world_x, world_y, world_z;
     world_x = block_pos.x;
     world_y = block_pos.y;
     world_z = block_pos.z;
-
-    if (world_x < 0) {
-        chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_x >= 0) {
-        chunk_x = world_x / CHUCK_SIZE;
-    }
-    if (world_z < 0) {
-        chunk_z = (world_z + 1) / CHUCK_SIZE - 1;
-    }
-    if (world_z >= 0) {
-        chunk_z = world_z / CHUCK_SIZE;
-    }
+    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
 
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -306,96 +285,21 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 
     it->second.set_chunk_block(Chunk::get_index(x, y, z), id);
 
+    static const glm::ivec3 NEIGHBOR_DIRS[] = {
+        {1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}
+    };
 
-    int adjacent_chunk_x;
-    int adjacent_chunk_z;
-    int adj_world_x;
-    int adj_world_z;
-    if (x == 0) {
-        adj_world_x = world_x - 1;
-        adj_world_z = world_z;
-        if (adj_world_x < 0) {
-            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_x >= 0) {
-            adjacent_chunk_x = adj_world_x / CHUCK_SIZE;
-        }
-        if (adj_world_z < 0) {
-            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_z >= 0) {
-            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
-        }
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
-        if (adjacent != m_chunks.end()) {
-            adjacent->second.gen_vertex_data();
-        }
-        
-    }
+    for (const auto& dir : NEIGHBOR_DIRS) {
+        glm::ivec3 neighbor = block_pos + dir;
 
-    if (x == CHUCK_SIZE - 1) {
-        adj_world_x = world_x + 1;
-        adj_world_z = world_z;
-        if (adj_world_x < 0) {
-            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_x >= 0) {
-            adjacent_chunk_x = adj_world_x/ CHUCK_SIZE;
-        }
-        if (adj_world_z < 0) {
-            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_z >= 0) {
-            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
-        }
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
-        if (adjacent != m_chunks.end()) {
-            adjacent->second.gen_vertex_data();
+        auto [cx, cz] = chunk_pos(neighbor.x, neighbor.z);
+        auto it = m_chunks.find({cx, cz});
+        if (it != m_chunks.end()) {
+            it->second.mark_dirty();
+
         }
     }
 
-    if (z == 0) {
-        adj_world_x = world_x;
-        adj_world_z = world_z - 1;
-        if (adj_world_x < 0) {
-            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_x >= 0) {
-            adjacent_chunk_x = adj_world_x / CHUCK_SIZE;
-        }
-        if (adj_world_z < 0) {
-            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_z >= 0) {
-            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
-        }
-        
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
-        if (adjacent != m_chunks.end()) {
-            adjacent->second.gen_vertex_data();
-        }
-    }
-
-    if (z == CHUCK_SIZE - 1) {
-        adj_world_x = world_x;
-        adj_world_z = world_z + 1;
-        if (adj_world_x < 0) {
-            adjacent_chunk_x = (adj_world_x + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_x >= 0) {
-            adjacent_chunk_x = adj_world_x/ CHUCK_SIZE;
-        }
-        if (adj_world_z < 0) {
-            adjacent_chunk_z = (adj_world_z + 1) / CHUCK_SIZE - 1;
-        }
-        if (adj_world_z >= 0) {
-            adjacent_chunk_z = adj_world_z / CHUCK_SIZE;
-        }
-        auto adjacent = m_chunks.find(ChunkPos{adjacent_chunk_x, adjacent_chunk_z});
-        if (adjacent != m_chunks.end()) {
-            adjacent->second.gen_vertex_data();
-        }
-    }
 
 }
 
@@ -406,5 +310,13 @@ void World::update(float delta_time) {
     if (need_gen_chunk) {
         gen_chunks();
         need_gen_chunk = false;
+    }
+    
+    // unified compute vertex data before rendering
+    for (auto& [key, chunk] : m_chunks) {
+        if (chunk.is_dirty()) {
+            chunk.gen_vertex_data();
+            chunk.clear_dirty();
+        }
     }
 }
