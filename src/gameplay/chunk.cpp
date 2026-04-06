@@ -29,10 +29,7 @@ int Chunk::get_index(int x, int y, int z) {
 
 void Chunk::gen_vertex_data() {
     m_vertexs_data.clear();
-    if (m_vbo != 0) {
-        glDeleteBuffers(1, &m_vbo);
-        m_vbo = 0;
-    }
+    
     
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int y = 0; y < WORLD_SIZE_Y; y++) {
@@ -67,7 +64,11 @@ void Chunk::gen_vertex_data() {
         }
     }
 
-    glGenBuffers(1, &m_vbo);
+    if (m_vbo == 0) {
+        glGenBuffers(1, &m_vbo);
+        
+    }
+    
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertexs_data.size() * sizeof(Vertex), m_vertexs_data.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);

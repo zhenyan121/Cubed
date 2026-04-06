@@ -230,13 +230,30 @@ bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_ex
     }
     return true;
 }
+
+int World::get_block(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return 0;
+    }
+
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    int x, y, z;
+    y = block_pos.y;
+    x = block_pos.x - chunk_x * CHUCK_SIZE;
+    z = block_pos.z - chunk_z * CHUCK_SIZE;
+    if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE) {
+        return 0;
+    }
+    return chunk_blocks[Chunk::get_index(x, y, z)];
+
+}
+
 bool World::is_block(const glm::ivec3& block_pos) const{
-    
-    int world_x, world_y, world_z;
-    world_x = block_pos.x;
-    world_y = block_pos.y;
-    world_z = block_pos.z;
-    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
+    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
 
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -246,9 +263,9 @@ bool World::is_block(const glm::ivec3& block_pos) const{
 
     const auto& chunk_blocks = it->second.get_chunk_blocks();
     int x, y, z;
-    y = world_y;
-    x = world_x - chunk_x * CHUCK_SIZE;
-    z = world_z - chunk_z * CHUCK_SIZE;
+    y = block_pos.y;
+    x = block_pos.x - chunk_x * CHUCK_SIZE;
+    z = block_pos.z - chunk_z * CHUCK_SIZE;
     if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE) {
         return false;
     }

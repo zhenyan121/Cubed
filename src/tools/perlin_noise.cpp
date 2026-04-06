@@ -7,11 +7,11 @@
 #include <numeric>
 #include <random>
 
-void PerlinNoise::init() {
+void PerlinNoise::init(unsigned int seed) {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
 
-    std::mt19937 engine(SEED);
+    std::mt19937 engine(seed);
     std::shuffle(p.begin(), p.end(), engine);
 
     p.insert(p.end(), p.begin(), p.end());

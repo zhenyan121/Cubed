@@ -18,7 +18,7 @@ public:
     static void window_reshape_callback(GLFWwindow* window, int new_width, int new_height);
 
     static int start_cubed_application(int argc, char** argv);
-    
+    static unsigned int seed();
     static float delte_time();
     static float get_fps();
 private:
@@ -38,7 +38,7 @@ private:
     inline static double fps_time_count = 0.0f;
     inline static int frame_count = 0;
     inline static int fps = 0;
-    
+    inline static unsigned int m_seed = 0;
     
     void init();
     

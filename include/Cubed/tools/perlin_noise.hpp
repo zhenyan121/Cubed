@@ -4,7 +4,7 @@
 
 class PerlinNoise {
 public:
-    static void init();
+    static void init(unsigned int seed);
     static float noise(float x, float y, float z);
 private:
     static inline bool is_init = false;

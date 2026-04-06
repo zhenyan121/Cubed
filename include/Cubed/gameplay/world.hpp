@@ -30,6 +30,8 @@ public:
     Player& get_player(const std::string& name);
     void init_world();
     bool is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents);
+
+    int get_block(const glm::ivec3& block_pos) const;
     bool is_block(const glm::ivec3& block_pos) const;
     
     void need_gen();
