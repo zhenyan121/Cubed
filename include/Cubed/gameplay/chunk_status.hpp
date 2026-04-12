@@ -3,6 +3,7 @@
 struct ChunkPos {
     int x;
     int z;
+    
     bool operator==(const ChunkPos&) const = default;
     struct Hash {
         std::size_t operator()(const ChunkPos& pos) const{
@@ -22,5 +23,8 @@ struct ChunkPos {
         return *this;
     };
 };
+
+
+
 
 

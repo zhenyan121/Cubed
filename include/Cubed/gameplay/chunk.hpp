@@ -13,6 +13,11 @@ private:
 
     bool m_is_gened = false;
     bool m_dirty = false;
+    
+    static constexpr int SIZE_X = CHUCK_SIZE;
+    static constexpr int SIZE_Y = WORLD_SIZE_Y;
+    static constexpr int SIZE_Z = CHUCK_SIZE;
+    
     ChunkPos m_chunk_pos;
     World& m_world;
     // the index is a array of block id
@@ -26,6 +31,10 @@ private:
 public:
     Chunk(World& world, ChunkPos chunk_pos);
     ~Chunk();
+    Chunk(const Chunk&) = delete;
+    Chunk& operator=(const Chunk&) = delete;
+    Chunk(Chunk&&) = default;
+    Chunk& operator=(Chunk&&) = delete;
     const std::vector<uint8_t>& get_chunk_blocks() const;    
     
     static int get_index(int x, int y, int z);

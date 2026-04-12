@@ -137,6 +137,7 @@ void Player::set_player_pos(const glm::vec3& pos) {
 void Player::update(float delta_time) {
     update_move(delta_time);
     update_lookup_block();
+    check_player_chunk_transition();
 }
 
 void Player::update_player_move_state(int key, int action) {
@@ -221,6 +222,14 @@ void Player::update_front_vec(float offset_x, float offset_y) {
     m_front.z = -cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
     
     m_front = glm::normalize(m_front);
+}
+
+void Player::check_player_chunk_transition() {
+    ChunkPos cur_pos = m_world.chunk_pos(m_player_pos.x, m_player_pos.z);
+    if (cur_pos != m_player_chunk_pos) {
+        m_world.need_gen();
+        m_player_chunk_pos = cur_pos;
+    }
 }
 
 void Player::update_direction() {

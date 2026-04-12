@@ -16,12 +16,10 @@ World::~World() {
 }
 
 bool World::can_move(const AABB& player_box) const{
-    
-    
 
     return true;
 }
-
+/*
 const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
     auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
     //Logger::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
@@ -58,7 +56,7 @@ const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,in
 
     return m_block_render_data;
 }
-
+*/
 const std::optional<LookBlock>& World::get_look_block_pos(const std::string& name) const{
     static std::optional<LookBlock> null_look_block = std::nullopt;
     auto it = m_players.find(HASH::str(name));
@@ -141,7 +139,7 @@ void World::render(const glm::mat4& mvp_matrix) {
 
 }
 
-std::pair<int, int> World::chunk_pos(int world_x, int world_z) const{
+ChunkPos World::chunk_pos(int world_x, int world_z) const{
     int chunk_x, chunk_z;
     if (world_x < 0) {
         chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
@@ -191,6 +189,8 @@ void World::gen_chunks() {
             pre_gen_chunks.push_back(pos);
         }
     }
+
+    Logger::info("New Gen Chunks Sum: {}", pre_gen_chunks.size());
     if (pre_gen_chunks.empty()) {
         return;
     }
@@ -214,7 +214,7 @@ void World::gen_chunks() {
 }
 
 void World::need_gen() {
-    need_gen_chunk = true;
+    m_need_gen_chunk = true;
 }
 
 bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents) {
@@ -324,9 +324,9 @@ void World::update(float delta_time) {
     for (auto& player : m_players) {
         player.second.update(delta_time);
     }
-    if (need_gen_chunk) {
+    if (m_need_gen_chunk) {
         gen_chunks();
-        need_gen_chunk = false;
+        m_need_gen_chunk = false;
     }
     
     // unified compute vertex data before rendering

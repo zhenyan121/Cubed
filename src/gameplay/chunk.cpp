@@ -11,8 +11,13 @@ Chunk::Chunk(World& world, ChunkPos chunk_pos) :
 }
 
 Chunk::~Chunk() {
-    glDeleteBuffers(1, &m_vbo);
+    if (m_vbo != 0) {
+        glDeleteBuffers(1, &m_vbo);
+    }
+    
 }
+
+
 
 const std::vector<uint8_t>& Chunk::get_chunk_blocks() const{
     return m_blocks;
@@ -30,20 +35,36 @@ int Chunk::get_index(int x, int y, int z) {
 void Chunk::gen_vertex_data() {
     m_vertexs_data.clear();
     
-    
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int y = 0; y < WORLD_SIZE_Y; y++) {
-            for (int z = 0; z < CHUCK_SIZE; z++) {
+    static const glm::ivec3 DIR[6] = {
+        {0,0,1},{1,0,0},{0,0,-1},{-1,0,0},{0,1,0},{0,-1,0}
+    };
+
+    for (int x = 0; x < SIZE_X; x++) {
+        for (int y = 0; y < SIZE_Y; y++) {
+            for (int z = 0; z < SIZE_Z; z++) {
                 int world_x = x + m_chunk_pos.x * CHUCK_SIZE;
                 int world_z = z + m_chunk_pos.z * CHUCK_SIZE;
                 int world_y = y;
-                const auto& block_render_data = m_world.get_block_render_data(world_x, world_y, world_z);
+                int id = m_blocks[get_index(x, y, z)];
                 // air
-                if (m_blocks[get_index(x, y, z)] == 0) {
+                if (id == 0) {
                     continue;
                 }
                 for (int face = 0; face < 6; face++) {
-                    if (!block_render_data.draw_face[face]) {
+                    int nx = x + DIR[face].x;
+                    int ny = y + DIR[face].y;
+                    int nz = z + DIR[face].z;
+                    bool neighbor_soild = false;
+
+                    if (nx < 0 || nx >= SIZE_X || ny < 0 || ny >= SIZE_Y || nz < 0 || nz>= SIZE_Z) {
+                        neighbor_soild = m_world.is_block(glm::ivec3(world_x, world_y, world_z) + DIR[face]);
+                    } else {
+                        if (m_blocks[get_index(nx, ny, nz)] != 0) {
+                            neighbor_soild = true;
+                        }
+                    }
+
+                    if (neighbor_soild) {
                         continue;
                     }
                     for (int i = 0; i < 6; i++) {
@@ -53,7 +74,7 @@ void Chunk::gen_vertex_data() {
                             VERTICES_POS[face][i][2] + (float)world_z * 1.0f,
                             TEX_COORDS[face][i][0],
                             TEX_COORDS[face][i][1],
-                            static_cast<float>(block_render_data.block_id * 6 + face) 
+                            static_cast<float>(id * 6 + face) 
 
                         };
                         m_vertexs_data.emplace_back(vex);
@@ -70,7 +91,7 @@ void Chunk::gen_vertex_data() {
     }
     
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_vertexs_data.size() * sizeof(Vertex), m_vertexs_data.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_vertexs_data.size() * sizeof(Vertex), m_vertexs_data.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     
