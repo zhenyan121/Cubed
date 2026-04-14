@@ -11,7 +11,11 @@ Window::Window(Renderer& renderer) :
 }
 
 Window::~Window() {
-    glfwDestroyWindow(m_window);
+    if (m_window) {
+        glfwDestroyWindow(m_window);
+        m_window = nullptr;
+    }
+    
     glfwTerminate();
 }
 

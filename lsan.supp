@@ -1,0 +1,7 @@
+leak:libfontconfig.so
+leak:libpangoft2
+leak:libpangocairo
+leak:libdecor-gtk.so
+leak:libgtk-3.so
+leak:libwayland-client.so
+leak:libglfw.so

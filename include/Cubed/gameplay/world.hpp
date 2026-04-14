@@ -1,20 +1,50 @@
 #pragma once
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #include <optional>
 #include <unordered_map>
 
 #include <Cubed/AABB.hpp>
 #include <Cubed/gameplay/chunk.hpp>
 
+struct ChunkRenderSnapshot {
+    GLuint vbo;
+    size_t vertex_count;
+    glm::vec3 center;
+    glm::vec3 half_extents;
+};
+
+
 class Player;
 
 class World {
 private:    
-    bool m_need_gen_chunk;
+    glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
     std::unordered_map<ChunkPos , Chunk, ChunkPos::Hash> m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
     std::vector<glm::vec4> m_planes;
 
-    void gen_chunks();
+    std::thread m_gen_thread;
+    std::mutex m_chunks_mutex;
+    std::mutex m_gen_signal_mutex;
+    std::mutex m_new_chunk_queue_mutex;
+    std::mutex m_delete_vbo_mutex;
+    std::vector<GLuint> m_pending_delete_vbo;
+    std::condition_variable m_gen_cv;
+    std::atomic<bool> m_gen_running{false};
+    std::atomic<bool> m_need_gen_chunk{false};
+
+    std::vector<ChunkPos> m_dirty_queue;
+    std::vector<ChunkRenderSnapshot> m_render_snapshots;
+    std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
+    std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
+
+    void gen_chunks_internal();
+
+    void start_gen_thread();
+    void stop_gen_thread();
 
 public:
     
@@ -31,7 +61,7 @@ public:
     int get_block(const glm::ivec3& block_pos) const;
     bool is_block(const glm::ivec3& block_pos) const;
     
-    ChunkPos chunk_pos(int world_x, int world_z) const;
+    static ChunkPos chunk_pos(int world_x, int world_z);
 
     void need_gen();
     void render(const glm::mat4& mvp_matrix);
@@ -39,5 +69,6 @@ public:
     void set_block(const glm::ivec3& pos, unsigned id);
     void update(float delta_time);
     
+    void push_delete_vbo(GLuint vbo);
 
 };

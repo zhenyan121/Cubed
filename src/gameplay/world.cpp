@@ -1,5 +1,5 @@
-#include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
+#include <Cubed/gameplay/player.hpp>
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
@@ -12,7 +12,15 @@ World::World() {
 }
 
 World::~World() {
-
+    stop_gen_thread();
+    m_chunks.clear();
+    {
+        std::lock_guard lk(m_delete_vbo_mutex);
+        for (auto x : m_pending_delete_vbo) {
+            glDeleteBuffers(1, &x);
+        }
+        m_pending_delete_vbo.clear();
+    }
 }
 
 bool World::can_move(const AABB& player_box) const{
@@ -104,6 +112,7 @@ void World::init_world() {
         auto& [chunk_pos, chunk] = chunk_map;
 
         chunk.gen_vertex_data();
+        chunk.upload_to_gpu();
         
     }
     auto t2 = std::chrono::system_clock::now();
@@ -112,15 +121,18 @@ void World::init_world() {
     // init players
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
     Logger::info("TestPlayer Create Finish");
+
+    start_gen_thread();
+
 }
 
 void World::render(const glm::mat4& mvp_matrix) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
-    for (const auto& chunk_map : m_chunks) {
-        const auto& [pos, chunk] = chunk_map;
-        glm::vec3 center = glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y/ 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2));
-        if (is_aabb_in_frustum(center, glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y / 2), static_cast<float>(CHUCK_SIZE / 2)))) {
-            glBindBuffer(GL_ARRAY_BUFFER, chunk.get_vbo());
+
+    for (const auto& snapshot : m_render_snapshots) {
+        
+        if (is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
+            glBindBuffer(GL_ARRAY_BUFFER, snapshot.vbo);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, s));
             glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, layer));
@@ -129,7 +141,7 @@ void World::render(const glm::mat4& mvp_matrix) {
             glEnableVertexAttribArray(1);
             glEnableVertexAttribArray(2);
 
-            glDrawArrays(GL_TRIANGLES, 0, chunk.get_vertex_data().size());
+            glDrawArrays(GL_TRIANGLES, 0, snapshot.vertex_count);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         }
@@ -139,7 +151,7 @@ void World::render(const glm::mat4& mvp_matrix) {
 
 }
 
-ChunkPos World::chunk_pos(int world_x, int world_z) const{
+ChunkPos World::chunk_pos(int world_x, int world_z) {
     int chunk_x, chunk_z;
     if (world_x < 0) {
         chunk_x = (world_x + 1) / CHUCK_SIZE - 1;
@@ -156,9 +168,9 @@ ChunkPos World::chunk_pos(int world_x, int world_z) const{
     return {chunk_x, chunk_z};
 }
 
-void World::gen_chunks() {
-    const auto& player =  get_player("TestPlayer");
-    const auto& player_pos = player.get_player_pos();
+void World::gen_chunks_internal() {
+
+    const auto& player_pos = m_gen_player_pos;
 
     int x = std::floor(player_pos.x);
     int z = std::floor(player_pos.z);
@@ -173,20 +185,22 @@ void World::gen_chunks() {
         }
     }
     CUBED_ASSERT_MSG(!cur_chunks.empty(), "cur chunks is empty!!");
-
-    for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
-        if (cur_chunks.find(it->first) == cur_chunks.end()) {
-            it = m_chunks.erase(it);
-        } else {
-            ++it;
+    std::vector<std::pair<ChunkPos, Chunk>> new_chunks;
+    {
+        std::lock_guard lk(m_chunks_mutex);
+        for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
+            if (cur_chunks.find(it->first) == cur_chunks.end()) {
+                it = m_chunks.erase(it);
+            } else {
+                ++it;
+            }
         }
-    }
 
-    for (auto pos: cur_chunks) {
-        auto it = m_chunks.find(pos);
-        if (it == m_chunks.end()) {
-            m_chunks.emplace(pos, Chunk(*this, pos));
-            pre_gen_chunks.push_back(pos);
+        for (auto pos: cur_chunks) {
+            auto it = m_chunks.find(pos);
+            if (it == m_chunks.end()) {
+                pre_gen_chunks.push_back(pos);
+            }
         }
     }
 
@@ -194,27 +208,94 @@ void World::gen_chunks() {
     if (pre_gen_chunks.empty()) {
         return;
     }
+
+    for (auto& pos : pre_gen_chunks) {
+        new_chunks.push_back({pos, Chunk(*this, pos)});
+    }
+    
     static const ChunkPos CHUNK_DIR[] {
-        {1, 0}, {-1, 0}, {0, -1}, {0, 1}
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
-    for (const auto& pos : pre_gen_chunks) {
-        auto it = m_chunks.find(pos);
-        CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk Don't find");
-        //Logger::info("Init Chunk {} {}", pos.x, pos.z);
-        it->second.init_chunk();
-        it->second.mark_dirty();
-        for (const auto& dir : CHUNK_DIR) {
-            auto it = m_chunks.find(pos + dir);
-            if (it != m_chunks.end()) {
-                it->second.mark_dirty();
+    
+    std::unordered_map<ChunkPos, const Chunk&, ChunkPos::Hash> neighbor;
+
+    {
+        std::lock_guard lk(m_chunks_mutex);
+        for (auto& [pos, chunk] : new_chunks) {
+            for (const auto& dir : CHUNK_DIR) {
+                auto it = m_chunks.find(pos + dir);
+                if (it != m_chunks.end()) {
+                    neighbor.insert({it->first, (it->second)});
+                }
             }
         }
     }
     
+    std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+
+    for (auto& [pos, chunk] : new_chunks) {
+
+        chunk.init_chunk();
+        neighbor.insert({pos, chunk});
+        
+    }
+
+    for (auto& [pos, chunk] : new_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto it = neighbor.find(pos + CHUNK_DIR[i]);
+            if (it != neighbor.end()) {
+                neighbor_block[i] = &(it->second.get_chunk_blocks());
+            } else {
+                neighbor_block[i] = nullptr;
+            }
+        }
+        chunk.gen_vertex_data(neighbor_block);
+    }
+
+    {
+        std::lock_guard lk(m_new_chunk_queue_mutex);
+        for (auto& x : new_chunks) {
+            m_new_chunk_queue.emplace_back(std::move(x));
+        }
+        
+    }
+     
+}
+
+void World::start_gen_thread() {
+    m_gen_running = true;
+    Logger::info("Gen Thread Started");
+    m_gen_thread = std::thread([this](){
+        while (m_gen_running) {
+            std::unique_lock<std::mutex> lk(m_gen_signal_mutex);
+
+            m_gen_cv.wait(lk, [this](){
+                return m_need_gen_chunk.load() || !m_gen_running;
+            });
+            if (!m_gen_running) {
+                break;
+            }
+            m_need_gen_chunk = false;
+            lk.unlock();
+
+            gen_chunks_internal();
+        }
+    });
+}
+
+void World::stop_gen_thread() {
+    m_gen_running = false;
+    m_gen_cv.notify_all();
+    if (m_gen_thread.joinable()) {
+        m_gen_thread.join();
+    }
+    Logger::info("Gen Thread Stopped");
 }
 
 void World::need_gen() {
+    m_gen_player_pos = get_player("TestPlayer").get_player_pos();
     m_need_gen_chunk = true;
+    m_gen_cv.notify_one();
 }
 
 bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents) {
@@ -254,13 +335,11 @@ int World::get_block(const glm::ivec3& block_pos) const {
 
 bool World::is_block(const glm::ivec3& block_pos) const{
     auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
-
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {
         return false;
     }
-
     const auto& chunk_blocks = it->second.get_chunk_blocks();
     int x, y, z;
     y = block_pos.y;
@@ -279,11 +358,11 @@ bool World::is_block(const glm::ivec3& block_pos) const{
 
 void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 
-    
     int world_x, world_y, world_z;
     world_x = block_pos.x;
     world_y = block_pos.y;
     world_z = block_pos.z;
+
     auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
 
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
@@ -323,17 +402,55 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 void World::update(float delta_time) {
     for (auto& player : m_players) {
         player.second.update(delta_time);
+    }  
+    {
+        std::lock_guard lk(m_delete_vbo_mutex);
+        for (auto x : m_pending_delete_vbo) {
+            glDeleteBuffers(1, &x);
+        }
+        m_pending_delete_vbo.clear();
     }
-    if (m_need_gen_chunk) {
-        gen_chunks();
-        m_need_gen_chunk = false;
+    {
+        std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
+        m_new_chunk.clear();
+        for (auto& x : m_new_chunk_queue) {
+            m_new_chunk.emplace_back(std::move(x));
+        }
+        m_new_chunk_queue.clear();
     }
-    
+
+    for (auto& x : m_new_chunk) {
+        x.second.upload_to_gpu();
+    }
+
     // unified compute vertex data before rendering
-    for (auto& [key, chunk] : m_chunks) {
-        if (chunk.is_dirty()) {
-            chunk.gen_vertex_data();
-            chunk.clear_dirty();
+    {   
+        std::lock_guard lk(m_chunks_mutex);
+        for (auto& x : m_new_chunk) {
+            m_chunks.insert_or_assign(x.first, std::move(x.second));
+        }
+        m_render_snapshots.clear();
+        for (auto& [pos, chunk] : m_chunks) {
+            if (chunk.is_dirty()) {
+                // the curial fator influence
+                chunk.gen_vertex_data();
+                chunk.upload_to_gpu();
+            }
+            if (!chunk.is_dirty()) {
+                m_render_snapshots.push_back({
+                    chunk.get_vbo(),
+                    chunk.get_vertex_data().size(),
+                    glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y/ 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2)),
+                    glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y / 2), static_cast<float>(CHUCK_SIZE / 2))
+                    }
+                );
+            }
+            
         }
     }
+}
+
+void World::push_delete_vbo(GLuint vbo) {
+    std::lock_guard lk(m_delete_vbo_mutex);
+    m_pending_delete_vbo.push_back(vbo);
 }
