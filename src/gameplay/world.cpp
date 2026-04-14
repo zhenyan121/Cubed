@@ -169,8 +169,12 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 }
 
 void World::gen_chunks_internal() {
-
-    const auto& player_pos = m_gen_player_pos;
+    glm::vec3 player_pos;
+    {
+        std::lock_guard lk(m_gen_player_pos_mutex);
+        player_pos = m_gen_player_pos;
+    }
+    
 
     int x = std::floor(player_pos.x);
     int z = std::floor(player_pos.z);
@@ -293,7 +297,11 @@ void World::stop_gen_thread() {
 }
 
 void World::need_gen() {
-    m_gen_player_pos = get_player("TestPlayer").get_player_pos();
+    {
+        std::lock_guard lk(m_gen_player_pos_mutex);
+        m_gen_player_pos = get_player("TestPlayer").get_player_pos();
+    }
+    
     m_need_gen_chunk = true;
     m_gen_cv.notify_one();
 }

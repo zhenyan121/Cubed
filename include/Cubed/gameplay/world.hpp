@@ -31,6 +31,7 @@ private:
     std::mutex m_gen_signal_mutex;
     std::mutex m_new_chunk_queue_mutex;
     std::mutex m_delete_vbo_mutex;
+    std::mutex m_gen_player_pos_mutex;
     std::vector<GLuint> m_pending_delete_vbo;
     std::condition_variable m_gen_cv;
     std::atomic<bool> m_gen_running{false};
