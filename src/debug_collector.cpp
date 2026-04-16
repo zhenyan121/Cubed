@@ -1,5 +1,6 @@
 #include <Cubed/debug_collector.hpp>
 
+#include <Cubed/tools/system_version.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 
 DebugCollector::DebugCollector() {
@@ -16,6 +17,7 @@ void DebugCollector::init_text() {
     Text fps_text("fps");
     Text player_pos_text("player_pos");
     Text rendered_chunk_text("rendered_chunk");
+    
     version_text
         .position(0.0f, 100.0f)
         .scale(0.8f)
@@ -32,10 +34,26 @@ void DebugCollector::init_text() {
         .text("Rendered Chunk: 0")
         .scale(0.8f)
         .position(0.0, 200.0f);
+    std::string os;
+    
+    Text os_text("os");
+        os_text
+        .scale(0.8f)
+        .position(0.0f, 250.0f);
+    if (get_os_version(os)) {
+        os_text
+            .text("OS: " + os);
+        Logger::info("System: {}", os);
+    } else {
+        os_text
+            .text("OS: Unknown");
+            
+    }
     m_texts.insert({version_text.uuid(), std::move(version_text)});
     m_texts.insert({fps_text.uuid(), std::move(fps_text)});
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
     m_texts.insert({rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
+    m_texts.insert({os_text.uuid(), std::move(os_text)});
 }
 
 std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {
