@@ -3,10 +3,12 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 
+#include <array>
+
 std::unordered_map<unsigned, std::string> MapTable::id_to_name_map;
 std::unordered_map<size_t, unsigned> MapTable::name_to_id_map;
 
-constexpr std::array<std::string, MAX_BLOCK_NUM> BLOCK_REISTER{
+constexpr std::array<std::string_view, MAX_BLOCK_NUM> BLOCK_REISTER{
     "air",
     "grass_block",
     "dirt",
