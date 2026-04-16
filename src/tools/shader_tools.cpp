@@ -125,7 +125,7 @@ namespace Tools {
         CUBED_ASSERT_MSG(fs::is_regular_file(path), path.c_str());
         unsigned char* data = nullptr;
         int width, height, channels; 
-        data = SOIL_load_image(path.c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
+        data = SOIL_load_image(path.string().c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
         CUBED_ASSERT_MSG(data, "Could not load texture" + path.string());
 
         return data;
