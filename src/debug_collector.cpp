@@ -15,6 +15,7 @@ void DebugCollector::init_text() {
     Text version_text("version");
     Text fps_text("fps");
     Text player_pos_text("player_pos");
+    Text rendered_chunk_text("rendered_chunk");
     version_text
         .position(0.0f, 100.0f)
         .scale(0.8f)
@@ -27,11 +28,14 @@ void DebugCollector::init_text() {
         .position(0.0f, 150.0f)
         .scale(0.8f)
         .text("x: 0.00 y: 0.00 z: 0.00");
-
+    rendered_chunk_text
+        .text("Rendered Chunk: 0")
+        .scale(0.8f)
+        .position(0.0, 200.0f);
     m_texts.insert({version_text.uuid(), std::move(version_text)});
     m_texts.insert({fps_text.uuid(), std::move(fps_text)});
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
-
+    m_texts.insert({rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
 }
 
 std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {

@@ -1,4 +1,6 @@
 #include <Cubed/gameplay/world.hpp>
+
+#include <Cubed/debug_collector.hpp>
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
@@ -128,7 +130,7 @@ void World::init_world() {
 
 void World::render(const glm::mat4& mvp_matrix) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
-
+    int rendered_sum = 0;
     for (const auto& snapshot : m_render_snapshots) {
         
         if (is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
@@ -143,11 +145,13 @@ void World::render(const glm::mat4& mvp_matrix) {
 
             glDrawArrays(GL_TRIANGLES, 0, snapshot.vertex_count);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
+            rendered_sum++;
 
         }
         
 
     }
+    DebugCollector::get().report("rendered_chunk", "Rendered Chunk: " + std::to_string(rendered_sum));
 
 }
 
