@@ -1,6 +1,6 @@
 #include <Cubed/debug_collector.hpp>
 
-#include <Cubed/tools/system_version.hpp>
+#include <Cubed/tools/system_info.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 
 DebugCollector::DebugCollector() {
@@ -44,7 +44,7 @@ void DebugCollector::init_text() {
         os_text
         .scale(0.8f)
         .position(0.0f, 250.0f);
-    if (get_os_version(os)) {
+    if (Tools::get_os_version(os)) {
         os_text
             .text("OS: " + os);
         Logger::info("System: {}", os);

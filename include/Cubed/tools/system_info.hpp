@@ -6,8 +6,18 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <psapi.h>
 typedef LONG (WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+#elif defined(__linux__)
+#include <sys/resource.h>
+#include <unistd.h>
+#include <fstream>
+#endif
+
+namespace Tools {
+
 inline bool get_os_version(std::string& str) {
+#ifdef _WIN32
     HMODULE hntdll = GetModuleHandleW(L"ntdll.dll");
     if (!hntdll) return false;
 
@@ -28,12 +38,7 @@ inline bool get_os_version(std::string& str) {
         str = "Windows Build " + std::to_string(osvi.dwBuildNumber);
     }
     return true;
-}
-
 #elif defined(__linux__)
-#include <fstream>
-
-inline bool get_os_version(std::string& str) {
     std::ifstream file("/etc/os-release");
     if (!file.is_open()) {
         Logger::error("Can't Open /etc/os-release");
@@ -57,12 +62,29 @@ inline bool get_os_version(std::string& str) {
         }
     }
     return false;
-}
 #else
-inline bool get_os_version(std::string& str) {
     str = "Unknown OS";
     return false;
-}
 #endif
+}
 
+inline size_t get_current_rss() {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize;
+    }
+    return 0;
+#elif defined(__linux__)
+    std::ifstream statm("/proc/self/statm");
+    long vsz = 0, rss_pages = 0;
+    statm >> vsz >> rss_pages;
+    statm.close();
+    long page_size = sysconf(_SC_PAGESIZE);
+    return rss_pages * page_size;
+#else
+    return 0; // Unsupported platform
+#endif
+}
 
+}
