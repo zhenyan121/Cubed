@@ -1,5 +1,6 @@
 #pragma once
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <psapi.h>
 #else
@@ -15,12 +16,14 @@ inline size_t get_current_rss() {
         return pmc.WorkingSetSize;
     }
     return 0;
-#else
+#elif defined(__linux__)
     std::ifstream statm("/proc/self/statm");
     long vsz = 0, rss_pages = 0;
     statm >> vsz >> rss_pages;
     statm.close();
     long page_size = sysconf(_SC_PAGESIZE);
     return rss_pages * page_size;
+#else
+    return 0; // Unsupported platform
 #endif
 }

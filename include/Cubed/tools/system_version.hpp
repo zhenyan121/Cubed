@@ -4,6 +4,7 @@
 #include <Cubed/tools/log.hpp>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 typedef LONG (WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 inline bool get_os_version(std::string& str) {
