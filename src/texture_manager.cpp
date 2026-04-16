@@ -179,3 +179,19 @@ void TextureManager::init_texture() {
 
 
 }
+
+void TextureManager::update() {
+    if (m_need_reload) {
+        hot_reload();
+    }
+}
+
+void TextureManager::need_reload() {
+    m_need_reload = true;
+}
+
+void TextureManager::hot_reload() {
+    delet_texture();
+    init_texture();
+    m_need_reload = false;
+}

@@ -19,7 +19,10 @@ App::~App() {
 void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     CUBED_ASSERT_MSG(app, "nullptr");
-    app->m_camera.update_cursor_position_camera(xpos, ypos);
+    if (!app->m_window.is_mouse_enable()) {
+        app->m_camera.update_cursor_position_camera(xpos, ypos);
+    }
+    
 }
 void App::init() {
     m_window.init();
@@ -45,7 +48,6 @@ void App::init() {
     Logger::info("Texture Load Success");
     m_world.init_world();
     Logger::info("World Init Success");
-    m_texture_array = m_texture_manager.get_texture_array();
 
     m_camera.camera_init(&m_world.get_player("TestPlayer"));
     
@@ -54,7 +56,7 @@ void App::init() {
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     CUBED_ASSERT_MSG(app, "nullptr");
-
+    auto& input = Input::get_input_state();
     switch(key) {
         case GLFW_KEY_Q:
             if (action == GLFW_PRESS) {
@@ -78,7 +80,12 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
             break;
         case GLFW_KEY_R:
             if (action == GLFW_PRESS) {
-                app->m_world.need_gen();
+                app->m_texture_manager.need_reload();
+            }
+            break;
+        case GLFW_KEY_P:
+            if (action == GLFW_PRESS) {
+                app->m_window.toggle_mouse_able();
             }
             break;
             
@@ -159,6 +166,7 @@ void App::update() {
         frame_count = 0;
         fps_time_count = 0.0f;
     }
+    m_texture_manager.update();
     m_world.update(delta_time);
     m_camera.update_move_camera();
     const auto& player= m_world.get_player("TestPlayer");

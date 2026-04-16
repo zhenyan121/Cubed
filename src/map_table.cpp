@@ -31,7 +31,7 @@ void MapTable::init_map() {
 
     for (int i = 0; i < MAX_BLOCK_NUM; i++) {
         id_to_name_map[i] = BLOCK_REISTER[i];
-         name_to_id_map[HASH::str(BLOCK_REISTER[i])] = i;
+        name_to_id_map[HASH::str(BLOCK_REISTER[i])] = i;
     }
     
 }

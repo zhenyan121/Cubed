@@ -29,9 +29,6 @@ private:
 
     Window m_window{m_renderer};
     
-    
-    GLuint m_texture_array = 0;
-    
     inline static double last_time = glfwGetTime();
     inline static double current_time = glfwGetTime();
     inline static double delta_time = 0.0f;

@@ -19,6 +19,10 @@ Window::~Window() {
     glfwTerminate();
 }
 
+bool Window::is_mouse_enable() const {
+    return m_mouse_enable;
+}
+
 const GLFWwindow* Window::get_glfw_window() const {
     return m_window;
 }
@@ -97,4 +101,14 @@ void Window::toggle_fullscreen() {
         );
     }
     update_viewport();
+}
+
+void Window::toggle_mouse_able() {
+    if (m_mouse_enable) {
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        m_mouse_enable = false;
+    } else {
+        glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        m_mouse_enable = true;
+    }
 }
