@@ -32,7 +32,7 @@ GLuint TextureManager::get_ui_array() const{
 void TextureManager::load_block_status(unsigned id) {
 
     CUBED_ASSERT_MSG(id < MAX_BLOCK_STATUS, "Exceed the max status sum limit");
-    std::string path = "assets/texture/status/" + std::to_string(id) + ".png";
+    std::string path = "texture/status/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
     image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
@@ -54,7 +54,7 @@ void TextureManager::load_block_texture(unsigned id) {
     }
     unsigned char* image_data[6];
 
-    std::string block_texture_path = "assets/texture/block/" + name;
+    std::string block_texture_path = "texture/block/" + name;
     image_data[0] = (Tools::load_image_data(block_texture_path + "/front.png"));
     image_data[1] = (Tools::load_image_data(block_texture_path + "/right.png"));
     image_data[2] = (Tools::load_image_data(block_texture_path + "/back.png"));
@@ -80,7 +80,7 @@ void TextureManager::load_block_texture(unsigned id) {
 void TextureManager::load_ui_texture(unsigned id) {
     CUBED_ASSERT_MSG(id < MAX_UI_NUM, "Exceed the max ui sum limit");
 
-    std::string path = "assets/texture/ui/" + std::to_string(id) + ".png";
+    std::string path = "texture/ui/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
     image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);

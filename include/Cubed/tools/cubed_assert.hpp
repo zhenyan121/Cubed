@@ -16,10 +16,7 @@ namespace Assert {
     }
 }
 
-#ifdef NDEBUG
-#define CUBED_ASSERT(cond) ((void)0)
-#define CUBED_ASSERT_MSG(cond, message) ((void)0)
-#else
+#ifdef DEBUG_MODE
 #define CUBED_ASSERT(cond) \
     do { \
         if (!(cond)) { \
@@ -32,4 +29,8 @@ namespace Assert {
             ::Assert::msg(#cond, __FILE__, __LINE__, __func__, message); \
         } \
     } while (0)
+
+#else
+#define CUBED_ASSERT(cond) ((void)0)
+#define CUBED_ASSERT_MSG(cond, message) ((void)0)
 #endif

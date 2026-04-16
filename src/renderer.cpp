@@ -63,7 +63,7 @@ void Renderer::init() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    #ifndef NDEBUG    
+    #ifdef DEBUG_MODE    
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param) {
         Logger::log(Logger::Level::DEBUG, std::source_location::current(),"GL Debug: {}", reinterpret_cast<const char*>(message));

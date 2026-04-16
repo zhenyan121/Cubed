@@ -111,6 +111,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(${PROJECT_NAME} PRIVATE
         -fsanitize=address
     )
+
+    target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_MODE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE 
+        ASSETS_PATH="${CMAKE_SOURCE_DIR}/assets/"
+    )
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE 
+        ASSETS_PATH="./assets/"
+    )
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})

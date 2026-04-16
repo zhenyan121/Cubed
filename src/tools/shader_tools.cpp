@@ -1,10 +1,12 @@
 #include <fstream>
+#include <filesystem>
 
 #include <Cubed/config.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 #include <Cubed/tools/log.hpp>
 
+namespace fs = std::filesystem;
 
 namespace Tools {
 
@@ -119,11 +121,12 @@ namespace Tools {
     }
 
     unsigned char* load_image_data(const std::string& tex_image_path) {
+        fs::path path = ASSETS_PATH + tex_image_path;
+        CUBED_ASSERT_MSG(fs::is_regular_file(path), path.c_str());
         unsigned char* data = nullptr;
         int width, height, channels; 
-        data = SOIL_load_image(tex_image_path.c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
-        std::string error_info = "Could not load texture " + tex_image_path;
-        CUBED_ASSERT_MSG(data, error_info.c_str());
+        data = SOIL_load_image(path.c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
+        CUBED_ASSERT_MSG(data, "Could not load texture" + path.string());
 
         return data;
     }
