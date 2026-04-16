@@ -11,8 +11,9 @@ namespace fs = std::filesystem;
 namespace Tools {
 
     GLuint create_shader_program(const std::string& v_shader_path, const std::string& f_shader_path) {
-        std::string v_shader_str = Tools::read_shader_source(v_shader_path);
-        std::string f_shader_str = Tools::read_shader_source(f_shader_path);
+
+        std::string v_shader_str = Tools::read_shader_source(ASSETS_PATH + v_shader_path);
+        std::string f_shader_str = Tools::read_shader_source(ASSETS_PATH + f_shader_path);
         const char *v_shader_source = v_shader_str.c_str();
         const char *f_shader_source = f_shader_str.c_str();
 
