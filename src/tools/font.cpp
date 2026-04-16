@@ -10,7 +10,7 @@ Font::Font() {
     if (FT_Init_FreeType(&m_ft)) {
         Logger::error("FREETYPE: Could not init FreeType Library");
     }
-    if (FT_New_Face(m_ft, "assets/fonts/IBMPlexSans-Regular.ttf", 0, &m_face)) {
+    if (FT_New_Face(m_ft, ASSETS_PATH "fonts/IBMPlexSans-Regular.ttf", 0, &m_face)) {
         Logger::error("FREETYPE: Failed to load font");
     }
 
