@@ -17,7 +17,7 @@ void DebugCollector::init_text() {
     Text fps_text("fps");
     Text player_pos_text("player_pos");
     Text rendered_chunk_text("rendered_chunk");
-    
+    Text rss_text("rss");
     version_text
         .position(0.0f, 100.0f)
         .scale(0.8f)
@@ -34,6 +34,10 @@ void DebugCollector::init_text() {
         .text("Rendered Chunk: 0")
         .scale(0.8f)
         .position(0.0, 200.0f);
+    rss_text
+        .text("RSS: 0mb")
+        .scale(0.8f)
+        .position(0.0f, 300.0f);
     std::string os;
     
     Text os_text("os");
@@ -54,6 +58,7 @@ void DebugCollector::init_text() {
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
     m_texts.insert({rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
     m_texts.insert({os_text.uuid(), std::move(os_text)});
+    m_texts.insert({rss_text.uuid(), std::move(rss_text)});
 }
 
 std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {
