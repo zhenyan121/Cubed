@@ -216,7 +216,7 @@ void Chunk::init_chunk() {
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int y = 0; y < 5; y++) {
             for (int z = 0; z < CHUCK_SIZE; z++) {
-                m_blocks[get_index(x, y, z)] = 1;
+                m_blocks[get_index(x, y, z)] = 3;
             }
         }
     }
@@ -233,10 +233,15 @@ void Chunk::init_chunk() {
                 0.125f * PerlinNoise::noise(world_x * 0.04f, world_z * 0.04f, 0.5f);
             int y_max = height * noise;
 
-            for (int y = 5; y < y_max; y++) {
+            for (int y = 5; y < y_max - 5; y++) {
+                m_blocks[get_index(x, y, z)] = 3;
+            }
+            for (int y = y_max - 5; y < y_max - 1; y++) {
+                m_blocks[get_index(x, y, z)] = 2;
+            }
+            for (int y = y_max - 1; y < y_max; y++) {
                 m_blocks[get_index(x, y, z)] = 1;
             }
-
         }
     }
 
