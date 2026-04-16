@@ -2,6 +2,7 @@
 
 #include <Cubed/config.hpp>
 #include <Cubed/shader.hpp>
+#include <Cubed/ui/text.hpp>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -45,6 +46,13 @@ private:
     std::unordered_map<std::size_t, Shader> m_shaders;
     std::vector<GLuint> m_vao;
     std::vector<Vertex2D> m_ui;
+
+    Text m_version_text;
+    Text m_fps_text;
+    Text m_player_pos_text;
+
+    void init_text();
+
     void render_outline();
     void render_sky();
     void render_text(); 

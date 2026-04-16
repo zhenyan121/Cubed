@@ -104,12 +104,31 @@ void Renderer::init() {
     glBindBuffer(GL_ARRAY_BUFFER, m_text_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)* 6 * 4, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    init_text();
 }
 
 const Shader& Renderer::get_shader(const std::string& name) const {
     auto it = m_shaders.find(HASH::str(name));
     CUBED_ASSERT_MSG(it != m_shaders.end(), "Shader don't find, check the name");
     return it->second;
+}
+
+void Renderer::init_text() {
+    const auto& shader = get_shader("text");
+    Text::set_loc(shader);
+    m_version_text
+        .position(0.0f, 100.0f)
+        .scale(0.8f)
+        .color(Color::WHITE)
+        .text("Version: v0.0.1-Debug");
+    m_fps_text
+        .position(0.0f, 50.0f)
+        .text("FPS: 0");
+    m_player_pos_text
+        .position(0.0f, 150.0f)
+        .scale(0.8f)
+        .text("x: 0.00 y: 0.00 z: 0.00");
 }
 
 void Renderer::render() {
@@ -192,15 +211,15 @@ void Renderer::render_text() {
     m_proj_loc = shader.loc("projection");
 
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
-    
-    Font::render_text(shader, std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))}, 0.0f, 50.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    
-    Font::render_text(shader, "Version: v0.0.1-Debug", 0.0f, 100.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
-    
+    m_fps_text.text(std::string{"FPS: " + std::to_string(static_cast<int>(App::get_fps()))});
     const auto& player = m_world.get_player("TestPlayer");
     const auto& pos = player.get_player_pos();
     std::string player_pos = std::format("x: {:.2f} y: {:.2f} z: {:.2f}", pos.x, pos.y, pos.z);
-    Font::render_text(shader, player_pos, 0.0f, 150.0f, 0.8f, glm::vec3(1.0f, 1.0f, 1.0f));
+    m_player_pos_text.text(player_pos);
+
+    m_fps_text.render();
+    m_player_pos_text.render();
+    m_version_text.render();
     
     glEnable(GL_DEPTH_TEST);
 }

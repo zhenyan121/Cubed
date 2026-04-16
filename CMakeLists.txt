@@ -94,6 +94,7 @@ add_executable(${PROJECT_NAME}
     src/tools/font.cpp
     src/tools/log.cpp
     src/tools/perlin_noise.cpp
+    src/ui/text.cpp
     src/window.cpp
 )
 

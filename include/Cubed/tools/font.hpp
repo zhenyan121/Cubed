@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <Cubed/config.hpp>
+
 struct Character {
     glm::vec2 uv_min;
     glm::vec2 uv_max;
@@ -23,8 +25,8 @@ public:
     Font();
     ~Font();
 
-    static void render_text(const Shader& shader, const std::string& text, float x, float y, float scale, const glm::vec3& color);
-
+    static std::vector<Vertex2D> vertices(const std::string& text, float x = 0.0f, float y = 0.0f, float scale = 1.0f);
+    static GLuint text_texture();
 private:
     FT_Library m_ft;
     FT_Face m_face;
@@ -32,7 +34,7 @@ private:
     float m_texture_width = 64;
     float m_texture_height = 64;
 
-    GLuint m_text_texture;
+    static inline GLuint m_text_texture;
     std::unordered_map<char8_t, Character> m_characters;
 
     void load_character(char8_t c);

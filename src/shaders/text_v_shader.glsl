@@ -7,9 +7,9 @@ layout (location = 2) in float layer;
 out vec2 tc;
 flat out int tex_layer;
 uniform mat4 projection;
-
+uniform mat4 mv_matrix;
 void main(void) {
-    gl_Position = projection * vec4(pos, 0.0, 1.0);
+    gl_Position = projection * mv_matrix * vec4(pos, 0.0, 1.0);
     tc = texCoord;
     tex_layer = int(layer);
 }

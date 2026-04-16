@@ -1,10 +1,8 @@
-#include <Cubed/config.hpp>
+
 #include <Cubed/shader.hpp>
 #include <Cubed/tools/font.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
-
-
 
 
 Font::Font() {
@@ -24,9 +22,7 @@ Font::~Font() {
     
     FT_Done_Face(m_face);
     FT_Done_FreeType(m_ft);
-    for (const auto& [key, character] : m_characters) {
-        glDeleteTextures(1, &m_text_texture);
-    }
+    glDeleteTextures(1, &m_text_texture);
 }
 
 void Font::load_character(char8_t c) {
@@ -36,6 +32,7 @@ void Font::load_character(char8_t c) {
         }
         const auto& width = m_face->glyph->bitmap.width;
         const auto& height = m_face->glyph->bitmap.rows;
+        glBindTexture(GL_TEXTURE_2D_ARRAY, m_text_texture);
         glTexSubImage3D(
             GL_TEXTURE_2D_ARRAY,
             0,
@@ -90,13 +87,9 @@ void Font::setup_font_character() {
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0); 
 }
 
-
-
-void Font::render_text(const Shader& shader, const std::string& text, float x, float y, float scale, const glm::vec3& color) {
+std::vector<Vertex2D> Font::vertices(const std::string &text, float x, float y, float scale) {
     static Font font;
-
-    glUniform3f(shader.loc("textColor"), color.x, color.y, color.z);
-    glActiveTexture(GL_TEXTURE0);
+    
     std::vector<Vertex2D> vertices;
 
     for (char8_t c : text) {
@@ -122,22 +115,10 @@ void Font::render_text(const Shader& shader, const std::string& text, float x, f
         x += (ch.advance >> 6) * scale;
         
     }
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex2D), vertices.data(), GL_STATIC_DRAW);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, font.m_text_texture);
- 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)offsetof(Vertex2D, s));
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void*)offsetof(Vertex2D, layer));
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
+    return vertices;
+}
 
-    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-    glDeleteBuffers(1, &vbo);
+GLuint Font::text_texture() {
+    return m_text_texture;
 }
