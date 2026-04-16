@@ -1,4 +1,5 @@
 #include <Cubed/app.hpp>
+#include <Cubed/debug_collector.hpp>
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
@@ -153,6 +154,7 @@ void App::update() {
     if (fps_time_count >= 1.0f) {
         fps = static_cast<int>(frame_count / fps_time_count);
         std::string title = "Cubed FPS: " + std::to_string(fps);
+        DebugCollector::get().report("fps", std::string{"FPS: " + std::to_string(fps)});
         glfwSetWindowTitle(m_window.get_glfw_window(), title.c_str());
         frame_count = 0;
         fps_time_count = 0.0f;

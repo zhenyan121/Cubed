@@ -47,10 +47,6 @@ private:
     std::vector<GLuint> m_vao;
     std::vector<Vertex2D> m_ui;
 
-    Text m_version_text;
-    Text m_fps_text;
-    Text m_player_pos_text;
-
     void init_text();
 
     void render_outline();

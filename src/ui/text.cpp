@@ -1,15 +1,22 @@
 #include <Cubed/ui/text.hpp>
 
 #include <Cubed/shader.hpp>
+#include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/font.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-Text::Text() {
-    
+Text::Text(std::string_view name) :
+    NAME(name),
+    UUID(HASH::str(name))
+{
+
 }
 
-Text::Text(std::string_view str, glm::vec2 pos, Color color) {
+Text::Text(std::string_view name, std::string_view str, glm::vec2 pos, Color color) :
+    NAME(name),
+    UUID(HASH::str(name))
+{
     m_text.assign(str);
     m_pos = pos;
     m_color = color_value(color);
@@ -20,6 +27,20 @@ Text::~Text() {
     if (m_vbo != 0) {
         glDeleteBuffers(1, &m_vbo);
     }
+}
+
+Text::Text(Text&& other) noexcept :
+    UUID(other.UUID),
+    NAME(other.NAME),
+    m_scale(other.m_scale),
+    m_vbo(other.m_vbo),
+    m_color(other.m_color),
+    m_model_matrix(other.m_model_matrix),
+    m_pos(other.m_pos),
+    m_text(std::move(other.m_text)),
+    m_vertices(std::move(other.m_vertices))
+{
+    other.m_vbo = 0;
 }
 
 Text& Text::color(Color color) {
@@ -37,6 +58,10 @@ Text& Text::scale(float s) {
     return *this;
 }
 
+std::size_t Text::uuid() const {
+    return UUID;
+}
+
 void Text::set_loc(const Shader& shader) {
     m_color_loc = shader.loc("textColor");
     m_mv_loc = shader.loc("mv_matrix");
@@ -49,7 +74,7 @@ Text& Text::text(std::string_view str) {
 }
 
 void Text::render() {
-
+    CUBED_ASSERT_MSG(m_vbo != 0,"VBO not initialized!");
     CUBED_ASSERT_MSG(!m_vertices.empty(), "Text String Not Set");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, Font::text_texture());
@@ -87,4 +112,8 @@ void Text::upload_to_gpu() {
     CUBED_ASSERT_MSG(m_vbo, "Vbo Is Not Gen");
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex2D), m_vertices.data(), GL_DYNAMIC_DRAW);
+}
+
+bool Text::operator==(const Text& other) const {
+    return UUID == other.uuid();
 }

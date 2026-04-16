@@ -1,4 +1,6 @@
 #include <Cubed/gameplay/player.hpp>
+
+#include <Cubed/debug_collector.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
@@ -138,6 +140,10 @@ void Player::update(float delta_time) {
     update_move(delta_time);
     update_lookup_block();
     check_player_chunk_transition();
+
+    std::string player_pos = std::format("x: {:.2f} y: {:.2f} z: {:.2f}", m_player_pos.x, m_player_pos.y, m_player_pos.z);
+    DebugCollector::get().report("player_pos", player_pos);
+
 }
 
 void Player::update_player_move_state(int key, int action) {

@@ -1,8 +1,8 @@
 #pragma once
-#include <string>
+#include <string_view>
 namespace HASH {
-    inline std::size_t str(const std::string& value) {
-        return std::hash<std::string>{}(value);
+    inline std::size_t str(std::string_view value) {
+        return std::hash<std::string_view>{}(value);
     }
     
 }

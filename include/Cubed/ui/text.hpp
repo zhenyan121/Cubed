@@ -12,25 +12,32 @@ class Shader;
 
 class Text {
 public:
-    Text();
-    Text(std::string_view str, glm::vec2 pos = glm::vec2{0.0f, 0.0f}, Color color = Color::BLACK);
+    explicit Text(std::string_view name);
+    Text(std::string_view name, std::string_view str, glm::vec2 pos = glm::vec2{0.0f, 0.0f}, Color color = Color::BLACK);
     ~Text();
-
+    Text(const Text&) = delete;
+    Text(Text&&) noexcept;
+    Text& operator=(const Text&) = delete;
+    Text& operator=(Text&&) noexcept = delete;
     Text& color(Color color);
     //Text& color(const glm::vec4& color, int pos);
+    Text& name(std::string_view name);
     Text& position(float x, float y);
     Text& scale(float s);
-    static void set_loc(const Shader& shader);
     Text& text(std::string_view str);
     
-
+    std::size_t uuid() const;
+    static void set_loc(const Shader& shader);
     void render();
+
+    bool operator==(const Text& other) const;
 
 private:
     float m_scale = 1.0f;
     glm::vec2 m_pos{0.0f, 0.0f};
 
-    std::string m_name;
+    const std::string NAME;
+    const std::size_t UUID;
     std::string m_text;
     glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
     glm::mat4 m_model_matrix;
