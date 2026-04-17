@@ -10,7 +10,6 @@ constexpr int MAX_CHARACTER = 128;
 constexpr float NORMAL_FOV = 70.0f;
 
 constexpr int MAX_BIOME_SUM = 4;
-constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
 
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====

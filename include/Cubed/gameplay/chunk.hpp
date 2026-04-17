@@ -4,7 +4,8 @@
 #include <cstdint>
 
 #include <Cubed/config.hpp>
-#include <Cubed/gameplay/chunk_status.hpp>
+#include <Cubed/gameplay/biome.hpp>
+#include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/gameplay/block.hpp>
 
 class World;

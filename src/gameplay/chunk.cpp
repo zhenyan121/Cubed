@@ -283,7 +283,7 @@ void Chunk::resolve_blocks() {
 
             float temp  = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 0.0f, world_z * BIOME_NOISE_FREQUENCY);
             float humid = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 1.0f, world_z * BIOME_NOISE_FREQUENCY);
-            int height = Math::get_interpolated_height(world_x, world_z, temp, humid);
+            int height = get_interpolated_height(world_x, world_z, temp, humid);
             auto biome = get_biome_from_noise(temp, humid);
             for (int y = 5; y < height - 5; y++) {
                 m_blocks[get_index(x, y, z)] = 3;

@@ -4,7 +4,7 @@
 #include <Cubed/AABB.hpp>
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/block.hpp>
-#include <Cubed/gameplay/chunk_status.hpp>
+#include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/input.hpp>
 
 #include <optional>

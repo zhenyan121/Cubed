@@ -1,34 +1,14 @@
 #pragma once
-#include <cmath>
 #include <array>
-#include <functional>
+#include <cmath>
 #include <string>
+#include <unordered_map>
 
-#include <Cubed/tools/log.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
-struct ChunkPos {
-    int x;
-    int z;
-    
-    bool operator==(const ChunkPos&) const = default;
-    struct Hash {
-        std::size_t operator()(const ChunkPos& pos) const{
-            std::size_t h1 = std::hash<int>{}(pos.x);
-            std::size_t h2 = std::hash<int>{}(pos.z);
-            return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
-        }
-    };
+#include <Cubed/tools/log.hpp>
+#include <Cubed/tools/perlin_noise.hpp>
 
-    ChunkPos operator+(const ChunkPos& pos) const{
-        return ChunkPos{x + pos.x, z + pos.z};
-    }
-
-    ChunkPos& operator+=(const ChunkPos& pos) {
-        x += pos.x;
-        z += pos.z;
-        return *this;
-    };
-};
+constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
 
 constexpr float PLAIN_FREQ = 0.5f;
 constexpr float FOREST_FREQ = 1.0f;
@@ -47,7 +27,7 @@ struct BiomeHeightRange {
     int amplitude;
 };
 
-constexpr inline std::string get_biome_str(Biome biome) {
+inline std::string get_biome_str(Biome biome) {
     std::string str;
     using enum Biome;
     switch (biome) {
@@ -131,6 +111,45 @@ inline Biome safe_int_to_biome(int x) {
     return it->second;
 }
 
+inline int get_interpolated_height(float world_x, float world_z, float temp, float humid) {
+        
+        auto weight = [](float t, float h, float ct, float ch) -> float {
+            float dt = t - ct;
+            float dh = h - ch;
+            float dist = std::sqrt(dt*dt + dh*dh);
+            return std::max(0.0f, 0.5f - dist); 
+        };
 
+        float w_mountain = weight(temp, humid, 0.25f, 0.15f);
+        float w_plain    = weight(temp, humid, 0.50f, 0.40f);
+        float w_desert   = weight(temp, humid, 0.75f, 0.15f);
+        float w_forest   = weight(temp, humid, 0.75f, 0.75f);
+        // adjust transitions between chunks
+        float pow_n = 8.0f; // the larger n is, the purer the biome
+        w_mountain = std::pow(w_mountain, pow_n) * MOUNTAIN_FREQ;
+        w_plain    = std::pow(w_plain,    pow_n) * PLAIN_FREQ;
+        w_desert   = std::pow(w_desert,   pow_n) * DESERT_FREQ;
+        w_forest   = std::pow(w_forest,   pow_n) * FOREST_FREQ;
+
+        float total = w_mountain + w_plain + w_desert + w_forest;
+        w_mountain /= total; w_plain /= total; w_desert /= total; w_forest /= total;
+
+        auto sample_height = [&](Biome b) -> float {
+            auto range = get_biome_height_range(b);
+            auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
+            float n =
+                1.00f * PerlinNoise::noise(world_x * f1, 0.5f, world_z * f1) +
+                0.50f * PerlinNoise::noise(world_x * f2, 0.5f, world_z * f2) +
+                0.25f * PerlinNoise::noise(world_x * f3, 0.5f, world_z * f3);
+            n /= 1.75f;
+            return range.base_y + n * range.amplitude;
+        };
+
+        float h = w_mountain * sample_height(Biome::MOUNTAIN)
+                + w_plain    * sample_height(Biome::PLAIN)
+                + w_desert   * sample_height(Biome::DESERT)
+                + w_forest   * sample_height(Biome::FOREST);
+        return static_cast<int>(h);
+    }
 
 
