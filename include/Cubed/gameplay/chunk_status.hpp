@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <array>
 #include <functional>
 #include <string>
@@ -28,6 +29,11 @@ struct ChunkPos {
         return *this;
     };
 };
+
+constexpr float PLAIN_FREQ = 0.5f;
+constexpr float FOREST_FREQ = 1.0f;
+constexpr float DESERT_FREQ = 1.0f;
+constexpr float MOUNTAIN_FREQ = 2.0f;
 
 enum class Biome {
     PLAIN = 0,
@@ -62,9 +68,20 @@ constexpr inline std::string get_biome_str(Biome biome) {
 };
 
 inline Biome get_biome_from_noise(float temp, float humid) {
-    if (temp < 0.5f && humid < 0.5f) return Biome::MOUNTAIN;
-    if (temp < 0.5f && humid >= 0.5f) return Biome::PLAIN;
-    if (temp >= 0.5f && humid < 0.5f) return Biome::DESERT;
+    auto weight = [](float t, float h, float ct, float ch) -> float {
+            float dt = t - ct;
+            float dh = h - ch;
+            float dist = std::sqrt(dt*dt + dh*dh);
+            return std::max(0.0f, 0.5f - dist); 
+        };
+    float w_m = weight(temp, humid, 0.25f, 0.15f);
+    float w_p = weight(temp, humid, 0.50f, 0.40f);
+    float w_d = weight(temp, humid, 0.75f, 0.15f);
+    float w_f = weight(temp, humid, 0.75f, 0.75f);
+    w_m = pow(w_m, 8); w_p = pow(w_p, 8); w_d = pow(w_d, 8); w_f = pow(w_f, 8);
+    if (w_m >= w_p && w_m >= w_d && w_m >= w_f) return Biome::MOUNTAIN;
+    if (w_p >= w_m && w_p >= w_d && w_p >= w_f) return Biome::PLAIN;
+    if (w_d >= w_m && w_d >= w_p && w_d >= w_f) return Biome::DESERT;
     return Biome::FOREST;
 }
 
@@ -72,13 +89,13 @@ inline std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
-            return {0.003f, 0.008f, 0.018f};
+            return {0.003f, 0.010f, 0.020f};
         case FOREST:
             return {0.004f, 0.012f, 0.022f};
         case DESERT:
-            return {0.003f, 0.008f, 0.018f};
+            return {0.003f, 0.010f, 0.020f};
         case MOUNTAIN:
-            return {0.006f, 0.015f, 0.03f};
+            return {0.006f, 0.015f, 0.030f};
     }
     Logger::warn("Unknown Biome");
     return {0.003f, 0.015f, 0.06f};
@@ -88,11 +105,11 @@ inline BiomeHeightRange get_biome_height_range(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
-            return {62, 4};
+            return {62, 8};
         case FOREST:
-            return {64, 8};
+            return {64, 12};
         case DESERT:
-            return {61, 8};
+            return {61, 12};
         case MOUNTAIN:
             return {70, 70};
     }

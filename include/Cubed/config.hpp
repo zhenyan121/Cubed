@@ -4,13 +4,13 @@ constexpr int MAX_BLOCK_NUM = 5;
 constexpr int MAX_UI_NUM = 1;
 
 constexpr int CHUCK_SIZE = 16;
-constexpr int DISTANCE = 16;
+constexpr int DISTANCE = 24;
 constexpr int MAX_BLOCK_STATUS = 1;
 constexpr int MAX_CHARACTER = 128;
 constexpr float NORMAL_FOV = 70.0f;
 
 constexpr int MAX_BIOME_SUM = 4;
-constexpr float BIOME_NOISE_FREQUENCY = 0.005f;
+constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
 
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====

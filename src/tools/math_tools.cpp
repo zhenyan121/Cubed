@@ -34,9 +34,8 @@ namespace Math {
         }
     }
 
-    int get_interpolated_height(float world_x, float world_z, float biome_noise, float temp, float humid) {
+    int get_interpolated_height(float world_x, float world_z, float temp, float humid) {
         
-
         auto weight = [](float t, float h, float ct, float ch) -> float {
             float dt = t - ct;
             float dh = h - ch;
@@ -44,16 +43,16 @@ namespace Math {
             return std::max(0.0f, 0.5f - dist); 
         };
 
-        float w_mountain = weight(temp, humid, 0.25f, 0.25f);
-        float w_plain    = weight(temp, humid, 0.25f, 0.75f);
-        float w_desert   = weight(temp, humid, 0.75f, 0.25f);
+        float w_mountain = weight(temp, humid, 0.25f, 0.15f);
+        float w_plain    = weight(temp, humid, 0.50f, 0.40f);
+        float w_desert   = weight(temp, humid, 0.75f, 0.15f);
         float w_forest   = weight(temp, humid, 0.75f, 0.75f);
         // adjust transitions between chunks
         float pow_n = 8.0f; // the larger n is, the purer the biome
-        w_mountain = std::pow(w_mountain, pow_n);
-        w_plain    = std::pow(w_plain,    pow_n);
-        w_desert   = std::pow(w_desert,   pow_n);
-        w_forest   = std::pow(w_forest,   pow_n);
+        w_mountain = std::pow(w_mountain, pow_n) * MOUNTAIN_FREQ;
+        w_plain    = std::pow(w_plain,    pow_n) * PLAIN_FREQ;
+        w_desert   = std::pow(w_desert,   pow_n) * DESERT_FREQ;
+        w_forest   = std::pow(w_forest,   pow_n) * FOREST_FREQ;
 
         float total = w_mountain + w_plain + w_desert + w_forest;
         w_mountain /= total; w_plain /= total; w_desert /= total; w_forest /= total;
