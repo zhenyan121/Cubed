@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <functional>
 #include <string>
 
@@ -67,7 +68,7 @@ inline Biome get_biome_from_noise(float temp, float humid) {
     return Biome::FOREST;
 }
 
-constexpr inline std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
+inline std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
@@ -83,7 +84,7 @@ constexpr inline std::array<float, 3> get_noise_frequencies_for_biome(Biome biom
     return {0.003f, 0.015f, 0.06f};
 }
 
-constexpr inline BiomeHeightRange get_biome_height_range(Biome biome) {
+inline BiomeHeightRange get_biome_height_range(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
