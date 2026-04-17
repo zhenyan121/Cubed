@@ -27,7 +27,7 @@ private:
     std::vector<glm::vec4> m_planes;
 
     std::thread m_gen_thread;
-    std::mutex m_chunks_mutex;
+    mutable std::mutex m_chunks_mutex;
     std::mutex m_gen_signal_mutex;
     std::mutex m_new_chunk_queue_mutex;
     std::mutex m_delete_vbo_mutex;
@@ -54,7 +54,10 @@ public:
 
     bool can_move(const AABB& player_box) const;
     //const BlockRenderData& get_block_render_data(int x, int y ,int z);
+    
     const std::optional<LookBlock>& get_look_block_pos(const std::string& name) const;
+    const Chunk* get_chunk(const ChunkPos& pos) const;
+
     Player& get_player(const std::string& name);
     void init_world();
     bool is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents);

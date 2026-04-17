@@ -80,6 +80,15 @@ const std::optional<LookBlock>& World::get_look_block_pos(const std::string& nam
     
 }
 
+const Chunk* World::get_chunk(const ChunkPos& pos) const {
+    std::lock_guard lk(m_chunks_mutex);
+    auto it = m_chunks.find(pos);
+    if (it == m_chunks.end()) {
+        return nullptr;
+    }
+    return &it->second;
+}
+
 Player& World::get_player(const std::string& name){
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {

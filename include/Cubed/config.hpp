@@ -1,6 +1,6 @@
 #pragma once
 constexpr int WORLD_SIZE_Y = 256;
-constexpr int MAX_BLOCK_NUM = 4;
+constexpr int MAX_BLOCK_NUM = 5;
 constexpr int MAX_UI_NUM = 1;
 
 constexpr int CHUCK_SIZE = 16;
@@ -9,7 +9,8 @@ constexpr int MAX_BLOCK_STATUS = 1;
 constexpr int MAX_CHARACTER = 128;
 constexpr float NORMAL_FOV = 70.0f;
 
-constexpr int SEED = 999;
+constexpr int MAX_BIOME_SUM = 4;
+constexpr float BIOME_NOISE_FREQUENCY = 0.005f;
 
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====

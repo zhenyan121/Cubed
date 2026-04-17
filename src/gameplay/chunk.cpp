@@ -2,7 +2,10 @@
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
+#include <Cubed/tools/math_tools.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
+
+#include <utility>
 Chunk::Chunk(World& world, ChunkPos chunk_pos) : 
     m_world(world),
     m_chunk_pos(chunk_pos)     
@@ -23,7 +26,8 @@ Chunk::Chunk(Chunk&& other) :
     m_world(other.m_world),
     m_blocks(std::move(other.m_blocks)),
     m_dirty(other.is_dirty()),
-    m_vertexs_data(std::move(other.m_vertexs_data))
+    m_vertexs_data(std::move(other.m_vertexs_data)),
+    m_biome(other.m_biome)
 {
     other.m_vbo = 0;
 }
@@ -35,7 +39,12 @@ Chunk& Chunk::operator=(Chunk&& other) {
     m_blocks = std::move(other.m_blocks);
     m_dirty = other.is_dirty();
     m_vertexs_data = std::move(other.m_vertexs_data);
+    m_biome = other.m_biome;
     return *this;
+}
+
+Biome Chunk::get_biome() const {
+    return m_biome;
 }
 
 const std::vector<uint8_t>& Chunk::get_chunk_blocks() const{
@@ -212,41 +221,8 @@ const std::vector<Vertex>& Chunk::get_vertex_data() const{
 }
 
 void Chunk::init_chunk() {
-    m_blocks.assign(CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y, 0);
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int y = 0; y < 5; y++) {
-            for (int z = 0; z < CHUCK_SIZE; z++) {
-                m_blocks[get_index(x, y, z)] = 3;
-            }
-        }
-    }
-
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int z = 0; z < CHUCK_SIZE; z++) {
-             
-            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
-            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
-            
-            float noise =
-                0.5f * PerlinNoise::noise(world_x * 0.01f, world_z * 0.01f, 0.5f) +
-                0.25f * PerlinNoise::noise(world_x * 0.02f, world_z * 0.02f, 0.5f) +
-                0.125f * PerlinNoise::noise(world_x * 0.04f, world_z * 0.04f, 0.5f);
-            int y_max = height * noise;
-
-            for (int y = 5; y < y_max - 5; y++) {
-                m_blocks[get_index(x, y, z)] = 3;
-            }
-            for (int y = y_max - 5; y < y_max - 1; y++) {
-                m_blocks[get_index(x, y, z)] = 2;
-            }
-            for (int y = y_max - 1; y < y_max; y++) {
-                m_blocks[get_index(x, y, z)] = 1;
-            }
-        }
-    }
-
-    mark_dirty();
-    
+    resolve_biome();
+    resolve_blocks();
 }
 
 void Chunk::upload_to_gpu() {
@@ -280,4 +256,73 @@ void Chunk::set_chunk_block(int index ,unsigned id) {
     mark_dirty();
 }
 
+
+void Chunk::resolve_biome() {
+    float cx = (m_chunk_pos.x + 0.5f) * CHUCK_SIZE;
+    float cz = (m_chunk_pos.z + 0.5f) * CHUCK_SIZE;
+    float temp  = PerlinNoise::noise(cx * BIOME_NOISE_FREQUENCY, 0.0f, cz * BIOME_NOISE_FREQUENCY);
+    float humid = PerlinNoise::noise(cx * BIOME_NOISE_FREQUENCY, 1.0f, cz * BIOME_NOISE_FREQUENCY);
+    m_biome = get_biome_from_noise(temp, humid);
+}
+
+void Chunk::resolve_blocks() {
+    m_blocks.assign(CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y, 0);
+    for (int x = 0; x < CHUCK_SIZE; x++) {
+        for (int y = 0; y < 5; y++) {
+            for (int z = 0; z < CHUCK_SIZE; z++) {
+                m_blocks[get_index(x, y, z)] = 3;
+            }
+        }
+    }
+
+    for (int x = 0; x < CHUCK_SIZE; x++) {
+        for (int z = 0; z < CHUCK_SIZE; z++) {
+             
+            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
+            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
+            
+            float biome_noise = PerlinNoise::noise(
+                world_x * BIOME_NOISE_FREQUENCY, 
+                0.5f, 
+                world_z * BIOME_NOISE_FREQUENCY
+            );
+
+            float temp  = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 0.0f, world_z * BIOME_NOISE_FREQUENCY);
+            float humid = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 1.0f, world_z * BIOME_NOISE_FREQUENCY);
+            int height = Math::get_interpolated_height(world_x, world_z, biome_noise, temp, humid);
+            auto biome = get_biome_from_noise(temp, humid);
+            for (int y = 5; y < height - 5; y++) {
+                m_blocks[get_index(x, y, z)] = 3;
+            }
+            if (biome == Biome::MOUNTAIN) {
+                for (int y = height - 5; y < height - 1; y++) {
+                    if (y > 101) {
+                        m_blocks[get_index(x, y, z)] = 3;
+                    } else {
+                        m_blocks[get_index(x, y, z)] = 2;
+                    }
+                    
+                }
+                if (height - 1 > 101) {
+                    m_blocks[get_index(x, height - 1, z)] = 3;
+                } else {
+                    m_blocks[get_index(x, height - 1, z)] = 1;
+                }
+            } else if (biome == Biome::DESERT) {
+                for (int y = height - 5; y < height; y++) {
+                    m_blocks[get_index(x, y, z)] = 4;
+                }
+            } else {
+                for (int y = height - 5; y < height - 1; y++) {
+                    m_blocks[get_index(x, y, z)] = 2;
+                }
+                for (int y = height - 1; y < height; y++) {
+                    m_blocks[get_index(x, y, z)] = 1;
+                }
+            }
+            
+        }
+    }
+    mark_dirty();
+}
 

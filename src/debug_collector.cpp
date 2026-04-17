@@ -21,6 +21,7 @@ void DebugCollector::init_text() {
     Text cpu_text("cpu");
     Text gpu_text("gpu");
     Text opengl_version_text("opengl_version");
+    Text biome_text("biome");
     version_text
         .position(0.0f, 100.0f)
         .scale(0.8f)
@@ -68,6 +69,10 @@ void DebugCollector::init_text() {
         .text("OpenGL: " + std::to_string(GLVersion.major) + "." + std::to_string(GLVersion.minor))
         .scale(0.7f)
         .position(0.0f, 450.0f);
+    biome_text
+        .text("Biome: ")
+        .scale(0.8f)
+        .position(0.0f, 500.0f);
     m_texts.insert({version_text.uuid(), std::move(version_text)});
     m_texts.insert({fps_text.uuid(), std::move(fps_text)});
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
@@ -77,6 +82,7 @@ void DebugCollector::init_text() {
     m_texts.insert({cpu_text.uuid(), std::move(cpu_text)});
     m_texts.insert({gpu_text.uuid(), std::move(gpu_text)});
     m_texts.insert({opengl_version_text.uuid(), std::move(opengl_version_text)});
+    m_texts.insert({biome_text.uuid(), std::move(biome_text)});
 }
 
 std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {

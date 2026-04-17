@@ -235,6 +235,14 @@ void Player::check_player_chunk_transition() {
     if (cur_pos != m_player_chunk_pos) {
         m_world.need_gen();
         m_player_chunk_pos = cur_pos;
+        auto chunk = m_world.get_chunk(cur_pos);
+        if (chunk == nullptr) {
+            DebugCollector::get().report("biome", "Biome: Unknown");
+        } else {
+            DebugCollector::get()
+                .report("biome", "Biome: " + get_biome_str(chunk->get_biome()));
+        }
+        
     }
 }
 

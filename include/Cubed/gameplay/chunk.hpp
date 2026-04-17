@@ -17,6 +17,7 @@ private:
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUCK_SIZE;
     
+    Biome m_biome = Biome::PLAIN;
     ChunkPos m_chunk_pos;
     World& m_world;
     // the index is a array of block id
@@ -28,6 +29,10 @@ private:
     float height = 80;
 
     void clear_dirty();
+
+    void resolve_biome();
+    void resolve_blocks();
+
 public:
     Chunk(World& world, ChunkPos chunk_pos);
     ~Chunk();
@@ -35,6 +40,9 @@ public:
     Chunk& operator=(const Chunk&) = delete;
     Chunk(Chunk&&);
     Chunk& operator=(Chunk&&);
+
+    Biome get_biome() const;
+
     const std::vector<uint8_t>& get_chunk_blocks() const;    
     
     static int get_index(int x, int y, int z);
