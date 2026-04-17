@@ -89,7 +89,31 @@ inline size_t get_current_rss() {
 
 inline std::string get_cpu_info() {
 #ifdef _WIN32
-
+    HKEY h_key;
+    std::string cpu_name;
+    
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+        L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+        0, KEY_READ, &h_key) == ERROR_SUCCESS) {
+        
+        DWORD dw_size = 0;
+        if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL, NULL, &dw_size) == ERROR_SUCCESS && dw_size > 0) {
+            std::vector<wchar_t> buffer(dw_size / sizeof(wchar_t));
+            if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL, (LPBYTE)buffer.data(), &dw_size) == ERROR_SUCCESS) {
+                int len = WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1, NULL, 0, NULL, NULL);
+                if (len > 0) {
+                    std::vector<char> narrow(len);
+                    WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1, narrow.data(), len, NULL, NULL);
+                    cpu_name = narrow.data();
+                }
+            }
+        }
+        RegCloseKey(h_key);
+    }
+    if (cpu_name.empty()) {
+        cpu_name = "Unknown";
+    }
+    return cpu_name;
 #elif defined (__linux__)
     std::ifstream file("/proc/cpuinfo");
     if (!file.is_open()) {
