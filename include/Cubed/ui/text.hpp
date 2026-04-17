@@ -21,7 +21,6 @@ public:
     Text& operator=(Text&&) noexcept = delete;
     Text& color(Color color);
     //Text& color(const glm::vec4& color, int pos);
-    Text& name(std::string_view name);
     Text& position(float x, float y);
     Text& scale(float s);
     Text& text(std::string_view str);

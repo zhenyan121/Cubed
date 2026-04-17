@@ -87,4 +87,34 @@ inline size_t get_current_rss() {
 #endif
 }
 
+inline std::string get_cpu_info() {
+#ifdef _WIN32
+
+#elif defined (__linux__)
+    std::ifstream file("/proc/cpuinfo");
+    if (!file.is_open()) {
+        return std::string{"Unkown"};
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t pos = line.find(":");
+        if (pos == std::string::npos) {
+            continue;
+        }
+        std::string key = line.substr(0, pos - 1);
+        key = key.erase(key.find_last_not_of(" \t\n") + 1);
+        if (key != "model name") {
+            continue;
+        }
+        return line.substr(pos + 2);
+    }
+    return std::string{"Unkown"};
+#else
+    return std::string{"Unkown"};
+#endif
 }
+
+
+}
+
+

@@ -18,6 +18,9 @@ void DebugCollector::init_text() {
     Text player_pos_text("player_pos");
     Text rendered_chunk_text("rendered_chunk");
     Text rss_text("rss");
+    Text cpu_text("cpu");
+    Text gpu_text("gpu");
+    Text opengl_version_text("opengl_version");
     version_text
         .position(0.0f, 100.0f)
         .scale(0.8f)
@@ -53,12 +56,27 @@ void DebugCollector::init_text() {
             .text("OS: Unknown");
             
     }
+    cpu_text
+        .text("CPU: " + Tools::get_cpu_info())
+        .scale(0.7f)
+        .position(0.0f, 350.0f);
+    gpu_text
+        .text(std::string{"GPU: "} + reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+        .scale(0.7f)
+        .position(0.0f, 400.0f);
+    opengl_version_text
+        .text("OpenGL: " + std::to_string(GLVersion.major) + "." + std::to_string(GLVersion.minor))
+        .scale(0.7f)
+        .position(0.0f, 450.0f);
     m_texts.insert({version_text.uuid(), std::move(version_text)});
     m_texts.insert({fps_text.uuid(), std::move(fps_text)});
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
     m_texts.insert({rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
     m_texts.insert({os_text.uuid(), std::move(os_text)});
     m_texts.insert({rss_text.uuid(), std::move(rss_text)});
+    m_texts.insert({cpu_text.uuid(), std::move(cpu_text)});
+    m_texts.insert({gpu_text.uuid(), std::move(gpu_text)});
+    m_texts.insert({opengl_version_text.uuid(), std::move(opengl_version_text)});
 }
 
 std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {
