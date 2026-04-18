@@ -66,7 +66,7 @@ int Chunk::get_index(const glm::vec3& pos) {
     return Chunk::get_index(pos.x, pos.y, pos.z);
 }
 
-void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neighbor_block) {
+void Chunk::gen_vertex_data(const std::array<const std::vector<uint8_t>*, 4>& neighbor_block) {
     m_vertexs_data.clear();
     
     static const glm::ivec3 DIR[6] = {

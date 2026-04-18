@@ -137,6 +137,10 @@ target_link_libraries(${PROJECT_NAME}
         Freetype::Freetype
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_link_libraries(${PROJECT_NAME} PRIVATE tbb)
+endif()
+
 if (UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME}
         PRIVATE

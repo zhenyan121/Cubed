@@ -54,7 +54,7 @@ public:
     // 1 : (-1, 0) 
     // 2 : (0, 1) 
     // 3 : (0, -1)
-    void gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neighbor_block);
+    void gen_vertex_data(const std::array<const std::vector<uint8_t>*, 4>& neighbor_block);
     void upload_to_gpu();
     
     GLuint get_vbo() const;

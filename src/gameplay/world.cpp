@@ -7,11 +7,17 @@
 #include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/math_tools.hpp>
 
+#include <execution>
 #include <unordered_set>
 
 static constexpr ChunkPos CHUNK_DIR[] {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
+
+struct ChunkRenderData {
+    std::array<const std::vector<uint8_t>*, 4> neighbor_block;
+    Chunk* chunk;
+};
 
 World::World() {
     
@@ -66,7 +72,6 @@ Player& World::get_player(const std::string& name){
     return it->second;
 }
 
-
 void World::init_world() {
     auto t1 = std::chrono::system_clock::now();
     for (int s = 0; s < DISTANCE; s++) {
@@ -79,14 +84,16 @@ void World::init_world() {
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
-
+    /*
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
         chunk.init_chunk();
         
     }
     // After block gen fininshed
-    std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+    
+    std::array<const std::vector<uint8_t>*, 4> neighbor_block;
+    
     for (auto& [pos, chunk] : m_chunks) {
         for (int i = 0; i < 4; i++) {
             auto it = m_chunks.find(pos + CHUNK_DIR[i]);
@@ -98,6 +105,31 @@ void World::init_world() {
         }
         chunk.gen_vertex_data(neighbor_block);
     }
+    */
+    std::for_each(std::execution::par, m_chunks.begin(), m_chunks.end(), [](auto& chunk_map){
+        auto& [chunk_pos, chunk] = chunk_map;
+        chunk.init_chunk();
+    });
+    std::vector<ChunkRenderData> pending_gen_data;
+    for (auto& [pos, chunk] : m_chunks) {
+        ChunkRenderData data;
+        data.chunk = &chunk;
+        for (int i = 0; i < 4; i++) {    
+            auto it = m_chunks.find(pos + CHUNK_DIR[i]);
+            if (it != m_chunks.end()) {
+                data.neighbor_block[i] = &(it->second.get_chunk_blocks());
+            } else {
+                data.neighbor_block[i] = nullptr;
+            }
+        }
+        pending_gen_data.emplace_back(std::move(data));
+    }
+    std::for_each(std::execution::par, pending_gen_data.begin(), pending_gen_data.end(), [](ChunkRenderData& data){
+        if(!data.chunk) {
+            return ;
+        }
+        data.chunk->gen_vertex_data(data.neighbor_block);
+    });
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
         chunk.upload_to_gpu();
@@ -221,7 +253,7 @@ void World::gen_chunks_internal() {
         }
     }
     
-    std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+    std::array<const std::vector<uint8_t>*, 4> neighbor_block;
 
     for (auto& [pos, chunk] : new_chunks) {
 
@@ -427,7 +459,7 @@ void World::update(float delta_time) {
         for (auto& [pos, chunk] : m_chunks) {
             if (chunk.is_dirty()) {
                 // the curial fator influence
-                std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+                std::array<const std::vector<uint8_t>*, 4> neighbor_block;
                 for (int i = 0; i < 4; i++) {
                     auto it = m_chunks.find(pos + CHUNK_DIR[i]);
                     if (it != m_chunks.end()) {
