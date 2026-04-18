@@ -5,13 +5,14 @@
 #include <Cubed/tools/cubed_random.hpp>
 #include <algorithm>
 #include <numeric>
-
+#include <random>
 
 void PerlinNoise::init() {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
-
-    std::shuffle(p.begin(), p.end(), Cubed::Random::get().engine());
+    int seed = std::random_device{}();
+    Logger::info("Init Perlin Noise With Seed {}", seed);
+    std::shuffle(p.begin(), p.end(), std::mt19937(seed));
 
     p.insert(p.end(), p.begin(), p.end());
     is_init = true;
