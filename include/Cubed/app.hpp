@@ -17,6 +17,7 @@ public:
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     static void window_focus_callback(GLFWwindow* window, int focused);
     static void window_reshape_callback(GLFWwindow* window, int new_width, int new_height);
+    static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
     static int start_cubed_application(int argc, char** argv);
     static unsigned int seed();

@@ -7,7 +7,6 @@
 #include <Cubed/tools/log.hpp>
 #include <GLFW/glfw3.h>
 
-
 Player::Player(World& world, const std::string& name) :
     m_world(world),
     m_name(name)    
@@ -131,19 +130,34 @@ bool Player::ray_cast(const glm::vec3& start, const glm::vec3& front, glm::ivec3
     return false;
 }
 
+void Player::change_mode(GameMode mode) {
+    m_game_mode = mode;
+    Logger::info("Change GameMode to {}", to_str(mode));
+    if (mode == CREATIVE) {
+        is_fly = false;
+        m_gait = Gait::WALK;
+    } else if (mode == SPECTATOR) {
+        is_fly = true;
+        m_gait = Gait::RUN;
+    }
+}
 
 void Player::set_player_pos(const glm::vec3& pos) {
     m_player_pos = pos;
 }
 
 void Player::update(float delta_time) {
+
     update_move(delta_time);
     update_lookup_block();
     check_player_chunk_transition();
 
-    std::string player_pos = std::format("x: {:.2f} y: {:.2f} z: {:.2f}", m_player_pos.x, m_player_pos.y, m_player_pos.z);
-    DebugCollector::get().report("player_pos", player_pos);
-
+    DebugCollector::get().report("player_pos",
+        std::format("x: {:.2f} y: {:.2f} z: {:.2f}",
+            m_player_pos.x, m_player_pos.y, m_player_pos.z
+        ));
+    
+    DebugCollector::get().report("speed", std::format("Speed: {:.2} m/s", speed));
 }
 
 void Player::update_player_move_state(int key, int action) {
@@ -154,7 +168,10 @@ void Player::update_player_move_state(int key, int action) {
             }
             if (action == GLFW_RELEASE) {
                 m_move_state.forward = false;
-                m_gait = Gait::WALK;
+                if (m_game_mode != SPECTATOR) {
+                    m_gait = Gait::WALK;
+                }
+                
             }
             break;
         case GLFW_KEY_S:
@@ -185,8 +202,10 @@ void Player::update_player_move_state(int key, int action) {
             if (action == GLFW_PRESS) {
                 m_move_state.up = true;
                 if (space_on) {
-                    is_fly = !is_fly ? true : false;
-                    y_speed = 0.0f;
+                    if (m_game_mode == CREATIVE) {
+                        is_fly = !is_fly ? true : false;
+                        y_speed = 0.0f;
+                    }
                     space_on = false;
                     space_on_time = 0.0f;
                 } else {
@@ -208,6 +227,15 @@ void Player::update_player_move_state(int key, int action) {
         case GLFW_KEY_LEFT_CONTROL:
             if (action == GLFW_PRESS) {
                 m_gait = Gait::RUN;
+            }
+            break;
+        case GLFW_KEY_F4:
+            if (action == GLFW_PRESS) {
+                if (m_game_mode == CREATIVE) {
+                    change_mode(SPECTATOR);
+                } else {
+                    change_mode(CREATIVE);
+                }
             }
             break;
     }
@@ -318,11 +346,13 @@ void Player::update_move(float delta_time) {
     if (delta_time > 1.0f) {
         return;
     }
-    if (m_gait == Gait::RUN) {
-        max_speed = RUN_SPEED;
-    }
-    if (m_gait == Gait::WALK) {
-        max_speed = WALK_SPEED;
+    if (m_game_mode != SPECTATOR) {
+        if (m_gait == Gait::RUN) {
+            max_speed = RUN_SPEED;
+        }
+        if (m_gait == Gait::WALK) {
+            max_speed = WALK_SPEED;
+        }
     }
 
     if (space_on) {
@@ -391,6 +421,9 @@ void Player::update_move(float delta_time) {
 
 void Player::update_x_move() {
     m_player_pos.x += move_distance.x;
+    if (m_game_mode == SPECTATOR) {
+        return;
+    }
     AABB player_box = get_aabb();
     int minx = std::floor(player_box.min.x);
     int maxx = std::floor(player_box.max.x);
@@ -420,6 +453,9 @@ void Player::update_x_move() {
 
 void Player::update_y_move() {
     m_player_pos.y += move_distance.y;
+    if (m_game_mode == SPECTATOR) {
+        return;
+    }
     AABB player_box = get_aabb();
     int minx = std::floor(player_box.min.x);
     int maxx = std::floor(player_box.max.x);
@@ -453,6 +489,9 @@ void Player::update_y_move() {
 
 void Player::update_z_move() {
     m_player_pos.z += move_distance.z;
+    if (m_game_mode == SPECTATOR) {
+        return;
+    }
     AABB player_box = get_aabb();
     int minx = std::floor(player_box.min.x);
     int maxx = std::floor(player_box.max.x);
@@ -478,4 +517,16 @@ void Player::update_z_move() {
             }
         }
     }
+}
+
+void Player::update_scroll(double yoffset) {
+    if (m_game_mode == SPECTATOR) {
+        if (yoffset > 0) {
+            max_speed += 1.0f;
+        } else {
+            if (max_speed > WALK_SPEED) {
+                max_speed -= 1.0f;
+            }
+        }
+    }   
 }

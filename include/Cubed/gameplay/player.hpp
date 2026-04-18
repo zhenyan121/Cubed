@@ -5,6 +5,7 @@
 #include <Cubed/config.hpp>
 #include <Cubed/gameplay/block.hpp>
 #include <Cubed/gameplay/chunk_pos.hpp>
+#include <Cubed/gameplay/game_mode.hpp>
 #include <Cubed/input.hpp>
 
 #include <optional>
@@ -19,6 +20,7 @@ class World;
 
 class Player {
 private:
+    using enum GameMode;
     constexpr static float WALK_SPEED = 4.5f;
     constexpr static float RUN_SPEED = 7.0f;
     constexpr static float ACCELERATION = 10.0f;   
@@ -54,7 +56,7 @@ private:
 
     Gait m_gait = Gait::WALK;
     MoveState m_move_state {};
-
+    GameMode m_game_mode = CREATIVE;
     std::optional<LookBlock> m_look_block = std::nullopt;
     std::string m_name {};
     World& m_world;
@@ -79,10 +81,11 @@ public:
     const glm::vec3& get_player_pos() const;
     const MoveState& get_move_state() const;
     
+    void change_mode(GameMode mode);
     void set_player_pos(const glm::vec3& pos);
     void update(float delta_time);
     void update_front_vec(float offset_x, float offset_y);
     void update_player_move_state(int key, int action);
-
+    void update_scroll(double yoffset);
 
 };

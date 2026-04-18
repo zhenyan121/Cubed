@@ -39,7 +39,7 @@ void App::init() {
     glfwSetWindowFocusCallback(m_window.get_glfw_window(), window_focus_callback);
     glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
     glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
-
+    glfwSetScrollCallback(m_window.get_glfw_window(), mouse_scroll_callback);
     PerlinNoise::init();
     
     m_renderer.init();
@@ -132,7 +132,11 @@ void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_hei
     app->m_window.update_viewport();
 }
 
-
+void App::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    auto& player = app->m_world.get_player("TestPlayer");
+    player.update_scroll(yoffset);
+}
 
 void App::render() {
 
