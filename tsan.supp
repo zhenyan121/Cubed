@@ -1,0 +1,15 @@
+# tsan.supp
+race:g_queue_pop_tail
+race:g_strsplit
+race:g_variant_type_info_get
+race:g_rec_mutex_lock
+race:libgallium
+race:libEGL_mesa
+race:libglib-2.0
+race:libglycin-2
+race:tbb::detail::d1::fold_tree
+race:libgio-2.0
+race:libtbb
+race:tbb::detail
+race:libpangoft2
+race:libfontconfig

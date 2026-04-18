@@ -1,4 +1,5 @@
 #pragma once
+#include <syncstream>
 #include <iostream>
 #include <chrono>
 #include <format>
@@ -21,11 +22,11 @@ namespace Logger {
                         (std::chrono::system_clock::now());
         
         std::string msg = std::vformat(fmt.get(), std::make_format_args(args...));
-        std::cout << "\033[1;32m" 
+        std::osyncstream(std::cout) << "\033[1;32m" 
                   << std::format("[INFO][{:%Y-%m-%d %H:%M:%S}]", now_time) 
                   << msg 
                   << "\033[0m" 
-                  << std::endl;
+                  << "\n";
     }
 
     template<typename... Args>
@@ -34,11 +35,11 @@ namespace Logger {
                         time_point_cast<std::chrono::seconds> 
                         (std::chrono::system_clock::now());
         std::string msg = std::vformat(fmt.get(), std::make_format_args(args...));
-        std::cerr << "\033[1;31m" 
+        std::osyncstream(std::cerr) << "\033[1;31m" 
                   << std::format("[ERROR][{:%Y-%m-%d %H:%M:%S}]", now_time) 
                   << msg 
                   << "\033[0m" 
-                  << std::endl;
+                  << "\n";
     
     }
 
@@ -48,11 +49,11 @@ namespace Logger {
                         time_point_cast<std::chrono::seconds> 
                         (std::chrono::system_clock::now());
         std::string msg = std::vformat(fmt.get(), std::make_format_args(args...));
-        std::cout << "\033[1;33m" 
+        std::osyncstream(std::cout) << "\033[1;33m" 
                   << std::format("[WARN][{:%Y-%m-%d %H:%M:%S}]", now_time) 
                   << msg 
                   << "\033[0m" 
-                  << std::endl;
+                  << "\n";
     }
 
     template<typename... Args>
@@ -63,7 +64,7 @@ namespace Logger {
         std::string msg = std::vformat(fmt.get(), std::make_format_args(args...));
         switch (level) {
             case Logger::Level::TRACE:
-                std::cout << "\033[1;34m"
+                std::osyncstream(std::cout) << "\033[1;34m"
                   << std::format("[TRACE][{:%Y-%m-%d %H:%M:%S}]", now_time)
                   << "[" << loc.file_name() << ":" << loc.line() << "]"
                   << "[" << loc.function_name() << "]"
@@ -72,20 +73,20 @@ namespace Logger {
                   << "\n";
                 break;
             case Logger::Level::DEBUG:
-                std::cout << "\033[1;34m"
+                std::osyncstream(std::cout) << "\033[1;34m"
                   << std::format("[DEBUG][{:%Y-%m-%d %H:%M:%S}]", now_time)
                   << msg
                   << "\033[0m"
                   << "\n";
                 break;
             case Logger::Level::INFO:
-                info(fmt, std::forward<Args...>(args)...);
+                info(fmt, std::forward<Args>(args)...);
                 break;
             case Logger::Level::WARN:
-                warn(fmt, std::forward<Args...>(args)...);
+                warn(fmt, std::forward<Args>(args)...);
                 break;
             case Logger::Level::ERROR:
-                error(fmt, std::forward<Args...>(args)...);
+                error(fmt, std::forward<Args>(args)...);
                 break;
             
         }

@@ -106,11 +106,22 @@ void World::init_world() {
         chunk.gen_vertex_data(neighbor_block);
     }
     */
-    std::for_each(std::execution::par, m_chunks.begin(), m_chunks.end(), [](auto& chunk_map){
-        auto& [chunk_pos, chunk] = chunk_map;
-        chunk.init_chunk();
+    std::vector<Chunk*> chunk_ptrs;
+    chunk_ptrs.reserve(m_chunks.size());
+    for (auto& [pos, chunk] : m_chunks) {
+        chunk_ptrs.push_back(&chunk);
+    }
+
+    std::for_each(std::execution::par, chunk_ptrs.begin(), chunk_ptrs.end(), [](auto& chunk){
+        chunk->init_chunk();
     });
+
+    std::atomic<int> sync{0};
+    sync.store(1, std::memory_order_release);
+    sync.load(std::memory_order_acquire);
+    
     std::vector<ChunkRenderData> pending_gen_data;
+    pending_gen_data.reserve(m_chunks.size());
     for (auto& [pos, chunk] : m_chunks) {
         ChunkRenderData data;
         data.chunk = &chunk;
@@ -239,7 +250,7 @@ void World::gen_chunks_internal() {
         new_chunks.push_back({pos, Chunk(*this, pos)});
     }
     
-    std::unordered_map<ChunkPos, const Chunk&, ChunkPos::Hash> neighbor;
+    std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash> neighbor;
 
     {
         std::lock_guard lk(m_chunks_mutex);
@@ -247,7 +258,7 @@ void World::gen_chunks_internal() {
             for (const auto& dir : CHUNK_DIR) {
                 auto it = m_chunks.find(pos + dir);
                 if (it != m_chunks.end()) {
-                    neighbor.insert({it->first, (it->second)});
+                    neighbor.insert({it->first, &(it->second)});
                 }
             }
         }
@@ -258,7 +269,7 @@ void World::gen_chunks_internal() {
     for (auto& [pos, chunk] : new_chunks) {
 
         chunk.init_chunk();
-        neighbor.insert({pos, chunk});
+        neighbor.insert({pos, &chunk});
         
     }
 
@@ -266,7 +277,7 @@ void World::gen_chunks_internal() {
         for (int i = 0; i < 4; i++) {
             auto it = neighbor.find(pos + CHUNK_DIR[i]);
             if (it != neighbor.end()) {
-                neighbor_block[i] = &(it->second.get_chunk_blocks());
+                neighbor_block[i] = &(it->second->get_chunk_blocks());
             } else {
                 neighbor_block[i] = nullptr;
             }
@@ -340,7 +351,7 @@ bool World::is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_ex
 
 int World::get_block(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
-
+    std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {
@@ -361,6 +372,7 @@ int World::get_block(const glm::ivec3& block_pos) const {
 
 bool World::is_block(const glm::ivec3& block_pos) const{
     auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {
@@ -390,7 +402,7 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
     world_z = block_pos.z;
 
     auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
-
+    std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {

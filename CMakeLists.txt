@@ -107,12 +107,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
     target_compile_options(${PROJECT_NAME} PRIVATE
         -fsanitize=address
+        #-fsanitize=thread
         -fno-omit-frame-pointer   
         -g                        
     )
 
     target_link_options(${PROJECT_NAME} PRIVATE
         -fsanitize=address
+        #-fsanitize=thread
     )
 
     target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG_MODE)
