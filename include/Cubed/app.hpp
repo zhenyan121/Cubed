@@ -6,6 +6,7 @@
 #include <Cubed/renderer.hpp>
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/window.hpp>
+namespace Cubed {
 
 class App {
 public:
@@ -35,7 +36,6 @@ private:
     inline static double fps_time_count = 0.0f;
     inline static int frame_count = 0;
     inline static int fps = 0;
-    inline static unsigned int m_seed = 0;
     
     void init();
     
@@ -47,3 +47,5 @@ private:
     void run();
     void update();
 };
+
+}

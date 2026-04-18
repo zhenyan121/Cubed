@@ -2,17 +2,16 @@
 
 #include <Cubed/config.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
-
+#include <Cubed/tools/cubed_random.hpp>
 #include <algorithm>
 #include <numeric>
-#include <random>
 
-void PerlinNoise::init(unsigned int seed) {
+
+void PerlinNoise::init() {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
 
-    std::mt19937 engine(seed);
-    std::shuffle(p.begin(), p.end(), engine);
+    std::shuffle(p.begin(), p.end(), Cubed::Random::get().engine());
 
     p.insert(p.end(), p.begin(), p.end());
     is_init = true;

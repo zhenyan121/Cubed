@@ -1,6 +1,8 @@
 #include <Cubed/gameplay/chunk.hpp>
+#include <Cubed/gameplay/tree.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+#include <Cubed/tools/cubed_random.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/math_tools.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
@@ -59,6 +61,11 @@ int Chunk::get_index(int x, int y, int z) {
     }
     return (x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z;
 }
+
+int Chunk::get_index(const glm::vec3& pos) {
+    return Chunk::get_index(pos.x, pos.y, pos.z);
+}
+
 // this is thread-unsafe!
 void Chunk::gen_vertex_data() {
     m_vertexs_data.clear();
@@ -274,7 +281,7 @@ void Chunk::resolve_blocks() {
             }
         }
     }
-
+    std::array<std::array<int, SIZE_Z>, SIZE_X> heights;
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int z = 0; z < CHUCK_SIZE; z++) {
              
@@ -284,12 +291,13 @@ void Chunk::resolve_blocks() {
             float temp  = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 0.0f, world_z * BIOME_NOISE_FREQUENCY);
             float humid = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 1.0f, world_z * BIOME_NOISE_FREQUENCY);
             int height = get_interpolated_height(world_x, world_z, temp, humid);
+            heights[x][z] = height;
             auto biome = get_biome_from_noise(temp, humid);
             for (int y = 5; y < height - 5; y++) {
                 m_blocks[get_index(x, y, z)] = 3;
             }
             if (biome == Biome::MOUNTAIN) {
-                for (int y = height - 5; y < height - 1; y++) {
+                for (int y = height - 5; y <= height - 1; y++) {
                     if (y > 101) {
                         m_blocks[get_index(x, y, z)] = 3;
                     } else {
@@ -297,26 +305,43 @@ void Chunk::resolve_blocks() {
                     }
                     
                 }
-                if (height - 1 > 101) {
+                if (height > 101) {
                     m_blocks[get_index(x, height - 1, z)] = 3;
                 } else {
                     m_blocks[get_index(x, height - 1, z)] = 1;
                 }
             } else if (biome == Biome::DESERT) {
-                for (int y = height - 5; y < height; y++) {
+                for (int y = height - 5; y <= height; y++) {
                     m_blocks[get_index(x, y, z)] = 4;
                 }
             } else {
-                for (int y = height - 5; y < height - 1; y++) {
+                for (int y = height - 5; y <= height - 1; y++) {
                     m_blocks[get_index(x, y, z)] = 2;
                 }
-                for (int y = height - 1; y < height; y++) {
+                for (int y = height; y <= height; y++) {
                     m_blocks[get_index(x, y, z)] = 1;
                 }
             }
             
         }
     }
+    if (m_biome == Biome::FOREST) {
+        std::array<int, SIZE_X> x_arr;
+        std::ranges::iota(x_arr, 0);
+        std::shuffle(x_arr.begin(), x_arr.end(), Cubed::Random::get().engine());
+        std::array<int, SIZE_Z> z_arr;
+        std::ranges::iota(z_arr, 0);
+        std::shuffle(z_arr.begin(), z_arr.end(), Cubed::Random::get().engine());
+        for (auto x : x_arr) {
+            for (auto z : z_arr) {
+                if (Cubed::Random::get().random_bool(0.8)) {
+                    build_tree(*this, {x, heights[x][z], z});
+                }
+                
+            }
+        }
+    }
+
     mark_dirty();
 }
 

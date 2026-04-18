@@ -4,9 +4,9 @@
 
 constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
 
-constexpr float PLAIN_FREQ = 0.5f;
-constexpr float FOREST_FREQ = 1.0f;
-constexpr float DESERT_FREQ = 1.0f;
+constexpr float PLAIN_FREQ = 0.4f;
+constexpr float FOREST_FREQ = 1.2f;
+constexpr float DESERT_FREQ = 1.2f;
 constexpr float MOUNTAIN_FREQ = 2.0f;
 
 enum class Biome {

@@ -4,11 +4,14 @@
 #include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
+#include <Cubed/tools/cubed_random.hpp>
 #include <Cubed/tools/system_info.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
 
 #include <exception>
-#include <random>
+
+namespace Cubed {
+
 
 App::App() {
 
@@ -36,10 +39,8 @@ void App::init() {
     glfwSetWindowFocusCallback(m_window.get_glfw_window(), window_focus_callback);
     glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
     glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
-    std::random_device d;
-    m_seed = d();
-    Logger::info("Seed: {}", m_seed);
-    PerlinNoise::init(m_seed);
+
+    PerlinNoise::init();
     
     m_renderer.init();
     Logger::info("Renderer Init Success");
@@ -204,14 +205,12 @@ int App::start_cubed_application(int argc, char** argv) {
     return 1;
 }
 
-unsigned int App::seed() {
-    return m_seed;
-}
-
 float App::delte_time() {
     return delta_time;
 }
 
 float App::get_fps() {
     return fps;
+}
+
 }

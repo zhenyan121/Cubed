@@ -1,6 +1,6 @@
 #pragma once
 constexpr int WORLD_SIZE_Y = 256;
-constexpr int MAX_BLOCK_NUM = 5;
+constexpr int MAX_BLOCK_NUM = 7;
 constexpr int MAX_UI_NUM = 1;
 
 constexpr int CHUCK_SIZE = 16;

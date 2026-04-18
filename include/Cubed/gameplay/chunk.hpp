@@ -47,7 +47,7 @@ public:
     const std::vector<uint8_t>& get_chunk_blocks() const;    
     
     static int get_index(int x, int y, int z);
-    
+    static int get_index(const glm::vec3& pos);
     void init_chunk();
     void gen_vertex_data();
     // 0 : (1, 0)

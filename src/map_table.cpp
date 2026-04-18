@@ -13,7 +13,9 @@ constexpr std::array<std::string_view, MAX_BLOCK_NUM> BLOCK_REISTER{
     "grass_block",
     "dirt",
     "stone",
-    "sand"
+    "sand",
+    "log",
+    "leaf"
 };
 
 

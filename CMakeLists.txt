@@ -85,12 +85,14 @@ add_executable(${PROJECT_NAME}
     src/gameplay/biome.cpp
     src/gameplay/chunk.cpp
     src/gameplay/player.cpp
+    src/gameplay/tree.cpp
     src/gameplay/world.cpp
     src/input.cpp
     src/map_table.cpp
     src/renderer.cpp
     src/shader.cpp
     src/texture_manager.cpp
+    src/tools/cubed_random.cpp
     src/tools/math_tools.cpp
     src/tools/shader_tools.cpp
     src/tools/font.cpp
