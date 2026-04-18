@@ -10,7 +10,7 @@
 void PerlinNoise::init() {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
-    int seed = std::random_device{}();
+    auto seed = std::random_device{}();
     Logger::info("Init Perlin Noise With Seed {}", seed);
     std::shuffle(p.begin(), p.end(), std::mt19937(seed));
 
