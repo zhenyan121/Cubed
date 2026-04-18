@@ -7,6 +7,7 @@
 #include <Cubed/tools/math_tools.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
 
+#include <numeric>
 #include <utility>
 Chunk::Chunk(World& world, ChunkPos chunk_pos) : 
     m_world(world),
@@ -284,10 +285,10 @@ void Chunk::resolve_blocks() {
     }
     if (m_biome == Biome::FOREST) {
         std::array<int, SIZE_X> x_arr;
-        std::ranges::iota(x_arr, 0);
+        std::iota(x_arr.begin(), x_arr.end(), 0);
         std::shuffle(x_arr.begin(), x_arr.end(), Cubed::Random::get().engine());
         std::array<int, SIZE_Z> z_arr;
-        std::ranges::iota(z_arr, 0);
+        std::iota(z_arr.begin(), z_arr.end(), 0);
         std::shuffle(z_arr.begin(), z_arr.end(), Cubed::Random::get().engine());
         for (auto x : x_arr) {
             for (auto z : z_arr) {
