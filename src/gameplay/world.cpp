@@ -9,6 +9,10 @@
 
 #include <unordered_set>
 
+static constexpr ChunkPos CHUNK_DIR[] {
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+    };
+
 World::World() {
     
 }
@@ -29,44 +33,7 @@ bool World::can_move(const AABB& player_box) const{
 
     return true;
 }
-/*
-const BlockRenderData& World::get_block_render_data(int world_x, int world_y ,int world_z) {
-    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
-    //Logger::info("Chunk PosX : {} Chuch PosZ : {}", chunk_x, chunk_z);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
-    CUBED_ASSERT_MSG(it != m_chunks.end(), "Chunk not find");
-    
-    const auto& chunk_blocks = it->second.get_chunk_blocks();
-    int x, y, z;
-    y = world_y;
-    x = world_x - chunk_x * CHUCK_SIZE;
-    z = world_z - chunk_z * CHUCK_SIZE;
-    //BlockRenderData m_block_render_data;
-    // block id
-    m_block_render_data.block_id = chunk_blocks[Chunk::get_index(x, y, z)];
-    if (m_block_render_data.block_id == 0) {
-        return m_block_render_data;
-    }
-    // draw_face
-    m_block_render_data.draw_face.assign(6, true);
-    static const std::vector<glm::ivec3> DIR = {
-        glm::ivec3(0, 0, 1),
-        glm::ivec3(1, 0, 0),
-        glm::ivec3(0 ,0, -1),
-        glm::ivec3(-1, 0, 0),
-        glm::ivec3(0, 1, 0),
-        glm::ivec3(0, -1, 0)
-    };
-    glm::ivec3 world_pos = glm::ivec3(world_x, world_y, world_z);
-    for (int i = 0; i < 6; i++) {
-        if (is_block(world_pos + DIR[i])) {
-            m_block_render_data.draw_face[i] = false;
-        }
-    }
 
-    return m_block_render_data;
-}
-*/
 const std::optional<LookBlock>& World::get_look_block_pos(const std::string& name) const{
     static std::optional<LookBlock> null_look_block = std::nullopt;
     auto it = m_players.find(HASH::str(name));
@@ -119,10 +86,20 @@ void World::init_world() {
         
     }
     // After block gen fininshed
+    std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+    for (auto& [pos, chunk] : m_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto it = m_chunks.find(pos + CHUNK_DIR[i]);
+            if (it != m_chunks.end()) {
+                neighbor_block[i] = &(it->second.get_chunk_blocks());
+            } else {
+                neighbor_block[i] = nullptr;
+            }
+        }
+        chunk.gen_vertex_data(neighbor_block);
+    }
     for (auto& chunk_map : m_chunks) {
         auto& [chunk_pos, chunk] = chunk_map;
-
-        chunk.gen_vertex_data();
         chunk.upload_to_gpu();
         
     }
@@ -229,10 +206,6 @@ void World::gen_chunks_internal() {
     for (auto& pos : pre_gen_chunks) {
         new_chunks.push_back({pos, Chunk(*this, pos)});
     }
-    
-    static const ChunkPos CHUNK_DIR[] {
-        {1, 0}, {-1, 0}, {0, 1}, {0, -1}
-    };
     
     std::unordered_map<ChunkPos, const Chunk&, ChunkPos::Hash> neighbor;
 
@@ -454,7 +427,16 @@ void World::update(float delta_time) {
         for (auto& [pos, chunk] : m_chunks) {
             if (chunk.is_dirty()) {
                 // the curial fator influence
-                chunk.gen_vertex_data();
+                std::vector<const std::vector<uint8_t>*> neighbor_block(4);
+                for (int i = 0; i < 4; i++) {
+                    auto it = m_chunks.find(pos + CHUNK_DIR[i]);
+                    if (it != m_chunks.end()) {
+                        neighbor_block[i] = &(it->second.get_chunk_blocks());
+                    } else {
+                        neighbor_block[i] = nullptr;
+                    }
+                }
+                chunk.gen_vertex_data(neighbor_block);
                 chunk.upload_to_gpu();
             }
             if (!chunk.is_dirty()) {

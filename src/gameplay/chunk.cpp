@@ -66,62 +66,6 @@ int Chunk::get_index(const glm::vec3& pos) {
     return Chunk::get_index(pos.x, pos.y, pos.z);
 }
 
-// this is thread-unsafe!
-void Chunk::gen_vertex_data() {
-    m_vertexs_data.clear();
-    
-    static const glm::ivec3 DIR[6] = {
-        {0,0,1},{1,0,0},{0,0,-1},{-1,0,0},{0,1,0},{0,-1,0}
-    };
-
-    for (int x = 0; x < SIZE_X; x++) {
-        for (int y = 0; y < SIZE_Y; y++) {
-            for (int z = 0; z < SIZE_Z; z++) {
-                int world_x = x + m_chunk_pos.x * CHUCK_SIZE;
-                int world_z = z + m_chunk_pos.z * CHUCK_SIZE;
-                int world_y = y;
-                int id = m_blocks[get_index(x, y, z)];
-                // air
-                if (id == 0) {
-                    continue;
-                }
-                for (int face = 0; face < 6; face++) {
-                    int nx = x + DIR[face].x;
-                    int ny = y + DIR[face].y;
-                    int nz = z + DIR[face].z;
-                    bool neighbor_soild = false;
-
-                    if (nx < 0 || nx >= SIZE_X || ny < 0 || ny >= SIZE_Y || nz < 0 || nz>= SIZE_Z) {
-                        neighbor_soild = m_world.is_block(glm::ivec3(world_x, world_y, world_z) + DIR[face]);
-                    } else {
-                        if (m_blocks[get_index(nx, ny, nz)] != 0) {
-                            neighbor_soild = true;
-                        }
-                    }
-
-                    if (neighbor_soild) {
-                        continue;
-                    }
-                    for (int i = 0; i < 6; i++) {
-                        Vertex vex = {
-                            VERTICES_POS[face][i][0] + (float)world_x * 1.0f,
-                            VERTICES_POS[face][i][1] + (float)world_y * 1.0f,
-                            VERTICES_POS[face][i][2] + (float)world_z * 1.0f,
-                            TEX_COORDS[face][i][0],
-                            TEX_COORDS[face][i][1],
-                            static_cast<float>(id * 6 + face) 
-
-                        };
-                        m_vertexs_data.emplace_back(vex);
-                    }    
-                }
-            }
-            
-        }
-    }
-    
-}
-
 void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neighbor_block) {
     m_vertexs_data.clear();
     
@@ -135,16 +79,17 @@ void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neig
                 int world_x = x + m_chunk_pos.x * CHUCK_SIZE;
                 int world_z = z + m_chunk_pos.z * CHUCK_SIZE;
                 int world_y = y;
-                int id = m_blocks[get_index(x, y, z)];
+                int cur_id = m_blocks[get_index(x, y, z)];
                 // air
-                if (id == 0) {
+                if (cur_id == 0) {
                     continue;
                 }
+                
                 for (int face = 0; face < 6; face++) {
                     int nx = x + DIR[face].x;
                     int ny = y + DIR[face].y;
                     int nz = z + DIR[face].z;
-                    bool neighbor_soild = false;
+                    bool neighbor_cull = false;
 
                     if (nx < 0 || nx >= SIZE_X || ny < 0 || ny >= SIZE_Y || nz < 0 || nz>= SIZE_Z) {
                         
@@ -154,7 +99,7 @@ void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neig
 
                         auto [neighbor_x, neighbor_z] = World::chunk_pos(world_nx, world_nz);
                         
-                        auto is_block = [&](const std::vector<uint8_t>* chunk_blocks){
+                        auto is_cull = [&](const std::vector<uint8_t>* chunk_blocks){
                             if (chunk_blocks == nullptr) {
                                 return false;
                             }
@@ -173,30 +118,42 @@ void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neig
                                 return false;
                             }
                             auto id = (*chunk_blocks)[idx];
-                            if (id == 0) {
-                                return false;
+                            if (is_in_transparent_map(id)) {
+                                if (id == cur_id) {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                                
                             } else {
                                 return true;
                             }
                         };
 
                         if (m_chunk_pos.x + 1 == neighbor_x) {
-                            neighbor_soild = is_block(neighbor_block[0]);
+                            neighbor_cull = is_cull(neighbor_block[0]);
                         } else if (m_chunk_pos.x - 1 == neighbor_x) {
-                            neighbor_soild = is_block(neighbor_block[1]);
+                            neighbor_cull = is_cull(neighbor_block[1]);
                         } else if (m_chunk_pos.z + 1 == neighbor_z) {
-                            neighbor_soild = is_block(neighbor_block[2]);
+                            neighbor_cull = is_cull(neighbor_block[2]);
                         } else if (m_chunk_pos.z - 1 == neighbor_z) {
-                            neighbor_soild = is_block(neighbor_block[3]);
+                            neighbor_cull = is_cull(neighbor_block[3]);
                         }
-                        //neighbor_soild = m_world.is_block(glm::ivec3(world_x, world_y, world_z) + DIR[face]);
+                        //neighbor_cull = m_world.is_block(glm::ivec3(world_x, world_y, world_z) + DIR[face]);
                     } else {
-                        if (m_blocks[get_index(nx, ny, nz)] != 0) {
-                            neighbor_soild = true;
+                        auto id = m_blocks[get_index(nx, ny, nz)];
+                        if (!is_in_transparent_map(id)) {
+                            neighbor_cull = true;
+                        } else {
+                            if (id == cur_id) {
+                                neighbor_cull = true;
+                            } else {
+                                neighbor_cull = false;
+                            }
                         }
                     }
 
-                    if (neighbor_soild) {
+                    if (neighbor_cull) {
                         continue;
                     }
                     for (int i = 0; i < 6; i++) {
@@ -206,7 +163,7 @@ void Chunk::gen_vertex_data(const std::vector<const std::vector<uint8_t>*>& neig
                             VERTICES_POS[face][i][2] + (float)world_z * 1.0f,
                             TEX_COORDS[face][i][0],
                             TEX_COORDS[face][i][1],
-                            static_cast<float>(id * 6 + face) 
+                            static_cast<float>(cur_id * 6 + face) 
 
                         };
                         m_vertexs_data.emplace_back(vex);
