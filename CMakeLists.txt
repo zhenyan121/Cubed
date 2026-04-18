@@ -82,6 +82,7 @@ add_executable(${PROJECT_NAME}
     src/app.cpp
     src/debug_collector.cpp
     src/camera.cpp
+    src/gameplay/biome.cpp
     src/gameplay/chunk.cpp
     src/gameplay/player.cpp
     src/gameplay/world.cpp
