@@ -1,5 +1,5 @@
 #pragma once
-
+#include <atomic>
 #include <vector>
 
 class PerlinNoise {
@@ -7,7 +7,7 @@ public:
     static void init();
     static float noise(float x, float y, float z);
 private:
-    static inline bool is_init = false;
+    static inline std::atomic<bool> is_init = false;
     static inline std::vector<int> p;
 
     static float fade(float t);
