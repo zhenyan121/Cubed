@@ -49,7 +49,7 @@ public:
     static int get_index(int x, int y, int z);
     static int get_index(const glm::vec3& pos);
     void init_chunk();
-    void gen_vertex_data();
+    //void gen_vertex_data();
     // 0 : (1, 0)
     // 1 : (-1, 0) 
     // 2 : (0, 1) 
