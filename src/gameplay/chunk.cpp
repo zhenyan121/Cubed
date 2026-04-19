@@ -23,19 +23,22 @@ Chunk::~Chunk() {
     
 }
 
-Chunk::Chunk(Chunk&& other) : 
+Chunk::Chunk(Chunk&& other) noexcept : 
     m_vbo(other.m_vbo),
     m_chunk_pos(std::move(other.m_chunk_pos)),
     m_world(other.m_world),
     m_blocks(std::move(other.m_blocks)),
     m_dirty(other.is_dirty()),
     m_vertexs_data(std::move(other.m_vertexs_data)),
-    m_biome(other.m_biome)
+    m_biome(other.m_biome),
+    m_is_on_gen_vertex_data(other.m_is_on_gen_vertex_data.load()),
+    m_need_upload(other.m_need_upload.load()),
+    m_vertex_sum(other.m_vertex_sum.load())
 {
     other.m_vbo = 0;
 }
 
-Chunk& Chunk::operator=(Chunk&& other) {
+Chunk& Chunk::operator=(Chunk&& other) noexcept {
     m_vbo = other.m_vbo;
     other.m_vbo = 0;
     m_chunk_pos = std::move(other.m_chunk_pos);
@@ -43,6 +46,9 @@ Chunk& Chunk::operator=(Chunk&& other) {
     m_dirty = other.is_dirty();
     m_vertexs_data = std::move(other.m_vertexs_data);
     m_biome = other.m_biome;
+    m_is_on_gen_vertex_data = other.m_is_on_gen_vertex_data.load();
+    m_need_upload = other.m_need_upload.load();
+    m_vertex_sum = other.m_vertex_sum.load();
     return *this;
 }
 
@@ -68,6 +74,11 @@ int Chunk::get_index(const glm::vec3& pos) {
 }
 
 void Chunk::gen_vertex_data(const std::array<const std::vector<uint8_t>*, 4>& neighbor_block) {
+    if (m_is_on_gen_vertex_data) {
+        return;
+    }
+    m_is_on_gen_vertex_data = true;
+    std::lock_guard lk(m_vertexs_data_mutex);
     m_vertexs_data.clear();
     
     static const glm::ivec3 DIR[6] = {
@@ -174,15 +185,20 @@ void Chunk::gen_vertex_data(const std::array<const std::vector<uint8_t>*, 4>& ne
             
         }
     }
-    
+    m_vertex_sum = m_vertexs_data.size();
+    m_need_upload = true;
+    m_is_on_gen_vertex_data = false;
 }
 
 GLuint Chunk::get_vbo() const{
     return m_vbo;
 }
 
-const std::vector<Vertex>& Chunk::get_vertex_data() const{
-    return m_vertexs_data;
+size_t Chunk::get_vertex_sum() const {
+    if (m_vertex_sum == 0) {
+        Logger::warn("m_vertex_sum is 0");
+    }
+    return m_vertex_sum.load();
 }
 
 void Chunk::init_chunk() {
@@ -192,16 +208,17 @@ void Chunk::init_chunk() {
 
 void Chunk::upload_to_gpu() {
 
-    CUBED_ASSERT(is_dirty());
+    CUBED_ASSERT(is_need_upload());
     if (m_vbo == 0) {
         glGenBuffers(1, &m_vbo);   
     }
+    std::lock_guard lk(m_vertexs_data_mutex);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertexs_data.size() * sizeof(Vertex), m_vertexs_data.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     // after fininshed it, can use
     clear_dirty();
-
+    m_need_upload = false;
 }
 
 bool Chunk::is_dirty() const{
@@ -214,6 +231,14 @@ void Chunk::mark_dirty() {
 
 void Chunk::clear_dirty() {
     m_dirty = false;
+}
+
+bool Chunk::is_need_upload() const {
+    return m_need_upload.load();
+}
+
+void Chunk::need_upload() {
+    m_need_upload = true;
 }
 
 void Chunk::set_chunk_block(int index ,unsigned id) {

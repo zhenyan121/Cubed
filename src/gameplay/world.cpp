@@ -8,7 +8,6 @@
 #include <Cubed/tools/math_tools.hpp>
 
 #include <execution>
-#include <unordered_set>
 
 static constexpr ChunkPos CHUNK_DIR[] {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
@@ -202,81 +201,39 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 }
 
 void World::gen_chunks_internal() {
-    glm::vec3 player_pos;
-    {
-        std::lock_guard lk(m_gen_player_pos_mutex);
-        player_pos = m_gen_player_pos;
-    }
     
+    ChunkPosSet required_chunks;
+    compute_required_chunks(required_chunks);
 
-    int x = std::floor(player_pos.x);
-    int z = std::floor(player_pos.z);
-    auto [chunk_x, chunk_z] = chunk_pos(x, z);
-    std::unordered_set<ChunkPos, ChunkPos::Hash> cur_chunks;
-    std::vector<ChunkPos> pre_gen_chunks;
-    cur_chunks.reserve(DISTANCE * DISTANCE);
-    int half = DISTANCE / 2;
-    for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
-        for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
-            cur_chunks.emplace(u, v);
-        }
-    }
-    CUBED_ASSERT_MSG(!cur_chunks.empty(), "cur chunks is empty!!");
-    std::vector<std::pair<ChunkPos, Chunk>> new_chunks;
-    {
-        std::lock_guard lk(m_chunks_mutex);
-        for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
-            if (cur_chunks.find(it->first) == cur_chunks.end()) {
-                it = m_chunks.erase(it);
-            } else {
-                ++it;
-            }
-        }
-
-        for (auto pos: cur_chunks) {
-            auto it = m_chunks.find(pos);
-            if (it == m_chunks.end()) {
-                pre_gen_chunks.push_back(pos);
-            }
-        }
-    }
-
-    Logger::info("New Gen Chunks Sum: {}", pre_gen_chunks.size());
-    if (pre_gen_chunks.empty()) {
+    CUBED_ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
+    
+    std::vector<ChunkPos> need_gen_chunks_pos;
+    sync_and_collect_missing_chunks(need_gen_chunks_pos, required_chunks);
+    
+    Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
+    if (need_gen_chunks_pos.empty()) {
         return;
     }
-
-    for (auto& pos : pre_gen_chunks) {
+    ChunkUpdateList new_chunks;
+    for (auto& pos : need_gen_chunks_pos) {
         new_chunks.push_back({pos, Chunk(*this, pos)});
     }
     
-    std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash> neighbor;
-
-    {
-        std::lock_guard lk(m_chunks_mutex);
-        for (auto& [pos, chunk] : new_chunks) {
-            for (const auto& dir : CHUNK_DIR) {
-                auto it = m_chunks.find(pos + dir);
-                if (it != m_chunks.end()) {
-                    neighbor.insert({it->first, &(it->second)});
-                }
-            }
-        }
-    }
+    ConstChunkMap new_chunks_neighbor;
+    // affected neighbor
+    ChunkPtrUpdateList affected_neighbor;
+    build_neighbor_context_for_new_chunks(new_chunks_neighbor, affected_neighbor,new_chunks);
     
     std::array<const std::vector<uint8_t>*, 4> neighbor_block;
-
+    // build new chunk, but the neighbor in m_chunks also need to re-build
     for (auto& [pos, chunk] : new_chunks) {
-
         chunk.init_chunk();
-        neighbor.insert({pos, &chunk});
-        
     }
 
     for (auto& [pos, chunk] : new_chunks) {
         for (int i = 0; i < 4; i++) {
-            auto it = neighbor.find(pos + CHUNK_DIR[i]);
-            if (it != neighbor.end()) {
+            auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
+            if (it != new_chunks_neighbor.end()) {
                 neighbor_block[i] = &(it->second->get_chunk_blocks());
             } else {
                 neighbor_block[i] = nullptr;
@@ -284,6 +241,20 @@ void World::gen_chunks_internal() {
         }
         chunk.gen_vertex_data(neighbor_block);
     }
+    build_neighbor_context_for_affected_neighbors(affected_neighbor, new_chunks_neighbor);
+
+    for (auto& [pos, chunk] : affected_neighbor) {
+        for (int i = 0; i < 4; i++) {
+            auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
+            if (it != new_chunks_neighbor.end()) {
+                neighbor_block[i] = &(it->second->get_chunk_blocks());
+            } else {
+                neighbor_block[i] = nullptr;
+            }
+        }
+        chunk->gen_vertex_data(neighbor_block);
+        chunk->need_upload();
+    }    
 
     {
         std::lock_guard lk(m_new_chunk_queue_mutex);
@@ -293,6 +264,77 @@ void World::gen_chunks_internal() {
         
     }
      
+}
+
+void World::sync_player_pos(glm::vec3& player_pos) {
+    std::lock_guard lk(m_gen_player_pos_mutex);
+    player_pos = m_gen_player_pos;
+}
+
+void World::compute_required_chunks(ChunkPosSet& required_chunks) {
+    glm::vec3 player_pos;
+    sync_player_pos(player_pos);
+    
+    int x = std::floor(player_pos.x);
+    int z = std::floor(player_pos.z);
+    auto [chunk_x, chunk_z] = chunk_pos(x, z);
+    
+
+    required_chunks.reserve(DISTANCE * DISTANCE);
+    int half = DISTANCE / 2;
+    for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
+        for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
+            required_chunks.emplace(u, v);
+        }
+    }
+}
+
+void World::sync_and_collect_missing_chunks(std::vector<ChunkPos>& need_gen_chunks_pos, const ChunkPosSet& required_chunks) {
+    std::lock_guard lk(m_chunks_mutex);
+    for (auto it = m_chunks.begin(); it != m_chunks.end(); ) {
+        if (required_chunks.find(it->first) == required_chunks.end()) {
+            it = m_chunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    for (auto pos: required_chunks) {
+        auto it = m_chunks.find(pos);
+        if (it == m_chunks.end()) {
+            need_gen_chunks_pos.push_back(pos);
+        }
+    }
+}
+
+void World::build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor, ChunkPtrUpdateList& affected_neighbor,const ChunkUpdateList& new_chunks) {
+    {
+        std::lock_guard lk(m_chunks_mutex);
+        for (auto& [pos, chunk] : new_chunks) {
+            for (auto& dir : CHUNK_DIR) {
+                auto it = m_chunks.find(pos + dir);
+                if (it != m_chunks.end()) {
+                    new_chunks_neighbor.insert({it->first, &(it->second)});
+                    affected_neighbor.push_back({it->first, &(it->second)});
+                }
+            }
+        }
+    }
+    for (auto& [pos, chunk] : new_chunks) {
+        new_chunks_neighbor.insert({pos, &chunk});
+    }
+}
+
+void World::build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList& affected_neighbor, ConstChunkMap& new_chunks_neighbor) {
+    std::lock_guard lk(m_chunks_mutex);
+    for (auto& [pos, chunk] : affected_neighbor) {
+        for (auto& dir : CHUNK_DIR) {
+            auto it = m_chunks.find(pos + dir);
+            if (it != m_chunks.end()) {
+                new_chunks_neighbor.insert({it->first, &(it->second)});
+            }
+        }
+    }
 }
 
 void World::start_gen_thread() {
@@ -484,9 +526,12 @@ void World::update(float delta_time) {
                 chunk.upload_to_gpu();
             }
             if (!chunk.is_dirty()) {
+                if (chunk.is_need_upload()) {
+                    chunk.upload_to_gpu();
+                }
                 m_render_snapshots.push_back({
                     chunk.get_vbo(),
-                    chunk.get_vertex_data().size(),
+                    chunk.get_vertex_sum(),
                     glm::vec3(static_cast<float>(pos.x * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y/ 2), static_cast<float>(pos.z * CHUCK_SIZE) + static_cast<float>(CHUCK_SIZE / 2)),
                     glm::vec3(static_cast<float>(CHUCK_SIZE / 2), static_cast<float>(WORLD_SIZE_Y / 2), static_cast<float>(CHUCK_SIZE / 2))
                     }

@@ -13,7 +13,10 @@ class World;
 class Chunk {
 private:
     std::atomic<bool> m_dirty {false};
-    
+    std::atomic<bool> m_need_upload{true};
+    std::atomic<bool> m_is_on_gen_vertex_data {false};
+    std::atomic<size_t> m_vertex_sum = 0;
+    std::mutex m_vertexs_data_mutex;
     static constexpr int SIZE_X = CHUCK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUCK_SIZE;
@@ -39,8 +42,8 @@ public:
     ~Chunk();
     Chunk(const Chunk&) = delete;
     Chunk& operator=(const Chunk&) = delete;
-    Chunk(Chunk&&);
-    Chunk& operator=(Chunk&&);
+    Chunk(Chunk&&) noexcept;
+    Chunk& operator=(Chunk&&) noexcept;
 
     Biome get_biome() const;
 
@@ -58,11 +61,14 @@ public:
     void upload_to_gpu();
     
     GLuint get_vbo() const;
-    const std::vector<Vertex>& get_vertex_data() const;
+    size_t get_vertex_sum() const;
    
     bool is_dirty() const;
     void mark_dirty();
     
+    bool is_need_upload() const;
+    void need_upload();
+
     void set_chunk_block(int index, unsigned id);
     
 };

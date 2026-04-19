@@ -5,7 +5,7 @@
 #include <thread>
 #include <optional>
 #include <unordered_map>
-
+#include <unordered_set>
 #include <Cubed/AABB.hpp>
 #include <Cubed/gameplay/chunk.hpp>
 
@@ -20,7 +20,11 @@ struct ChunkRenderSnapshot {
 class Player;
 
 class World {
-private:    
+private:
+    using ChunkPtrUpdateList = std::vector<std::pair<ChunkPos, Chunk*>>;
+    using ChunkUpdateList = std::vector<std::pair<ChunkPos, Chunk>>;
+    using ConstChunkMap = std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
+    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;    
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
     std::unordered_map<ChunkPos , Chunk, ChunkPos::Hash> m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
@@ -43,7 +47,11 @@ private:
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
 
     void gen_chunks_internal();
-
+    void sync_player_pos(glm::vec3& player_pos);
+    void compute_required_chunks(ChunkPosSet& required_chunks);
+    void sync_and_collect_missing_chunks(std::vector<ChunkPos>& , const ChunkPosSet&);
+    void build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor, ChunkPtrUpdateList& affected_neighbor, const ChunkUpdateList& new_chunks);
+    void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&, ConstChunkMap&);
     void start_gen_thread();
     void stop_gen_thread();
 
