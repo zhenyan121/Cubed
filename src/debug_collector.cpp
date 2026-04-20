@@ -3,6 +3,9 @@
 #include <Cubed/tools/system_info.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 
+namespace Cubed {
+
+
 DebugCollector::DebugCollector() {
 
 }
@@ -98,11 +101,13 @@ std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {
 Text& DebugCollector::text(std::string_view name) {
     std::size_t id  = HASH::str(name);
     auto it = m_texts.find(id);
-    CUBED_ASSERT_MSG(it != m_texts.end(), "Can't Find Text");
+    ASSERT_MSG(it != m_texts.end(), "Can't Find Text");
     return it->second;
 }
 
 void DebugCollector::report(std::string_view name, std::string_view content) {
     auto& t = text(name);
     t.text(content);
+}
+
 }

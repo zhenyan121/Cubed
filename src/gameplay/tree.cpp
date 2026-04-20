@@ -4,6 +4,9 @@
 
 #include <array>
 
+namespace Cubed {
+
+
 using glm::ivec3;
 
 static constexpr std::array<TreeStructNode, 62> TREE {{
@@ -95,4 +98,6 @@ bool build_tree(Chunk& chunk, const glm::ivec3& pos) {
         chunk.set_chunk_block(Chunk::get_index(tree_node), d.id);
     }
     return true;
+}
+
 }

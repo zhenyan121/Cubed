@@ -1,4 +1,7 @@
 #pragma once
+
+namespace Cubed {
+
 constexpr int WORLD_SIZE_Y = 256;
 constexpr int MAX_BLOCK_NUM = 7;
 constexpr int MAX_UI_NUM = 1;
@@ -148,3 +151,5 @@ struct Vertex2D {
     float s = 0.0f, t = 0.0f;
     float layer = 0.0f;
 };
+
+}

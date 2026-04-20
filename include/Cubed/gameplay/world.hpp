@@ -9,6 +9,8 @@
 #include <Cubed/AABB.hpp>
 #include <Cubed/gameplay/chunk.hpp>
 
+namespace Cubed {
+
 struct ChunkRenderSnapshot {
     GLuint vbo;
     size_t vertex_count;
@@ -84,3 +86,5 @@ public:
     void push_delete_vbo(GLuint vbo);
 
 };
+
+}

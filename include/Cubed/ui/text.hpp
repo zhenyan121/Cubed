@@ -7,6 +7,8 @@
 
 #include <Cubed/config.hpp>
 #include <Cubed/ui/color.hpp>
+namespace Cubed {
+
 
 class Shader;
 
@@ -50,3 +52,5 @@ private:
     void upload_to_gpu();
 
 };
+
+}

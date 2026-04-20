@@ -11,6 +11,8 @@
 #include <optional>
 #include <string>
 
+namespace Cubed {
+
 enum class Gait{
     WALK,
     RUN
@@ -89,3 +91,6 @@ public:
     void update_scroll(double yoffset);
 
 };
+
+
+}

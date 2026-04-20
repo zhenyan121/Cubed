@@ -4,6 +4,9 @@
 
 #include <unordered_map>
 
+namespace Cubed {
+
+
 class DebugCollector {
 public:
     static DebugCollector& get();
@@ -18,3 +21,5 @@ public:
 private:
     std::unordered_map<std::size_t, Text> m_texts;
 };
+
+}

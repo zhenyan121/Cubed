@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+
+namespace Cubed {
+
 class MapTable {
 private:
     static std::unordered_map<unsigned, std::string> id_to_name_map;
@@ -12,3 +15,5 @@ public:
     static void init_map();
 
 };
+
+}

@@ -7,6 +7,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <vector>
+namespace Cubed {
 
 class Camera;
 class TextureManager;
@@ -55,3 +56,5 @@ private:
     void render_ui();
     void render_world();
 };
+
+}

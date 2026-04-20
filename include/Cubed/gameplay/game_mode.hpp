@@ -2,6 +2,10 @@
 
 #include <stdexcept>
 #include <string>
+
+namespace Cubed {
+
+
 enum class GameMode {
     CREATIVE,
     SPECTATOR
@@ -16,4 +20,7 @@ inline std::string to_str(GameMode mode) {
             return {"Spective"};
     }
     throw std::invalid_argument{"GameMode is invaild"};
+}
+
+
 }

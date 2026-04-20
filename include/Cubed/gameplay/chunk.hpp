@@ -8,6 +8,9 @@
 #include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/gameplay/block.hpp>
 
+namespace Cubed {
+
+
 class World;
 // if want to use, do init_chunk(), gen_vertex_data() and 
 class Chunk {
@@ -72,3 +75,6 @@ public:
     void set_chunk_block(int index, unsigned id);
     
 };
+
+
+}

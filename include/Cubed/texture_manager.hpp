@@ -3,6 +3,8 @@
 #include <Cubed/gameplay/block.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
+namespace Cubed {
+
 
 class TextureManager {
 private:
@@ -29,3 +31,6 @@ public:
     void update();
     
 };
+
+
+}

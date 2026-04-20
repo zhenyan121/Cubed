@@ -7,6 +7,8 @@
 #include <Cubed/tools/log.hpp>
 #include <GLFW/glfw3.h>
 
+namespace Cubed {
+
 Player::Player(World& world, const std::string& name) :
     m_world(world),
     m_name(name)    
@@ -529,4 +531,7 @@ void Player::update_scroll(double yoffset) {
             }
         }
     }   
+}
+
+
 }

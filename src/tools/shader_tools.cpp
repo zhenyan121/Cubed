@@ -6,6 +6,9 @@
 #include <Cubed/tools/shader_tools.hpp>
 #include <Cubed/tools/log.hpp>
 
+namespace Cubed {
+
+
 namespace fs = std::filesystem;
 
 namespace Tools {
@@ -29,7 +32,7 @@ namespace Tools {
         if (vc != 1) {
             Logger::error("vertex compilation failed");
             Tools::print_shader_log(v_shader);
-            CUBED_ASSERT(0);
+            ASSERT(0);
         }
         glCompileShader(f_shader);         
         Tools::check_opengl_error();
@@ -37,7 +40,7 @@ namespace Tools {
         if (fc != 1) {
             Logger::error("vertex compilation failed");
             Tools::print_shader_log(f_shader);
-            CUBED_ASSERT(0);
+            ASSERT(0);
         }
         GLuint vf_program = glCreateProgram();
         glAttachShader(vf_program, v_shader);
@@ -50,7 +53,7 @@ namespace Tools {
         if (linked != 1) {
             Logger::error("linking failed");
             Tools::print_program_info(vf_program);
-            CUBED_ASSERT(0);
+            ASSERT(0);
         }
         glDeleteShader(v_shader);
         glDeleteShader(f_shader);
@@ -123,13 +126,15 @@ namespace Tools {
 
     unsigned char* load_image_data(const std::string& tex_image_path) {
         fs::path path = ASSETS_PATH + tex_image_path;
-        CUBED_ASSERT_MSG(fs::is_regular_file(path), path.c_str());
+        ASSERT_MSG(fs::is_regular_file(path), path.c_str());
         unsigned char* data = nullptr;
         int width, height, channels; 
         data = SOIL_load_image(path.string().c_str(), &width, &height, &channels, SOIL_LOAD_AUTO);
-        CUBED_ASSERT_MSG(data, "Could not load texture" + path.string());
+        ASSERT_MSG(data, "Could not load texture" + path.string());
 
         return data;
     }
+
+}
 
 }

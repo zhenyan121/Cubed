@@ -6,6 +6,8 @@
 #include <source_location>
 #include <string>
 
+namespace Cubed {
+
 namespace Logger {
     enum class Level {
         TRACE,
@@ -94,3 +96,7 @@ namespace Logger {
     } 
 
 } 
+
+
+}
+

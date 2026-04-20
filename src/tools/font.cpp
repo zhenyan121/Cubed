@@ -4,6 +4,8 @@
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
+namespace Cubed {
+
 
 Font::Font() {
 
@@ -121,4 +123,6 @@ std::vector<Vertex2D> Font::vertices(const std::string &text, float x, float y, 
 
 GLuint Font::text_texture() {
     return m_text_texture;
+}
+
 }

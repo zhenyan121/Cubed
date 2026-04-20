@@ -1,5 +1,9 @@
 #pragma once
 #include <Cubed/tools/log.hpp>
+
+namespace Cubed {
+
+
 namespace Assert {
     inline void msg(const char* condition, const char* file,
              int line, const char* func,
@@ -17,20 +21,22 @@ namespace Assert {
 }
 
 #ifdef DEBUG_MODE
-#define CUBED_ASSERT(cond) \
+#define ASSERT(cond) \
     do { \
         if (!(cond)) { \
-            ::Assert::msg(#cond, __FILE__, __LINE__, __func__); \
+            ::Cubed::Assert::msg(#cond, __FILE__, __LINE__, __func__); \
         } \
     } while (0)
-#define CUBED_ASSERT_MSG(cond, message) \
+#define ASSERT_MSG(cond, message) \
     do { \
         if (!(cond)) { \
-            ::Assert::msg(#cond, __FILE__, __LINE__, __func__, message); \
+            ::Cubed::Assert::msg(#cond, __FILE__, __LINE__, __func__, message); \
         } \
     } while (0)
 
 #else
-#define CUBED_ASSERT(cond) ((void)0)
-#define CUBED_ASSERT_MSG(cond, message) ((void)0)
+#define ASSERT(cond) ((void)0)
+#define ASSERT_MSG(cond, message) ((void)0)
 #endif
+
+}

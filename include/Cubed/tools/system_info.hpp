@@ -14,6 +14,9 @@ typedef LONG (WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 #include <fstream>
 #endif
 
+namespace Cubed {
+
+
 namespace Tools {
 
 inline bool get_os_version(std::string& str) {
@@ -142,3 +145,4 @@ inline std::string get_cpu_info() {
 }
 
 
+}

@@ -4,6 +4,10 @@
 
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+
+namespace Cubed {
+
+
 struct ChunkPos {
     int x;
     int z;
@@ -28,3 +32,5 @@ struct ChunkPos {
     };
 };
 
+
+}

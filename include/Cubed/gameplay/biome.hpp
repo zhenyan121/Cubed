@@ -2,6 +2,8 @@
 #include <array>
 #include <string>
 
+namespace Cubed {
+
 constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
 
 constexpr float PLAIN_FREQ = 0.4f;
@@ -28,3 +30,4 @@ BiomeHeightRange get_biome_height_range(Biome biome);
 Biome safe_int_to_biome(int x);
 int get_interpolated_height(float world_x, float world_z, float temp, float humid);
 
+}

@@ -6,6 +6,8 @@
 #include <cmath>
 #include <unordered_map>
 
+namespace Cubed {
+
 std::string get_biome_str(Biome biome) {
     std::string str;
     using enum Biome;
@@ -86,7 +88,7 @@ Biome safe_int_to_biome(int x) {
     };
 
     auto it = INT_TO_BIOME_MAP.find(x);
-    CUBED_ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");    
+    ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");    
     return it->second;
 }
 
@@ -131,4 +133,5 @@ int get_interpolated_height(float world_x, float world_z, float temp, float humi
     return static_cast<int>(h);
 }
 
+}
 

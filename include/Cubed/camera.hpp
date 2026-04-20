@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+namespace Cubed {
+
 class Player;
 
 
@@ -31,5 +33,7 @@ public:
     const glm::mat4 get_camera_lookat() const;
     const glm::vec3& get_camera_pos() const;
 };
+
+}
 
 

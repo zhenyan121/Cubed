@@ -2,6 +2,10 @@
 #include <glad/glad.h>
 
 #include <string>
+
+namespace Cubed {
+
+
 class Shader {
 public:
     Shader();
@@ -24,3 +28,5 @@ private:
     std::string m_name = "-1";
     
 };
+
+}

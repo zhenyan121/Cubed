@@ -1,5 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
+namespace Cubed{
+
 class Renderer;
 class Window {
 public:
@@ -23,3 +25,5 @@ private:
     Renderer& m_renderer;
     
 };
+
+}

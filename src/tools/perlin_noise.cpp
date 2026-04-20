@@ -7,6 +7,9 @@
 #include <numeric>
 #include <random>
 
+namespace Cubed {
+
+
 void PerlinNoise::init() {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
@@ -19,7 +22,7 @@ void PerlinNoise::init() {
 }
 
 float PerlinNoise::noise(float x, float y, float z) {
-    CUBED_ASSERT_MSG(is_init, "The PerlinNoise don't init!");
+    ASSERT_MSG(is_init, "The PerlinNoise don't init!");
     int ix = static_cast<int>(std::floor(x)) & 255;
     int iy = static_cast<int>(std::floor(y)) & 255;
     int iz = static_cast<int>(std::floor(z)) & 255;
@@ -68,4 +71,6 @@ float PerlinNoise::grad(int hash, float x, float y, float z) {
     float v = h < 4 ? y : h == 12 || h == 14 ? x : z;
 
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+
 }

@@ -2,6 +2,9 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <glm/glm.hpp>
 
+namespace Cubed {
+
+
 enum class Color {
     BLACK,
     WHITE,
@@ -49,7 +52,7 @@ inline constexpr glm::vec4 color_value(Color color) {
         case Color::BROWN:
             return vec4{0.647f, 0.165f, 0.165f, 1.0f};
         default:
-            CUBED_ASSERT_MSG(false, "Unknown Color");
+            ASSERT_MSG(false, "Unknown Color");
             return vec4{1.0f, 1.0f, 1.0f, 1.0f};       
     }
     
@@ -62,4 +65,6 @@ inline glm::vec4 rgb255_to_float(int r, int g, int b, int a) {
     float na = static_cast<float>(a) / 255.0f;
 
     return glm::vec4{nr, ng, nb, na};
+}
+
 }

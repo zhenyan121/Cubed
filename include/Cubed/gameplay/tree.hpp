@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+namespace Cubed {
+
 class Chunk;
 
 struct TreeStructNode {
@@ -10,3 +12,5 @@ struct TreeStructNode {
 };
 
 bool build_tree(Chunk& chunk, const glm::ivec3& pos);
+
+}

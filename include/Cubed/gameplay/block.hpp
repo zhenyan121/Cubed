@@ -7,6 +7,10 @@
 
 #include <Cubed/config.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
+
+namespace Cubed {
+
+
 struct BlockTexture {
     std::string name;
     unsigned id;
@@ -62,6 +66,9 @@ const std::array<bool, MAX_BLOCK_NUM> TRANSPARENT_MAP {
 };
 
 inline bool is_in_transparent_map(unsigned id) {
-    CUBED_ASSERT_MSG(id < MAX_BLOCK_NUM, "ID is invaild");
+    ASSERT_MSG(id < MAX_BLOCK_NUM, "ID is invaild");
     return TRANSPARENT_MAP[id];
 };
+
+
+}

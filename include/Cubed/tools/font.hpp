@@ -10,6 +10,9 @@
 
 #include <Cubed/config.hpp>
 
+namespace Cubed {
+
+
 struct Character {
     glm::vec2 uv_min;
     glm::vec2 uv_max;
@@ -42,3 +45,5 @@ private:
 
 
 };
+
+}

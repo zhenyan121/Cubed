@@ -1,5 +1,9 @@
 #pragma once
 #include <glm/glm.hpp>
+
+namespace Cubed {
+
+
 struct AABB {
     glm::vec3 min{0.0f, 0.0f, 0.0f};
     glm::vec3 max{0.0f, 0.0f, 0.0f};
@@ -17,3 +21,5 @@ struct AABB {
                (min.z <= other.max.z && max.z >= other.min.z);
     }
 };
+
+}

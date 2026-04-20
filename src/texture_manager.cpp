@@ -3,6 +3,10 @@
 #include <Cubed/texture_manager.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
+
+namespace Cubed {
+
+
 TextureManager::TextureManager() {
 
 }
@@ -31,7 +35,7 @@ GLuint TextureManager::get_ui_array() const{
 
 void TextureManager::load_block_status(unsigned id) {
 
-    CUBED_ASSERT_MSG(id < MAX_BLOCK_STATUS, "Exceed the max status sum limit");
+    ASSERT_MSG(id < MAX_BLOCK_STATUS, "Exceed the max status sum limit");
     std::string path = "texture/status/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
     image_data = (Tools::load_image_data(path));
@@ -46,7 +50,7 @@ void TextureManager::load_block_status(unsigned id) {
 }
 
 void TextureManager::load_block_texture(unsigned id) {
-    CUBED_ASSERT_MSG(id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
+    ASSERT_MSG(id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
     const std::string& name = MapTable::get_name_from_id(id);
     // air don`t need texture
     if (id == 0) {
@@ -78,7 +82,7 @@ void TextureManager::load_block_texture(unsigned id) {
 }
 
 void TextureManager::load_ui_texture(unsigned id) {
-    CUBED_ASSERT_MSG(id < MAX_UI_NUM, "Exceed the max ui sum limit");
+    ASSERT_MSG(id < MAX_UI_NUM, "Exceed the max ui sum limit");
 
     std::string path = "texture/ui/" + std::to_string(id) + ".png";
     unsigned char* image_data = nullptr;
@@ -194,4 +198,6 @@ void TextureManager::hot_reload() {
     delet_texture();
     init_texture();
     m_need_reload = false;
+}
+
 }

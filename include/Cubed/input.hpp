@@ -2,6 +2,9 @@
 
 #include <GLFW/glfw3.h>
 
+namespace Cubed {
+
+
 struct MoveState {
     bool forward = false;
     bool back = false;
@@ -30,4 +33,7 @@ namespace Input {
     InputState& get_input_state();
 
     
+}
+
+
 }

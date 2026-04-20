@@ -4,6 +4,9 @@
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
+namespace Cubed {
+
+
 Shader::Shader() {
 
 }
@@ -57,11 +60,11 @@ std::size_t Shader::hash() const {
 }
 
 GLuint Shader::loc(const std::string& loc) const {
-    CUBED_ASSERT_MSG(m_program != 0, "Shader program not created");
+    ASSERT_MSG(m_program != 0, "Shader program not created");
     GLint pos = glGetUniformLocation(m_program, loc.c_str());
     if (pos == -1) {
         Logger::info("Shader name {}, loc name {}, pos {}", m_name, loc, pos);
-        CUBED_ASSERT_MSG(pos == -1, "Can't find UniformLocation");
+        ASSERT_MSG(pos == -1, "Can't find UniformLocation");
     }
     return static_cast<GLuint>(pos);
 }
@@ -75,6 +78,8 @@ const std::string& Shader::name() const {
 }
 
 void Shader::use() const{
-    CUBED_ASSERT_MSG(m_program, "Shader don't create !");
+    ASSERT_MSG(m_program, "Shader don't create !");
     glUseProgram(m_program);
+}
+
 }

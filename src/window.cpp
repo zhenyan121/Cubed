@@ -3,6 +3,7 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/window.hpp>
+namespace Cubed {
 
 Window::Window(Renderer& renderer) :
     m_renderer(renderer)
@@ -111,4 +112,6 @@ void Window::toggle_mouse_able() {
         glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         m_mouse_enable = true;
     }
+}
+
 }

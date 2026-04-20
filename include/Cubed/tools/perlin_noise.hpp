@@ -2,6 +2,9 @@
 #include <atomic>
 #include <vector>
 
+namespace Cubed {
+
+
 class PerlinNoise {
 public:
     static void init();
@@ -14,3 +17,5 @@ private:
     static float lerp(float t, float a, float b);
     static float grad(int hash, float x, float y, float z);
 };
+
+}

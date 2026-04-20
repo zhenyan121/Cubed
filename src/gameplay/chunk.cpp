@@ -9,6 +9,9 @@
 
 #include <numeric>
 #include <utility>
+
+namespace Cubed {
+
 Chunk::Chunk(World& world, ChunkPos chunk_pos) : 
     m_world(world),
     m_chunk_pos(chunk_pos)     
@@ -61,10 +64,10 @@ const std::vector<uint8_t>& Chunk::get_chunk_blocks() const{
 }
 
 int Chunk::get_index(int x, int y, int z) {
-    CUBED_ASSERT(!(x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE));
+    ASSERT(!(x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y || z >= CHUCK_SIZE));
     if ((x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z < 0 || (x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z >= CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y) {
         Logger::error("block pos x {} y {} z {} range error", x, y, z);
-        CUBED_ASSERT(0);
+        ASSERT(0);
     }
     return (x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z;
 }
@@ -208,7 +211,7 @@ void Chunk::init_chunk() {
 
 void Chunk::upload_to_gpu() {
 
-    CUBED_ASSERT(is_need_upload());
+    ASSERT(is_need_upload());
     if (m_vbo == 0) {
         glGenBuffers(1, &m_vbo);   
     }
@@ -333,3 +336,4 @@ void Chunk::resolve_blocks() {
     mark_dirty();
 }
 
+}

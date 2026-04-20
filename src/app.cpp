@@ -22,7 +22,7 @@ App::~App() {
 }
 void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    CUBED_ASSERT_MSG(app, "nullptr");
+    ASSERT_MSG(app, "nullptr");
     if (!app->m_window.is_mouse_enable()) {
         app->m_camera.update_cursor_position_camera(xpos, ypos);
     }
@@ -57,7 +57,7 @@ void App::init() {
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    CUBED_ASSERT_MSG(app, "nullptr");
+    ASSERT_MSG(app, "nullptr");
     auto& input = Input::get_input_state();
     switch(key) {
         case GLFW_KEY_Q:
@@ -119,7 +119,7 @@ void App::mouse_button_callback(GLFWwindow* window, int button, int action, int 
 
 void App::window_focus_callback(GLFWwindow* window, int focused) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    CUBED_ASSERT_MSG(app, "nullptr");
+    ASSERT_MSG(app, "nullptr");
     if (focused) {
         app->m_camera.reset_camera();
     }
@@ -128,7 +128,7 @@ void App::window_focus_callback(GLFWwindow* window, int focused) {
 
 void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_height) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
-    CUBED_ASSERT_MSG(app, "nullptr");
+    ASSERT_MSG(app, "nullptr");
     app->m_window.update_viewport();
 }
 

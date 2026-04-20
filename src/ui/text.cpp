@@ -6,6 +6,10 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+namespace Cubed {
+
+
 Text::Text(std::string_view name) :
     NAME(name),
     UUID(HASH::str(name))
@@ -74,11 +78,11 @@ Text& Text::text(std::string_view str) {
 }
 
 void Text::render() {
-    CUBED_ASSERT_MSG(m_vbo != 0,"VBO not initialized!");
-    CUBED_ASSERT_MSG(!m_vertices.empty(), "Text String Not Set");
+    ASSERT_MSG(m_vbo != 0,"VBO not initialized!");
+    ASSERT_MSG(!m_vertices.empty(), "Text String Not Set");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, Font::text_texture());
-    CUBED_ASSERT_MSG(m_color_loc, "m_color_loc is null");
+    ASSERT_MSG(m_color_loc, "m_color_loc is null");
     
     m_model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(m_pos.x, m_pos.y, 0.0f)) *
                         glm::scale(glm::mat4(1.0f), glm::vec3(m_scale, m_scale, 1.0f));
@@ -109,11 +113,13 @@ void Text::upload_to_gpu() {
     if (m_vbo == 0) {
         glGenBuffers(1, &m_vbo);
     }
-    CUBED_ASSERT_MSG(m_vbo, "Vbo Is Not Gen");
+    ASSERT_MSG(m_vbo, "Vbo Is Not Gen");
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex2D), m_vertices.data(), GL_DYNAMIC_DRAW);
 }
 
 bool Text::operator==(const Text& other) const {
     return UUID == other.uuid();
+}
+
 }

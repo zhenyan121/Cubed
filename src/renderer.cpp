@@ -16,6 +16,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <format>
+namespace Cubed {
+
 Renderer::Renderer(const Camera& camera, World& world, const TextureManager& texture_manager):
     m_camera(camera),
     m_texture_manager(texture_manager),
@@ -111,7 +113,7 @@ void Renderer::init() {
 
 const Shader& Renderer::get_shader(const std::string& name) const {
     auto it = m_shaders.find(HASH::str(name));
-    CUBED_ASSERT_MSG(it != m_shaders.end(), "Shader don't find, check the name");
+    ASSERT_MSG(it != m_shaders.end(), "Shader don't find, check the name");
     return it->second;
 }
 
@@ -273,4 +275,6 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_proj_loc, 1 ,GL_FALSE, glm::value_ptr(m_p_mat));
     m_mvp_mat = m_p_mat * m_mv_mat;
     m_world.render(m_mvp_mat);
+}
+
 }

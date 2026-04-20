@@ -9,6 +9,9 @@
 
 #include <execution>
 
+namespace Cubed {
+
+
 static constexpr ChunkPos CHUNK_DIR[] {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
@@ -44,7 +47,7 @@ const std::optional<LookBlock>& World::get_look_block_pos(const std::string& nam
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {
         Logger::error("Can't find player {}", name);
-        CUBED_ASSERT(0);
+        ASSERT(0);
         return null_look_block;
     }
 
@@ -65,7 +68,7 @@ Player& World::get_player(const std::string& name){
     auto it = m_players.find(HASH::str(name));
     if (it == m_players.end()) {
         Logger::error("Can't find player {}", name);
-        CUBED_ASSERT(0);
+        ASSERT(0);
     }
     
     return it->second;
@@ -205,7 +208,7 @@ void World::gen_chunks_internal() {
     ChunkPosSet required_chunks;
     compute_required_chunks(required_chunks);
 
-    CUBED_ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
+    ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
     
     std::vector<ChunkPos> need_gen_chunks_pos;
     sync_and_collect_missing_chunks(need_gen_chunks_pos, required_chunks);
@@ -545,4 +548,6 @@ void World::update(float delta_time) {
 void World::push_delete_vbo(GLuint vbo) {
     std::lock_guard lk(m_delete_vbo_mutex);
     m_pending_delete_vbo.push_back(vbo);
+}
+
 }
