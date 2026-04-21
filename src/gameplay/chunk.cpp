@@ -13,8 +13,8 @@
 namespace Cubed {
 
 Chunk::Chunk(World& world, ChunkPos chunk_pos) : 
-    m_world(world),
-    m_chunk_pos(chunk_pos)     
+    m_chunk_pos(chunk_pos),
+    m_world(world)     
 {
 
 }
@@ -27,16 +27,16 @@ Chunk::~Chunk() {
 }
 
 Chunk::Chunk(Chunk&& other) noexcept : 
-    m_vbo(other.m_vbo),
+    m_dirty(other.is_dirty()),
+    m_need_upload(other.m_need_upload.load()),
+    m_is_on_gen_vertex_data(other.m_is_on_gen_vertex_data.load()),
+    m_vertex_sum(other.m_vertex_sum.load()),
+    m_biome(other.m_biome),
     m_chunk_pos(std::move(other.m_chunk_pos)),
     m_world(other.m_world),
     m_blocks(std::move(other.m_blocks)),
-    m_dirty(other.is_dirty()),
-    m_vertexs_data(std::move(other.m_vertexs_data)),
-    m_biome(other.m_biome),
-    m_is_on_gen_vertex_data(other.m_is_on_gen_vertex_data.load()),
-    m_need_upload(other.m_need_upload.load()),
-    m_vertex_sum(other.m_vertex_sum.load())
+    m_vbo(other.m_vbo),
+    m_vertexs_data(std::move(other.m_vertexs_data))
 {
     other.m_vbo = 0;
 }
@@ -128,7 +128,7 @@ void Chunk::gen_vertex_data(const std::array<const std::vector<uint8_t>*, 4>& ne
                             
                             int idx = Chunk::get_index(x, y, z);
                             // not init
-                            if (idx >= chunk_blocks->size()) {
+                            if (static_cast<size_t>(idx) >= chunk_blocks->size()) {
                                 Logger::warn("not init");
                                 return false;
                             }

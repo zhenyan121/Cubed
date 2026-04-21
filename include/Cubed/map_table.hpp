@@ -11,7 +11,7 @@ private:
 public:
     // please using reference
     static const std::string& get_name_from_id(unsigned id);
-    static const unsigned get_id_from_name(const std::string& name);
+    static unsigned get_id_from_name(const std::string& name);
     static void init_map();
 
 };

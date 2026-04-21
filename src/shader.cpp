@@ -18,8 +18,8 @@ Shader::Shader(const std::string& name, const std::string& v_shader_path, const 
 }
 
 Shader::Shader(Shader&& shader) noexcept:
-    m_hash(shader.m_hash),
     m_program(shader.m_program),
+    m_hash(shader.m_hash),
     m_name(std::move(shader.m_name))
 {
     shader.m_hash = 0;

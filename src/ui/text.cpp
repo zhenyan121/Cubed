@@ -34,15 +34,15 @@ Text::~Text() {
 }
 
 Text::Text(Text&& other) noexcept :
-    UUID(other.UUID),
-    NAME(other.NAME),
     m_scale(other.m_scale),
-    m_vbo(other.m_vbo),
+    m_pos(other.m_pos),
+    NAME(other.NAME),
+    UUID(other.UUID),
+    m_text(std::move(other.m_text)),
     m_color(other.m_color),
     m_model_matrix(other.m_model_matrix),
-    m_pos(other.m_pos),
-    m_text(std::move(other.m_text)),
-    m_vertices(std::move(other.m_vertices))
+    m_vertices(std::move(other.m_vertices)),
+    m_vbo(other.m_vbo)
 {
     other.m_vbo = 0;
 }

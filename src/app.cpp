@@ -58,7 +58,6 @@ void App::init() {
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     ASSERT_MSG(app, "nullptr");
-    auto& input = Input::get_input_state();
     switch(key) {
         case GLFW_KEY_Q:
             if (action == GLFW_PRESS) {

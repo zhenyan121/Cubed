@@ -10,8 +10,8 @@
 namespace Cubed {
 
 Player::Player(World& world, const std::string& name) :
-    m_world(world),
-    m_name(name)    
+    m_name(name),
+    m_world(world)    
 {
 
 }
@@ -61,7 +61,7 @@ const MoveState& Player::get_move_state() const {
 
 bool Player::ray_cast(const glm::vec3& start, const glm::vec3& front, glm::ivec3& block_pos, glm::vec3& normal, float distance) {
     glm::vec3 dir = glm::normalize(front);
-    float step = 0.1f;
+    //float step = 0.1f;
     glm::ivec3 cur = glm::floor(start);
     int ix = cur.x;
     int iy = cur.y;
