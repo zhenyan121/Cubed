@@ -212,13 +212,13 @@ size_t Chunk::get_vertex_sum() const {
     return m_vertex_sum.load();
 }
 
-void Chunk::init_chunk() {
-    resolve_biome();
-    resolve_blocks();
-}
 
 void Chunk::gen_phase_one() {
-    resolve_biome();
+    float x = static_cast<float>(m_chunk_pos.x);
+    float z = static_cast<float>(m_chunk_pos.z);
+    float temp  = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 0.0f, z * BIOME_NOISE_FREQUENCY);
+    float humid = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 1.0f, z * BIOME_NOISE_FREQUENCY);
+    m_biome = get_biome_from_noise(temp, humid);
 }
 
 void Chunk::gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks) {
@@ -435,93 +435,6 @@ void Chunk::need_upload() {
 
 void Chunk::set_chunk_block(int index ,unsigned id) {
     m_blocks[index] = id;
-    mark_dirty();
-}
-
-
-void Chunk::resolve_biome() {
-    float cx = (m_chunk_pos.x + 0.5f) * CHUCK_SIZE;
-    float cz = (m_chunk_pos.z + 0.5f) * CHUCK_SIZE;
-    float temp  = PerlinNoise::noise(cx * BIOME_NOISE_FREQUENCY, 0.0f, cz * BIOME_NOISE_FREQUENCY);
-    float humid = PerlinNoise::noise(cx * BIOME_NOISE_FREQUENCY, 1.0f, cz * BIOME_NOISE_FREQUENCY);
-    m_biome = get_biome_from_noise(temp, humid);
-}
-
-void Chunk::resolve_blocks() {
-    m_blocks.assign(CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y, 0);
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int y = 0; y < 5; y++) {
-            for (int z = 0; z < CHUCK_SIZE; z++) {
-                m_blocks[get_index(x, y, z)] = 3;
-            }
-        }
-    }
-    std::array<std::array<int, SIZE_Z>, SIZE_X> heights;
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int z = 0; z < CHUCK_SIZE; z++) {
-             
-            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
-            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
-
-            float temp  = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 0.0f, world_z * BIOME_NOISE_FREQUENCY);
-            float humid = PerlinNoise::noise(world_x * BIOME_NOISE_FREQUENCY, 1.0f, world_z * BIOME_NOISE_FREQUENCY);
-            int height = get_interpolated_height(world_x, world_z, temp, humid);
-            
-            auto biome = get_biome_from_noise(temp, humid);
-            if (height >= SIZE_Y) {
-                Logger::warn("height: {} is exceed max_height", height);
-                height = SIZE_Y - 1;
-            }
-            heights[x][z] = height;
-            for (int y = 5; y < height - 5; y++) {
-                m_blocks[get_index(x, y, z)] = 3;
-            }
-            if (biome == Biome::MOUNTAIN) {
-                for (int y = height - 5; y <= height - 1; y++) {
-                    if (y > 101) {
-                        m_blocks[get_index(x, y, z)] = 3;
-                    } else {
-                        m_blocks[get_index(x, y, z)] = 2;
-                    }
-                    
-                }
-                if (height > 101) {
-                    m_blocks[get_index(x, height - 1, z)] = 3;
-                } else {
-                    m_blocks[get_index(x, height - 1, z)] = 1;
-                }
-            } else if (biome == Biome::DESERT) {
-                for (int y = height - 5; y <= height; y++) {
-                    m_blocks[get_index(x, y, z)] = 4;
-                }
-            } else {
-                for (int y = height - 5; y <= height - 1; y++) {
-                    m_blocks[get_index(x, y, z)] = 2;
-                }
-                for (int y = height; y <= height; y++) {
-                    m_blocks[get_index(x, y, z)] = 1;
-                }
-            }
-            
-        }
-    }
-    if (m_biome == Biome::FOREST) {
-        std::array<int, SIZE_X> x_arr;
-        std::iota(x_arr.begin(), x_arr.end(), 0);
-        std::shuffle(x_arr.begin(), x_arr.end(), Cubed::Random::get().engine());
-        std::array<int, SIZE_Z> z_arr;
-        std::iota(z_arr.begin(), z_arr.end(), 0);
-        std::shuffle(z_arr.begin(), z_arr.end(), Cubed::Random::get().engine());
-        for (auto x : x_arr) {
-            for (auto z : z_arr) {
-                if (Cubed::Random::get().random_bool(0.8)) {
-                    build_tree(*this, {x, heights[x][z], z});
-                }
-                
-            }
-        }
-    }
-
     mark_dirty();
 }
 

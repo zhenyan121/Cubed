@@ -47,9 +47,6 @@ private:
 
     void clear_dirty();
 
-    void resolve_biome();
-    void resolve_blocks();
-
 public:
     Chunk(World& world, ChunkPos chunk_pos);
     ~Chunk();
@@ -64,7 +61,7 @@ public:
     HeightMapArray get_heightmap() const;
     static int get_index(int x, int y, int z);
     static int get_index(const glm::vec3& pos);
-    void init_chunk();
+    // Init Chunk
     // Generate Biome
     void gen_phase_one();
     // Adjust Biome

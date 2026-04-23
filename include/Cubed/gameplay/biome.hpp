@@ -5,7 +5,7 @@
 
 namespace Cubed {
 
-constexpr float BIOME_NOISE_FREQUENCY = 0.003f;
+constexpr float BIOME_NOISE_FREQUENCY = 0.03f;
 
 constexpr float PLAIN_FREQ = 0.4f;
 constexpr float FOREST_FREQ = 1.2f;
