@@ -15,18 +15,28 @@ class World;
 // if want to use, do init_chunk(), gen_vertex_data() and 
 class Chunk {
 private:
+    static constexpr int SIZE_X = CHUCK_SIZE;
+    static constexpr int SIZE_Y = WORLD_SIZE_Y;
+    static constexpr int SIZE_Z = CHUCK_SIZE;
+    
+    static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT {{
+        {Biome::PLAIN, {Biome::NONE}, Biome::PLAIN},
+        {Biome::FOREST, {Biome::DESERT}, Biome::PLAIN},
+        {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::PLAIN},
+        {Biome::MOUNTAIN, {Biome::DESERT}, Biome::PLAIN}
+    }
+    };
+    using HeightMapArray = std::array<std::array<float, SIZE_Z>, SIZE_X>;
     std::atomic<bool> m_dirty {false};
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data {false};
     std::atomic<size_t> m_vertex_sum = 0;
     std::mutex m_vertexs_data_mutex;
-    static constexpr int SIZE_X = CHUCK_SIZE;
-    static constexpr int SIZE_Y = WORLD_SIZE_Y;
-    static constexpr int SIZE_Z = CHUCK_SIZE;
     
-    Biome m_biome = Biome::PLAIN;
+    std::atomic<Biome> m_biome = Biome::PLAIN;
     ChunkPos m_chunk_pos;
     World& m_world;
+    HeightMapArray m_heightmap;
     // the index is a array of block id
     std::vector<uint8_t> m_blocks;
     GLuint m_vbo = 0;
@@ -51,10 +61,22 @@ public:
     Biome get_biome() const;
 
     const std::vector<uint8_t>& get_chunk_blocks() const;    
-    
+    HeightMapArray get_heightmap() const;
     static int get_index(int x, int y, int z);
     static int get_index(const glm::vec3& pos);
     void init_chunk();
+    // Generate Biome
+    void gen_phase_one();
+    // Adjust Biome
+    void gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks);
+    // Generate Heightmap
+    void gen_phase_three();
+    // Adjust Height
+    void gen_phase_four(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap);
+    // Generate Block
+    void gen_phase_five();
+    // Generate Structure
+    void gen_phase_six();
     //void gen_vertex_data();
     // 0 : (1, 0)
     // 1 : (-1, 0) 

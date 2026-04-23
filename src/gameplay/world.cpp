@@ -11,7 +11,6 @@
 
 namespace Cubed {
 
-
 static constexpr ChunkPos CHUNK_DIR[] {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
@@ -75,6 +74,7 @@ Player& World::get_player(const std::string& name){
 }
 
 void World::init_world() {
+    m_chunks.reserve(DISTANCE * DISTANCE);
     auto t1 = std::chrono::system_clock::now();
     for (int s = 0; s < DISTANCE; s++) {
         for (int t = 0; t < DISTANCE; t++) {
@@ -86,28 +86,21 @@ void World::init_world() {
             m_chunks.emplace(pos, Chunk(*this, pos)); 
         }
     }
-    /*
-    for (auto& chunk_map : m_chunks) {
-        auto& [chunk_pos, chunk] = chunk_map;
-        chunk.init_chunk();
-        
-    }
-    // After block gen fininshed
-    
-    std::array<const std::vector<uint8_t>*, 4> neighbor_block;
-    
-    for (auto& [pos, chunk] : m_chunks) {
-        for (int i = 0; i < 4; i++) {
-            auto it = m_chunks.find(pos + CHUNK_DIR[i]);
-            if (it != m_chunks.end()) {
-                neighbor_block[i] = &(it->second.get_chunk_blocks());
-            } else {
-                neighbor_block[i] = nullptr;
-            }
-        }
-        chunk.gen_vertex_data(neighbor_block);
-    }
-    */
+
+    Logger::info("Max Support Thread is {}", std::thread::hardware_concurrency());
+    init_chunks();
+    auto t2 = std::chrono::system_clock::now();
+    auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
+    // init players
+    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+    Logger::info("TestPlayer Create Finish");
+
+    start_gen_thread();
+
+}
+/*
+void World::init_chunks() {
     std::vector<Chunk*> chunk_ptrs;
     chunk_ptrs.reserve(m_chunks.size());
     for (auto& [pos, chunk] : m_chunks) {
@@ -148,14 +141,81 @@ void World::init_world() {
         chunk.upload_to_gpu();
         
     }
-    auto t2 = std::chrono::system_clock::now();
-    auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-    Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
-    // init players
-    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
-    Logger::info("TestPlayer Create Finish");
+}
+*/
 
-    start_gen_thread();
+void World::init_chunks() {
+    for (auto& [pos, chunks] : m_chunks) {
+        chunks.gen_phase_one();
+    }
+    std::array<const Chunk*, 4> neighbor_chunks;
+    for (auto& [pos, chunks] : m_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto neighbor_pos = pos + CHUNK_DIR[i];
+            auto it = m_chunks.find(neighbor_pos);
+            if (it == m_chunks.end()) {
+                neighbor_chunks[i] = nullptr;
+                continue;
+            }
+            neighbor_chunks[i] = &it->second;
+            
+        }
+        chunks.gen_phase_two(neighbor_chunks);
+    }
+
+    for (auto& [pos, chunks] : m_chunks) {
+        chunks.gen_phase_three();
+    }
+    std::array<std::optional<HeightMapArray>, 4> neighbor_chunk_heightmap;
+    for (auto& [pos, chunks] : m_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto neighbor_pos = pos + CHUNK_DIR[i];
+            auto it = m_chunks.find(neighbor_pos);
+            if (it == m_chunks.end()) {
+                neighbor_chunk_heightmap[i] = std::nullopt;
+                continue;
+            }
+            neighbor_chunk_heightmap[i] = it->second.get_heightmap();
+            
+        }
+        chunks.gen_phase_four(neighbor_chunk_heightmap);
+    }
+
+    for (auto& [pos, chunks] : m_chunks) {
+        chunks.gen_phase_five();
+        chunks.gen_phase_six();
+    }
+
+    std::atomic<int> sync{0};
+    sync.store(1, std::memory_order_release);
+    sync.load(std::memory_order_acquire);
+    
+    std::vector<ChunkRenderData> pending_gen_data;
+    pending_gen_data.reserve(m_chunks.size());
+    for (auto& [pos, chunk] : m_chunks) {
+        ChunkRenderData data;
+        data.chunk = &chunk;
+        for (int i = 0; i < 4; i++) {    
+            auto it = m_chunks.find(pos + CHUNK_DIR[i]);
+            if (it != m_chunks.end()) {
+                data.neighbor_block[i] = &(it->second.get_chunk_blocks());
+            } else {
+                data.neighbor_block[i] = nullptr;
+            }
+        }
+        pending_gen_data.emplace_back(std::move(data));
+    }
+    std::for_each(std::execution::par, pending_gen_data.begin(), pending_gen_data.end(), [](ChunkRenderData& data){
+        if(!data.chunk) {
+            return ;
+        }
+        data.chunk->gen_vertex_data(data.neighbor_block);
+    });
+    for (auto& chunk_map : m_chunks) {
+        auto& [chunk_pos, chunk] = chunk_map;
+        chunk.upload_to_gpu();
+        
+    }
 
 }
 
@@ -215,6 +275,7 @@ void World::gen_chunks_internal() {
     
     Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
     if (need_gen_chunks_pos.empty()) {
+        m_could_gen = true;
         return;
     }
     ChunkUpdateList new_chunks;
@@ -229,8 +290,49 @@ void World::gen_chunks_internal() {
     
     std::array<const std::vector<uint8_t>*, 4> neighbor_block;
     // build new chunk, but the neighbor in m_chunks also need to re-build
+
     for (auto& [pos, chunk] : new_chunks) {
-        chunk.init_chunk();
+        chunk.gen_phase_one();
+    }
+
+    std::array<const Chunk*, 4> neighbor_chunks;
+    for (auto& [pos, chunks] : new_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto neighbor_pos = pos + CHUNK_DIR[i];
+            auto it = new_chunks_neighbor.find(neighbor_pos);
+            if (it == new_chunks_neighbor.end()) {
+                neighbor_chunks[i] = nullptr;
+                continue;
+            }
+            neighbor_chunks[i] = it->second;
+            
+        }
+        chunks.gen_phase_two(neighbor_chunks);
+    }
+
+    for (auto& [pos, chunks] : new_chunks) {
+        chunks.gen_phase_three();
+    }
+    std::array<std::optional<HeightMapArray>, 4> neighbor_chunk_heightmap;
+    for (auto& [pos, chunks] : new_chunks) {
+        {
+            //std::lock_guard lk(m_chunks_mutex);
+            for (int i = 0; i < 4; i++) {
+                auto neighbor_pos = pos + CHUNK_DIR[i];
+                auto it = new_chunks_neighbor.find(neighbor_pos);
+                if (it == new_chunks_neighbor.end()) {
+                    neighbor_chunk_heightmap[i] = std::nullopt;
+                    continue;
+                }
+                neighbor_chunk_heightmap[i] = it->second->get_heightmap();
+            }
+        }
+        chunks.gen_phase_four(neighbor_chunk_heightmap);
+    }
+
+    for (auto& [pos, chunks] : new_chunks) {
+        chunks.gen_phase_five();
+        chunks.gen_phase_six();
     }
 
     for (auto& [pos, chunk] : new_chunks) {
@@ -371,6 +473,11 @@ void World::stop_gen_thread() {
 }
 
 void World::need_gen() {
+    if (!m_could_gen) {
+        Logger::warn("It is generating or consuming new chunks");
+        return;
+    }
+    m_could_gen = false;
     {
         std::lock_guard lk(m_gen_player_pos_mutex);
         m_gen_player_pos = get_player("TestPlayer").get_player_pos();
@@ -509,9 +616,16 @@ void World::update(float delta_time) {
     // unified compute vertex data before rendering
     {   
         std::lock_guard lk(m_chunks_mutex);
+        bool consumed = false;
+        
         for (auto& x : m_new_chunk) {
             m_chunks.insert_or_assign(x.first, std::move(x.second));
+            consumed = true;
         }
+        if (consumed) {
+            m_could_gen = true;
+        }
+        
         m_render_snapshots.clear();
         for (auto& [pos, chunk] : m_chunks) {
             if (chunk.is_dirty()) {

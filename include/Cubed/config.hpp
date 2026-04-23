@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 
 namespace Cubed {
 
@@ -13,7 +14,7 @@ constexpr int MAX_CHARACTER = 128;
 constexpr float NORMAL_FOV = 70.0f;
 
 constexpr int MAX_BIOME_SUM = 4;
-
+using HeightMapArray = std::array<std::array<float, CHUCK_SIZE>, CHUCK_SIZE>;
 constexpr float VERTICES_POS[6][6][3] = {
         // ===== front (z = +1) =====
         0.0f, 0.0f, 1.0f,  // bottom left

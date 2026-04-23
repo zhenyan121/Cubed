@@ -24,10 +24,13 @@ std::string get_biome_str(Biome biome) {
         case MOUNTAIN:
             str = "Mountain";
             break;
+        case NONE: 
+            str = "Unknown";
+            break;
     }
     return str;
 };
-
+/*
 Biome get_biome_from_noise(float temp, float humid) {
     auto weight = [](float t, float h, float ct, float ch) -> float {
             float dt = t - ct;
@@ -45,7 +48,14 @@ Biome get_biome_from_noise(float temp, float humid) {
     if (w_d >= w_m && w_d >= w_p && w_d >= w_f) return Biome::DESERT;
     return Biome::FOREST;
 }
-
+*/
+Biome get_biome_from_noise(float temp, float humid) {
+    using enum Biome;
+    if (temp < 0.5f && humid < 0.5f) return PLAIN; 
+    if (temp < 0.5f && humid >= 0.5f) return FOREST;
+    if (temp >= 0.5f && humid < 0.5f) return DESERT;
+    return MOUNTAIN;         
+}
 std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
     using enum Biome;
     switch (biome) {
@@ -57,6 +67,9 @@ std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
             return {0.003f, 0.010f, 0.020f};
         case MOUNTAIN:
             return {0.006f, 0.015f, 0.030f};
+        case NONE:
+            ASSERT_MSG(false, "Chunk Biome is None");
+            throw std::invalid_argument{"Chunk Biome is None"};
     }
     Logger::warn("Unknown Biome");
     return {0.003f, 0.015f, 0.06f};
@@ -73,6 +86,9 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
             return {61, 12};
         case MOUNTAIN:
             return {70, 70};
+        case NONE:
+            ASSERT_MSG(false, "Chunk Biome is None");
+            throw std::invalid_argument{"Chunk Biome is None"};
     }
     Logger::warn("Unknown Biome");
     return {62, 4};

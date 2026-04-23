@@ -31,9 +31,10 @@ Chunk::Chunk(Chunk&& other) noexcept :
     m_need_upload(other.m_need_upload.load()),
     m_is_on_gen_vertex_data(other.m_is_on_gen_vertex_data.load()),
     m_vertex_sum(other.m_vertex_sum.load()),
-    m_biome(other.m_biome),
+    m_biome(other.m_biome.load()),
     m_chunk_pos(std::move(other.m_chunk_pos)),
     m_world(other.m_world),
+    m_heightmap(std::move(other.m_heightmap)),
     m_blocks(std::move(other.m_blocks)),
     m_vbo(other.m_vbo),
     m_vertexs_data(std::move(other.m_vertexs_data))
@@ -42,13 +43,15 @@ Chunk::Chunk(Chunk&& other) noexcept :
 }
 
 Chunk& Chunk::operator=(Chunk&& other) noexcept {
+    //Logger::info("other Chunk pos {} {} in Chunk& Chunk::operator=(Chunk&& other) this {}", other.m_chunk_pos.x, other.m_chunk_pos.z, static_cast<const void*>(&other));
     m_vbo = other.m_vbo;
     other.m_vbo = 0;
     m_chunk_pos = std::move(other.m_chunk_pos);
+    m_heightmap = std::move(other.m_heightmap);
     m_blocks = std::move(other.m_blocks);
     m_dirty = other.is_dirty();
     m_vertexs_data = std::move(other.m_vertexs_data);
-    m_biome = other.m_biome;
+    m_biome = other.m_biome.load();
     m_is_on_gen_vertex_data = other.m_is_on_gen_vertex_data.load();
     m_need_upload = other.m_need_upload.load();
     m_vertex_sum = other.m_vertex_sum.load();
@@ -56,11 +59,16 @@ Chunk& Chunk::operator=(Chunk&& other) noexcept {
 }
 
 Biome Chunk::get_biome() const {
-    return m_biome;
+    return m_biome.load();
 }
 
 const std::vector<uint8_t>& Chunk::get_chunk_blocks() const{
     return m_blocks;
+}
+
+HeightMapArray Chunk::get_heightmap() const {
+    //Logger::info("Chunk pos {} {} in get_heightmap this {}", m_chunk_pos.x, m_chunk_pos.z, static_cast<const void*>(this));
+    return m_heightmap;
 }
 
 int Chunk::get_index(int x, int y, int z) {
@@ -207,6 +215,187 @@ size_t Chunk::get_vertex_sum() const {
 void Chunk::init_chunk() {
     resolve_biome();
     resolve_blocks();
+}
+
+void Chunk::gen_phase_one() {
+    resolve_biome();
+}
+
+void Chunk::gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks) {
+    for (auto& chunk : adj_chunks) {
+        if (chunk == nullptr) {
+            continue;
+        }
+        Biome biome = chunk->get_biome();
+        for (const auto& non : NON_ADJACENT) {
+            if (m_biome != non.first) {
+                continue;
+            }
+            for (auto b : non.second) {
+                if (b == biome) {
+                    m_biome = non.replace;
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void Chunk::gen_phase_three() {
+    for (int x = 0; x < CHUCK_SIZE; x++) {
+        for (int z = 0; z < CHUCK_SIZE; z++) {
+             
+            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
+            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
+
+            auto sample_height = [&](Biome b) -> float {
+                auto range = get_biome_height_range(b);
+                auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
+                float n =
+                    1.00f * PerlinNoise::noise(world_x * f1, 0.5f, world_z * f1) +
+                    0.50f * PerlinNoise::noise(world_x * f2, 0.5f, world_z * f2) +
+                    0.25f * PerlinNoise::noise(world_x * f3, 0.5f, world_z * f3);
+                n /= 1.75f;
+                return range.base_y + n * range.amplitude;
+            };
+            m_heightmap[x][z] = sample_height(m_biome); 
+        }
+    }
+}
+
+void Chunk::gen_phase_four(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
+    // Width of interpolation influence (in number of cells)
+    constexpr int BLEND_RADIUS = 8;
+
+    for (int x = 0; x < SIZE_X; x++) {
+        for (int z = 0; z < SIZE_Z; z++) {
+            float h = static_cast<float>(m_heightmap[x][z]);
+            float total_weight = 1.0f;
+            float blended = h;
+
+            // --- Right neighbor neighbor[0]: (1, 0) ---
+            // Blend when x is close to SIZE_X-1
+            if (neighbor_heightmap[0] != std::nullopt) {
+                int dist = (SIZE_X - 1) - x; // distance from right border
+                if (dist < BLEND_RADIUS) {
+                    // Neighbor's boundary row is its x=0 column
+                    float neighbor_h = static_cast<float>((*neighbor_heightmap[0])[0][z]);
+                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS; // larger weight when closer
+                    // Use smoothstep for a more natural transition
+                    t = t * t * (3.0f - 2.0f * t);
+                    blended += t * neighbor_h;
+                    total_weight += t;
+                }
+            }
+
+            // --- Left neighbor neighbor[1]: (-1, 0) ---
+            if (neighbor_heightmap[1] != std::nullopt) {
+                int dist = x; // distance from left border
+                if (dist < BLEND_RADIUS) {
+                    float neighbor_h = static_cast<float>((*neighbor_heightmap[1])[SIZE_X - 1][z]);
+                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                    t = t * t * (3.0f - 2.0f * t);
+                    blended += t * neighbor_h;
+                    total_weight += t;
+                }
+            }
+
+            // --- Front neighbor neighbor[2]: (0, 1) ---
+            if (neighbor_heightmap[2] != std::nullopt) {
+                int dist = (SIZE_Z - 1) - z;
+                if (dist < BLEND_RADIUS) {
+                    float neighbor_h = static_cast<float>((*neighbor_heightmap[2])[x][0]);
+                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                    t = t * t * (3.0f - 2.0f * t);
+                    blended += t * neighbor_h;
+                    total_weight += t;
+                }
+            }
+
+            // --- Back neighbor neighbor[3]: (0, -1) ---
+            if (neighbor_heightmap[3] != std::nullopt) {
+                int dist = z;
+                if (dist < BLEND_RADIUS) {
+                    float neighbor_h = static_cast<float>((*neighbor_heightmap[3])[x][SIZE_Z - 1]);
+                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                    t = t * t * (3.0f - 2.0f * t);
+                    blended += t * neighbor_h;
+                    total_weight += t;
+                }
+            }
+
+            m_heightmap[x][z] = static_cast<int>(blended / total_weight);
+        }
+    }
+}
+
+void Chunk::gen_phase_five() {
+    // bottom
+    m_blocks.assign(CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y, 0);
+    for (int x = 0; x < CHUCK_SIZE; x++) {
+        for (int y = 0; y < 5; y++) {
+            for (int z = 0; z < CHUCK_SIZE; z++) {
+                m_blocks[get_index(x, y, z)] = 3;
+            }
+        }
+    }
+
+    for (int x = 0; x < CHUCK_SIZE; x++) {
+        for (int z = 0; z < CHUCK_SIZE; z++) {
+            int height = static_cast<int>(m_heightmap[x][z]);
+            for (int y = 5; y < height - 5; y++) {
+                m_blocks[get_index(x, y, z)] = 3;
+            }
+            if (m_biome == Biome::MOUNTAIN) {
+                for (int y = height - 5; y <= height - 1; y++) {
+                    if (y > 110) {
+                        m_blocks[get_index(x, y, z)] = 3;
+                    } else {
+                        m_blocks[get_index(x, y, z)] = 2;
+                    }
+                    
+                }
+                if (height > 110) {
+                    m_blocks[get_index(x, height - 1, z)] = 3;
+                } else {
+                    m_blocks[get_index(x, height - 1, z)] = 1;
+                }
+            } else if (m_biome == Biome::DESERT) {
+                for (int y = height - 5; y <= height; y++) {
+                    m_blocks[get_index(x, y, z)] = 4;
+                }
+            } else {
+                for (int y = height - 5; y <= height - 1; y++) {
+                    m_blocks[get_index(x, y, z)] = 2;
+                }
+                for (int y = height; y <= height; y++) {
+                    m_blocks[get_index(x, y, z)] = 1;
+                }
+            }
+        }
+    }
+
+}
+
+void Chunk::gen_phase_six() {
+    if (m_biome == Biome::FOREST) {
+        std::array<int, SIZE_X> x_arr;
+        std::iota(x_arr.begin(), x_arr.end(), 0);
+        std::shuffle(x_arr.begin(), x_arr.end(), Cubed::Random::get().engine());
+        std::array<int, SIZE_Z> z_arr;
+        std::iota(z_arr.begin(), z_arr.end(), 0);
+        std::shuffle(z_arr.begin(), z_arr.end(), Cubed::Random::get().engine());
+        for (auto x : x_arr) {
+            for (auto z : z_arr) {
+                if (Cubed::Random::get().random_bool(0.1)) {
+                    build_tree(*this, {x, static_cast<int>(m_heightmap[x][z]), z});
+                }
+                
+            }
+        }
+    }
+
+    mark_dirty();
 }
 
 void Chunk::upload_to_gpu() {

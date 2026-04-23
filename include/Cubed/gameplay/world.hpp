@@ -26,7 +26,10 @@ private:
     using ChunkPtrUpdateList = std::vector<std::pair<ChunkPos, Chunk*>>;
     using ChunkUpdateList = std::vector<std::pair<ChunkPos, Chunk>>;
     using ConstChunkMap = std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
-    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;    
+    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;  
+    
+    bool m_could_gen = true;
+
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
     std::unordered_map<ChunkPos , Chunk, ChunkPos::Hash> m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
@@ -47,6 +50,8 @@ private:
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
+
+    void init_chunks();
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
