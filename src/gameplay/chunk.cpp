@@ -265,7 +265,7 @@ void Chunk::gen_phase_three() {
 
 void Chunk::gen_phase_four(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
     // Width of interpolation influence (in number of cells)
-    constexpr int BLEND_RADIUS = 8;
+    constexpr int BLEND_RADIUS = 12;
 
     for (int x = 0; x < SIZE_X; x++) {
         for (int z = 0; z < SIZE_Z; z++) {
