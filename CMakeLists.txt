@@ -74,7 +74,12 @@ FetchContent_Declare(
     
 )
 FetchContent_MakeAvailable(soil2)
-
+FetchContent_Declare(
+    tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG v3.4.0
+)
+FetchContent_MakeAvailable(tomlplusplus)
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(${PROJECT_NAME}
@@ -136,6 +141,7 @@ target_link_libraries(${PROJECT_NAME}
         OpenGL::GL
         soil2
         Freetype::Freetype
+        tomlplusplus::tomlplusplus
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
