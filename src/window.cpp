@@ -60,7 +60,8 @@ void Window::init() {
     m_height = config.get<int>("window.height");
     if (config.get<bool>("window.fullscreen")) {
         GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
-        m_window = glfwCreateWindow(m_width, m_height, "Cubed", primary_monitor, NULL);
+        const GLFWvidmode* mode = glfwGetVideoMode(primary_monitor);
+        m_window = glfwCreateWindow(mode->width, mode->height, "Cubed", primary_monitor, NULL);
     } else {
         m_window = glfwCreateWindow(m_width, m_height, "Cubed", NULL, NULL);
     }
