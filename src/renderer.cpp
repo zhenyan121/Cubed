@@ -1,6 +1,7 @@
 #include <Cubed/app.hpp>
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/debug_collector.hpp>
 #include <Cubed/gameplay/player.hpp>
 #include <Cubed/gameplay/world.hpp>
@@ -37,7 +38,10 @@ Renderer::~Renderer() {
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
 }
 
-
+void Renderer::hot_reload() {
+    auto& config = Config::get();
+    update_fov(config.get<double>("player.fov"));
+}
 
 void Renderer::init() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -109,6 +113,7 @@ void Renderer::init() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     init_text();
+    hot_reload();
 }
 
 const Shader& Renderer::get_shader(const std::string& name) const {

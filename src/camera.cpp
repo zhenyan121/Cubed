@@ -21,6 +21,11 @@ void Camera::camera_init(Player* player) {
     m_player = player;
     update_move_camera();
     reset_camera();
+    hot_reload();
+}
+
+void Camera::hot_reload() {
+
 }
 
 void Camera::reset_camera() {

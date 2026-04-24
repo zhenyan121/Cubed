@@ -13,6 +13,9 @@ public:
     GLFWwindow* get_glfw_window();
     void init();
     void update_viewport();
+    // end of frame to reload!
+    void hot_reload();
+
     void toggle_fullscreen();
     void toggle_mouse_able();
     

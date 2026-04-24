@@ -49,7 +49,7 @@ private:
     glm::vec3 move_distance {0.0f, 0.0f, 0.0f};
     // player is tow block tall, the pos is the lower pos
     
-    glm::vec3 m_player_pos {0.0f, 120.0f, 0.0f};
+    glm::vec3 m_player_pos {0.0f, 255.0f, 0.0f};
     ChunkPos m_player_chunk_pos {0, 0};
 
     glm::vec3 m_front {0, 0, -1};
@@ -84,11 +84,14 @@ public:
     const MoveState& get_move_state() const;
     
     void change_mode(GameMode mode);
+    void hot_reload();
     void set_player_pos(const glm::vec3& pos);
     void update(float delta_time);
     void update_front_vec(float offset_x, float offset_y);
     void update_player_move_state(int key, int action);
     void update_scroll(double yoffset);
+
+    
 
 };
 

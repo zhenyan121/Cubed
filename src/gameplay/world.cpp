@@ -74,12 +74,12 @@ Player& World::get_player(const std::string& name){
 }
 
 void World::init_world() {
-    m_chunks.reserve(DISTANCE * DISTANCE);
+    m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE);
     auto t1 = std::chrono::system_clock::now();
-    for (int s = 0; s < DISTANCE; s++) {
-        for (int t = 0; t < DISTANCE; t++) {
-            int ns = s - DISTANCE / 2;
-            int nt = t - DISTANCE / 2;
+    for (int s = 0; s < PRE_LOAD_DISTANCE; s++) {
+        for (int t = 0; t < PRE_LOAD_DISTANCE; t++) {
+            int ns = s - PRE_LOAD_DISTANCE / 2;
+            int nt = t - PRE_LOAD_DISTANCE / 2;
 
             ChunkPos pos{ns, nt};
 
@@ -97,7 +97,7 @@ void World::init_world() {
     Logger::info("TestPlayer Create Finish");
 
     start_gen_thread();
-
+    hot_reload();
 }
 /*
 void World::init_chunks() {
@@ -385,8 +385,8 @@ void World::compute_required_chunks(ChunkPosSet& required_chunks) {
     auto [chunk_x, chunk_z] = chunk_pos(x, z);
     
 
-    required_chunks.reserve(DISTANCE * DISTANCE);
-    int half = DISTANCE / 2;
+    required_chunks.reserve(m_rendering_distance * m_rendering_distance);
+    int half = m_rendering_distance / 2;
     for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
         for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
             required_chunks.emplace(u, v);
@@ -662,6 +662,13 @@ void World::update(float delta_time) {
 void World::push_delete_vbo(GLuint vbo) {
     std::lock_guard lk(m_delete_vbo_mutex);
     m_pending_delete_vbo.push_back(vbo);
+}
+
+void World::hot_reload() {
+    auto & config = Config::get();
+    int dist = config.get<int>("world.rendering_distance");
+    m_rendering_distance = dist <= MAX_DISTANCE ? dist : MAX_DISTANCE;
+    need_gen();
 }
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/ui/text.hpp>
 
 #include <unordered_map>

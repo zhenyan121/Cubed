@@ -1,5 +1,6 @@
 #include <Cubed/debug_collector.hpp>
 
+#include <Cubed/config.hpp>
 #include <Cubed/tools/system_info.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 
@@ -30,7 +31,7 @@ void DebugCollector::init_text() {
         .position(0.0f, 100.0f)
         .scale(0.8f)
         .color(Color::WHITE)
-        .text("Version: v0.0.1-Debug");
+        .text("Version: " + Config::get().get<std::string>("version"));
     fps_text
         .position(0.0f, 50.0f)
         .text("FPS: 0");

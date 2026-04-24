@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Cubed/config.hpp>
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/shader.hpp>
 #include <Cubed/ui/text.hpp>
 
@@ -18,6 +19,7 @@ public:
 
     Renderer(const Camera& camera, World& world, const TextureManager& texture_manager);
     ~Renderer();
+    void hot_reload();
     void init();
     const Shader& get_shader(const std::string& name) const;
     void render();

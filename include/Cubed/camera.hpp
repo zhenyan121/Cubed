@@ -27,6 +27,7 @@ public:
     void update_move_camera();
 
     void camera_init(Player* player);
+    void hot_reload();
     void reset_camera();
     void update_cursor_position_camera(double xpos, double ypos);
 

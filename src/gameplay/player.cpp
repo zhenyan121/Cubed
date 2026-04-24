@@ -13,7 +13,7 @@ Player::Player(World& world, const std::string& name) :
     m_name(name),
     m_world(world)    
 {
-
+    hot_reload();
 }
 Player::~Player() {
 
@@ -142,6 +142,12 @@ void Player::change_mode(GameMode mode) {
         is_fly = true;
         m_gait = Gait::RUN;
     }
+}
+
+void Player::hot_reload() {
+    auto& config = Config::get();
+    m_sensitivity = static_cast<float>(config.get<double>("player.mouse_sensitivity"));
+
 }
 
 void Player::set_player_pos(const glm::vec3& pos) {

@@ -40,3 +40,4 @@ CMakeError.log
 *.swo
 *~
 .DS_Store
+assets/config.toml

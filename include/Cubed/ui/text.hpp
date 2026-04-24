@@ -3,9 +3,9 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <string>
-#include <vector>
 
 #include <Cubed/config.hpp>
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/ui/color.hpp>
 namespace Cubed {
 

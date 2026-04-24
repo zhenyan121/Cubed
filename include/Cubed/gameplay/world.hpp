@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <Cubed/AABB.hpp>
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/gameplay/chunk.hpp>
 
 namespace Cubed {
@@ -45,7 +46,7 @@ private:
     std::condition_variable m_gen_cv;
     std::atomic<bool> m_gen_running{false};
     std::atomic<bool> m_need_gen_chunk{false};
-
+    std::atomic<int> m_rendering_distance{24};
     std::vector<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
@@ -89,6 +90,8 @@ public:
     void update(float delta_time);
     
     void push_delete_vbo(GLuint vbo);
+
+    void hot_reload();
 
 };
 

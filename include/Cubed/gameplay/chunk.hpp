@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include <Cubed/config.hpp>
+#include <Cubed/primitive_data.hpp>
 #include <Cubed/gameplay/biome.hpp>
 #include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/gameplay/block.hpp>
