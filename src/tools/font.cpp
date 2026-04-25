@@ -127,7 +127,7 @@ GLuint Font::text_texture() {
     return m_text_texture;
 }
 
-const fs::path& Font::font_path() {
+const std::string& Font::font_path() {
     return m_font_path;
 }
 
