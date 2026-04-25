@@ -1,6 +1,6 @@
-#include <Cubed/config.hpp>
-#include <Cubed/map_table.hpp>
 #include <Cubed/texture_manager.hpp>
+#include <Cubed/constants.hpp>
+#include <Cubed/map_table.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/log.hpp>
 

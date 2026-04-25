@@ -1,6 +1,6 @@
-
-#include <Cubed/shader.hpp>
 #include <Cubed/tools/font.hpp>
+#include <Cubed/constants.hpp>
+#include <Cubed/shader.hpp>
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <Cubed/config.hpp>
+#include <Cubed/constants.hpp>
 #include <Cubed/tools/cubed_assert.hpp>
 
 namespace Cubed {

@@ -8,7 +8,6 @@
 #include <string>
 #include <unordered_map>
 
-#include <Cubed/config.hpp>
 #include <Cubed/primitive_data.hpp>
 
 namespace Cubed {

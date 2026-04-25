@@ -29,6 +29,8 @@ private:
     bool m_need_save_config = false;
     int m_theme = 0;
     void show_settings_tab_item();
+    void show_world_tab_item();
+    void show_player_tab_item();
 };
 
 

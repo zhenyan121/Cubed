@@ -20,7 +20,9 @@ public:
     static void window_reshape_callback(GLFWwindow* window, int new_width, int new_height);
     static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
     static void cursor_enter_callback(GLFWwindow* window, int entered);
+    static void char_callback(GLFWwindow* window, unsigned int ch);
     static int start_cubed_application(int argc, char** argv);
+    
     static unsigned int seed();
     static float delte_time();
     static float get_fps();

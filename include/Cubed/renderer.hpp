@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Cubed/config.hpp>
+#include <Cubed/constants.hpp>
 #include <Cubed/primitive_data.hpp>
 #include <Cubed/shader.hpp>
 #include <Cubed/ui/text.hpp>
@@ -34,7 +35,7 @@ private:
     World& m_world;
 
     float m_aspect = 0.0f;
-    float m_fov = NORMAL_FOV;
+    float m_fov = DEFAULT_FOV;
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat;
     
     GLuint m_mv_loc;

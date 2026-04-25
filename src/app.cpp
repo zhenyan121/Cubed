@@ -51,8 +51,7 @@ void App::init() {
     glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
     glfwSetScrollCallback(m_window.get_glfw_window(), mouse_scroll_callback);
     glfwSetCursorEnterCallback(m_window.get_glfw_window(), cursor_enter_callback);
-    
-
+    glfwSetCharCallback(m_window.get_glfw_window(), char_callback);
     PerlinNoise::init();
     
     m_renderer.init();
@@ -189,6 +188,15 @@ void App::cursor_enter_callback(GLFWwindow* window, int entered) {
     if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
         ImGui_ImplGlfw_CursorEnterCallback(window, entered);
         return;
+    }
+}
+
+void App::char_callback(GLFWwindow* window, unsigned int c) {
+    ImGuiIO& io = ImGui::GetIO();
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureKeyboard && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_CharCallback(window, c);
     }
 }
 
