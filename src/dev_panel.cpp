@@ -15,6 +15,23 @@ static constexpr const char* GAITS[] = {"Walk", "Run"};
 static constexpr const char* GAME_MODES[] = {"Creative", "Spectator"};
 static char perlin_noise_input_buffer[64];
 
+constexpr float TEMP_MIN = 0.0f;
+constexpr float TEMP_MAX = 1.0f;
+constexpr float HUMID_MIN = 0.0f;
+constexpr float HUMID_MAX = 1.0f;
+constexpr float FREQ1_MIN = 0.001f;
+constexpr float FREQ1_MAX = 0.020f;
+constexpr float FREQ2_MIN = 0.005f;
+constexpr float FREQ2_MAX = 0.050f;
+constexpr float FREQ3_MIN = 0.010f;
+constexpr float FREQ3_MAX = 0.080f;
+constexpr int HEIGHT_BASE_MIN = 50;
+constexpr int HEIGHT_BASE_MAX = 175;
+constexpr int AMPLITUDE_MIN = 2;
+constexpr int AMPLITUDE_MAX = 80;
+constexpr float TREE_FREQ_MIM = 0.001f;
+constexpr float TREE_FREQ_MAX = 0.3f;
+
 static int filter_unsigned(ImGuiInputTextCallbackData* data) {
     if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter) {
         char c = data->EventChar;
@@ -66,7 +83,7 @@ void DevPanel::render() {
 
     ImGui::Begin("DevPanel");                      
     ImGui::Text("This is a DevPanel to control the game\n"); 
-    if (ImGui::BeginTabBar("Bar")) {
+    if (ImGui::BeginTabBar("Menu")) {
         show_settings_tab_item();
         show_world_tab_item();
         show_player_tab_item();
@@ -76,6 +93,62 @@ void DevPanel::render() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     
+}
+
+void DevPanel::show_biome_table_bar() {
+    ImGui::Text("Biome");
+    if (ImGui::BeginTabBar("Biome")) {
+        if (ImGui::BeginTabItem("Plain")) {
+            ImGui::SliderFloat("MinTemp##plain", &plain_params().temp.first, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MaxTemp##plain", &plain_params().temp.second, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MinHumid##plain", &plain_params().humid.first, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("MaxHumid##plain", &plain_params().humid.second, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("Freq One##plain", &plain_params().frequencies[0], FREQ1_MIN, FREQ1_MAX);
+            ImGui::SliderFloat("Freq Two##plain", &plain_params().frequencies[1], FREQ2_MIN, FREQ2_MAX);
+            ImGui::SliderFloat("Freq Three##plain", &plain_params().frequencies[2], FREQ3_MIN, FREQ3_MAX);
+            ImGui::SliderInt("Base Y##plain", &plain_params().height_range.base_y, HEIGHT_BASE_MIN, HEIGHT_BASE_MAX);
+            ImGui::SliderInt("Amplitude##plain", &plain_params().height_range.amplitude, AMPLITUDE_MIN, AMPLITUDE_MAX);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Forest")) {
+            ImGui::SliderFloat("MinTemp##forest", &forest_params().temp.first, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MaxTemp##forest", &forest_params().temp.second, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MinHumid##forest", &forest_params().humid.first, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("MaxHumid##forest", &forest_params().humid.second, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("Freq One##forest", &forest_params().frequencies[0], FREQ1_MIN, FREQ1_MAX);
+            ImGui::SliderFloat("Freq Two##forest", &forest_params().frequencies[1], FREQ2_MIN, FREQ2_MAX);
+            ImGui::SliderFloat("Freq Three##forest", &forest_params().frequencies[2], FREQ3_MIN, FREQ3_MAX);
+            ImGui::SliderInt("Base Y##forest", &forest_params().height_range.base_y, HEIGHT_BASE_MIN, HEIGHT_BASE_MAX);
+            ImGui::SliderInt("Amplitude##forest", &forest_params().height_range.amplitude, AMPLITUDE_MIN, AMPLITUDE_MAX);
+            ImGui::SliderFloat("Tree Freq##forest", &forest_params().tree_frequency, TREE_FREQ_MIM, TREE_FREQ_MAX);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Desert")) {
+            ImGui::SliderFloat("MinTemp##desert", &desert_params().temp.first, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MaxTemp##desert", &desert_params().temp.second, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MinHumid##desert", &desert_params().humid.first, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("MaxHumid##desert", &desert_params().humid.second, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("Freq One##desert", &desert_params().frequencies[0], FREQ1_MIN, FREQ1_MAX);
+            ImGui::SliderFloat("Freq Two##desert", &desert_params().frequencies[1], FREQ2_MIN, FREQ2_MAX);
+            ImGui::SliderFloat("Freq Three##desert", &desert_params().frequencies[2], FREQ3_MIN, FREQ3_MAX);
+            ImGui::SliderInt("Base Y##desert", &desert_params().height_range.base_y, HEIGHT_BASE_MIN, HEIGHT_BASE_MAX);
+            ImGui::SliderInt("Amplitude##desert", &desert_params().height_range.amplitude, AMPLITUDE_MIN, AMPLITUDE_MAX);
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Mountain")) {
+            ImGui::SliderFloat("MinTemp##mountain", &mountain_params().temp.first, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MaxTemp##mountain", &mountain_params().temp.second, TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MinHumid##mountain", &mountain_params().humid.first, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("MaxHumid##mountain", &mountain_params().humid.second, HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("Freq One##mountain", &mountain_params().frequencies[0], FREQ1_MIN, FREQ1_MAX);
+            ImGui::SliderFloat("Freq Two##mountain", &mountain_params().frequencies[1], FREQ2_MIN, FREQ2_MAX);
+            ImGui::SliderFloat("Freq Three##mountain", &mountain_params().frequencies[2], FREQ3_MIN, FREQ3_MAX);
+            ImGui::SliderInt("Base Y##mountain", &mountain_params().height_range.base_y, HEIGHT_BASE_MIN, HEIGHT_BASE_MAX);
+            ImGui::SliderInt("Amplitude##mountain", &mountain_params().height_range.amplitude, AMPLITUDE_MIN, AMPLITUDE_MAX);
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
 }
 
 void DevPanel::show_settings_tab_item() {
@@ -149,9 +222,24 @@ void DevPanel::show_world_tab_item() {
                 m_text_editing.perlin_seed = true;
             }
         }
+        static int rendering_distance = m_app.world().rendering_distance();
+        if (ImGui::SliderInt("Render Distance", &rendering_distance, 2, 128)) {
+            m_app.world().rendering_distance(rendering_distance);
+        }
         if (ImGui::Button("Rebuild World")) {
             m_app.world().rebuild_world();
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Request Chunk Build")) {
+            m_app.world().need_gen();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Spawn Point")) {
+            m_player->set_player_pos({0.0f, 255.0f, 0.0f});
+        }
+        ImGui::Text("Chunk Build Progress\n");
+        ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
+        show_biome_table_bar();
         ImGui::EndTabItem();
     }
 }

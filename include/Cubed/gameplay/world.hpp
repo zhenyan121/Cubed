@@ -47,6 +47,7 @@ private:
     std::atomic<bool> m_is_rebuilding {false};
     std::atomic<bool> m_could_gen{true};
     std::atomic<int> m_rendering_distance{24};
+    std::atomic<float> m_chunk_gen_fraction{0.0f};
     std::vector<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
@@ -95,6 +96,9 @@ public:
 
     void rebuild_world();
 
+    float chunk_gen_fraction() const;
+    int rendering_distance() const;
+    void rendering_distance(int rendering_distance);
 };
 
 }

@@ -387,7 +387,7 @@ void Chunk::gen_phase_six() {
         std::shuffle(z_arr.begin(), z_arr.end(), Cubed::Random::get().engine());
         for (auto x : x_arr) {
             for (auto z : z_arr) {
-                if (Cubed::Random::get().random_bool(0.1)) {
+                if (Cubed::Random::get().random_bool(forest_params().tree_frequency)) {
                     build_tree(*this, {x, static_cast<int>(m_heightmap[x][z]), z});
                 }
                 

@@ -265,7 +265,7 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 }
 
 void World::gen_chunks_internal() {
-    
+    m_chunk_gen_fraction = 0.0f;
     ChunkPosSet required_chunks;
     compute_required_chunks(required_chunks);
 
@@ -277,8 +277,10 @@ void World::gen_chunks_internal() {
     Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
     if (need_gen_chunks_pos.empty()) {
         m_could_gen = true;
+        m_chunk_gen_fraction = 1.0f;
         return;
     }
+    m_chunk_gen_fraction = 0.1f;
     ChunkUpdateList new_chunks;
     for (auto& pos : need_gen_chunks_pos) {
         new_chunks.push_back({pos, Chunk(*this, pos)});
@@ -295,7 +297,7 @@ void World::gen_chunks_internal() {
     for (auto& [pos, chunk] : new_chunks) {
         chunk.gen_phase_one();
     }
-
+    m_chunk_gen_fraction = 0.2f;
     std::array<const Chunk*, 4> neighbor_chunks;
     for (auto& [pos, chunks] : new_chunks) {
         for (int i = 0; i < 4; i++) {
@@ -310,10 +312,11 @@ void World::gen_chunks_internal() {
         }
         chunks.gen_phase_two(neighbor_chunks);
     }
-
+    m_chunk_gen_fraction = 0.3f;
     for (auto& [pos, chunks] : new_chunks) {
         chunks.gen_phase_three();
     }
+    m_chunk_gen_fraction = 0.4f;
     std::array<std::optional<HeightMapArray>, 4> neighbor_chunk_heightmap;
     for (auto& [pos, chunks] : new_chunks) {
         {
@@ -330,12 +333,12 @@ void World::gen_chunks_internal() {
         }
         chunks.gen_phase_four(neighbor_chunk_heightmap);
     }
-
+    m_chunk_gen_fraction = 0.5f;
     for (auto& [pos, chunks] : new_chunks) {
         chunks.gen_phase_five();
         chunks.gen_phase_six();
     }
-
+    m_chunk_gen_fraction = 0.6f;
     for (auto& [pos, chunk] : new_chunks) {
         for (int i = 0; i < 4; i++) {
             auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
@@ -347,8 +350,9 @@ void World::gen_chunks_internal() {
         }
         chunk.gen_vertex_data(neighbor_block);
     }
+    m_chunk_gen_fraction = 0.7f;
     build_neighbor_context_for_affected_neighbors(affected_neighbor, new_chunks_neighbor);
-
+    m_chunk_gen_fraction = 0.8f;
     for (auto& [pos, chunk] : affected_neighbor) {
         for (int i = 0; i < 4; i++) {
             auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
@@ -361,7 +365,7 @@ void World::gen_chunks_internal() {
         chunk->gen_vertex_data(neighbor_block);
         chunk->need_upload();
     }    
-
+    m_chunk_gen_fraction = 0.9f;
     {
         std::lock_guard lk(m_new_chunk_queue_mutex);
         for (auto& x : new_chunks) {
@@ -369,7 +373,7 @@ void World::gen_chunks_internal() {
         }
         
     }
-     
+    m_chunk_gen_fraction = 1.0f;
 }
 
 void World::sync_player_pos(glm::vec3& player_pos) {
@@ -690,9 +694,19 @@ void World::rebuild_world() {
     need_gen();
     
     m_is_rebuilding = false;
-    for (auto& player : m_players) {
-        player.second.set_player_pos({0.0f, 255.0f, 0.0f});
-    }
+
+}
+
+float World::chunk_gen_fraction() const {
+    return m_chunk_gen_fraction.load();
+}
+
+int World::rendering_distance() const {
+    return m_rendering_distance.load();
+}
+
+void World::rendering_distance(int rendering_distance) {
+    m_rendering_distance = rendering_distance;
 }
 
 }

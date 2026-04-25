@@ -8,6 +8,48 @@
 
 namespace Cubed {
 
+static PlainParams plain {
+    {
+    Biome::PLAIN,
+    {0.0f, 0.5f},
+    {0.0f, 0.5f},
+    {0.003f, 0.010f, 0.020f},
+    {62, 8}
+    }
+};
+
+static ForestParams forest {
+    {
+    Biome::FOREST,
+    {0.5f, 1.0f},
+    {0.5f, 1.0f},
+    {0.004f, 0.012f, 0.022f},
+    {64, 12}
+    },
+    0.1f
+
+};
+
+static DesertParams desert {
+    {
+    Biome::DESERT,
+    {0.5f, 1.0f},
+    {0.0f, 0.5f},
+    {0.003f, 0.010f, 0.020f},
+    {61, 12}
+    }
+};
+
+static MountainParams mountain {
+    {
+    Biome::MOUNTAIN,
+    {0.0f, 0.5f},
+    {0.5f, 1.0f},
+    {0.006f, 0.015f, 0.030f},
+    {70, 70}
+    }
+};
+
 std::string get_biome_str(Biome biome) {
     std::string str;
     using enum Biome;
@@ -51,22 +93,32 @@ Biome get_biome_from_noise(float temp, float humid) {
 */
 Biome get_biome_from_noise(float temp, float humid) {
     using enum Biome;
-    if (temp < 0.5f && humid < 0.5f) return PLAIN; 
-    if (temp < 0.5f && humid >= 0.5f) return FOREST;
-    if (temp >= 0.5f && humid < 0.5f) return DESERT;
-    return MOUNTAIN;         
+    if (plain.temp.first <= temp && temp <= plain.temp.second && plain.humid.first <= humid && humid <= plain.humid.second) {
+        return PLAIN;
+    }
+    if (forest.temp.first <= temp && temp <= forest.temp.second && forest.humid.first <= humid && humid <= forest.humid.second) {
+        return FOREST;
+    }
+    if (desert.temp.first <= temp && temp <= desert.temp.second && desert.humid.first <= humid && humid <= desert.humid.second) {
+        return DESERT;
+    }
+    if (mountain.temp.first <= temp && temp <= mountain.temp.second && mountain.humid.first <= humid && humid <= mountain.humid.second) {
+        return MOUNTAIN;
+    }
+    Logger::warn("Invail Temp {} or Humid {}", temp, humid);
+    return PLAIN;         
 }
 std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
-            return {0.003f, 0.010f, 0.020f};
+            return plain.frequencies;
         case FOREST:
-            return {0.004f, 0.012f, 0.022f};
+            return forest.frequencies;
         case DESERT:
-            return {0.003f, 0.010f, 0.020f};
+            return desert.frequencies;
         case MOUNTAIN:
-            return {0.006f, 0.015f, 0.030f};
+            return mountain.frequencies;
         case NONE:
             ASSERT_MSG(false, "Chunk Biome is None");
             throw std::invalid_argument{"Chunk Biome is None"};
@@ -79,13 +131,13 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
     using enum Biome;
     switch (biome) {
         case PLAIN:
-            return {62, 8};
+            return plain.height_range;
         case FOREST:
-            return {64, 12};
+            return forest.height_range;
         case DESERT:
-            return {61, 12};
+            return desert.height_range;
         case MOUNTAIN:
-            return {70, 70};
+            return mountain.height_range;
         case NONE:
             ASSERT_MSG(false, "Chunk Biome is None");
             throw std::invalid_argument{"Chunk Biome is None"};
@@ -147,6 +199,19 @@ int get_interpolated_height(float world_x, float world_z, float temp, float humi
             + w_desert   * sample_height(Biome::DESERT)
             + w_forest   * sample_height(Biome::FOREST);
     return static_cast<int>(h);
+}
+
+PlainParams& plain_params() {
+    return plain;
+}
+ForestParams& forest_params() {
+    return forest;
+}
+DesertParams& desert_params() {
+    return desert;
+}
+MountainParams& mountain_params() {
+    return mountain;
 }
 
 }
