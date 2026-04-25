@@ -9,6 +9,7 @@ set(IMGUI_SOURCES
     imgui_widgets.cpp
     imgui_impl_glfw.cpp
     imgui_impl_opengl3.cpp
+    misc/freetype/imgui_freetype.cpp
 )
 
 add_library(imgui STATIC ${IMGUI_SOURCES})
@@ -20,4 +21,5 @@ target_link_libraries(
     PUBLIC
     glfw
     OpenGL::GL
+    Freetype::Freetype
 )
