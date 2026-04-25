@@ -13,11 +13,12 @@ namespace Cubed {
 class Camera;
 class TextureManager;
 class World;
+class DevPanel;
 class Renderer {
 public:
     constexpr static int NUM_VAO = 5;
 
-    Renderer(const Camera& camera, World& world, const TextureManager& texture_manager);
+    Renderer(const Camera& camera, World& world, const TextureManager& texture_manager, DevPanel& dev_panel);
     ~Renderer();
     void hot_reload();
     void init();
@@ -28,6 +29,7 @@ public:
 private:
     
     const Camera& m_camera;
+    DevPanel& m_dev_panel;
     const TextureManager& m_texture_manager;
     World& m_world;
 
@@ -57,6 +59,7 @@ private:
     void render_text(); 
     void render_ui();
     void render_world();
+    void render_dev_panel();
 };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Cubed/camera.hpp>
+#include <Cubed/dev_panel.hpp>
 #include <Cubed/gameplay/world.hpp>
 #include <Cubed/input.hpp>
 #include <Cubed/renderer.hpp>
@@ -18,16 +19,26 @@ public:
     static void window_focus_callback(GLFWwindow* window, int focused);
     static void window_reshape_callback(GLFWwindow* window, int new_width, int new_height);
     static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
+    static void cursor_enter_callback(GLFWwindow* window, int entered);
     static int start_cubed_application(int argc, char** argv);
     static unsigned int seed();
     static float delte_time();
     static float get_fps();
+
+    Camera& camera();
+    DevPanel& dev_panel();
+    Renderer& renderer();
+    TextureManager& texture_manager();
+    Window& window();
+    World& world();
+
+
 private:
     Camera m_camera;
     TextureManager m_texture_manager;
     World m_world;
-    Renderer m_renderer{m_camera, m_world, m_texture_manager};
+    DevPanel m_dev_panel{*this};
+    Renderer m_renderer{m_camera, m_world, m_texture_manager, m_dev_panel};
 
     Window m_window{m_renderer};
     

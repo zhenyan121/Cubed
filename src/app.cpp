@@ -8,6 +8,8 @@
 #include <Cubed/tools/system_info.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
 
+#include <imgui_impl_glfw.h>
+
 #include <exception>
 
 namespace Cubed {
@@ -21,8 +23,15 @@ App::~App() {
 
 }
 void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    ImGuiIO& io = ImGui::GetIO();
+    
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    
     ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+        return;
+    }
     if (!app->m_window.is_mouse_enable()) {
         app->m_camera.update_cursor_position_camera(xpos, ypos);
     }
@@ -30,6 +39,7 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 }
 void App::init() {
     m_window.init();
+    m_window.imgui_init();
     Logger::info("Window Init Success");
 
     glfwSetWindowUserPointer(m_window.get_glfw_window(), this);
@@ -40,6 +50,9 @@ void App::init() {
     glfwSetWindowSizeCallback(m_window.get_glfw_window(), window_reshape_callback);
     glfwSetKeyCallback(m_window.get_glfw_window(), key_callback);
     glfwSetScrollCallback(m_window.get_glfw_window(), mouse_scroll_callback);
+    glfwSetCursorEnterCallback(m_window.get_glfw_window(), cursor_enter_callback);
+    
+
     PerlinNoise::init();
     
     m_renderer.init();
@@ -52,21 +65,27 @@ void App::init() {
     Logger::info("World Init Success");
 
     m_camera.camera_init(&m_world.get_player("TestPlayer"));
-    
+    m_dev_panel.init();
 }
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    ImGuiIO& io = ImGui::GetIO();
+    
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     ASSERT_MSG(app, "nullptr");
+    //ImGui_ImplGlfw_CursorEnterCallback(window, !app->m_window.is_mouse_enable());
+    if (io.WantCaptureKeyboard && app->m_window.is_mouse_enable()) {
+        if ((key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
+            app->m_window.toggle_mouse_able();
+            app->m_camera.reset_camera();
+            return;
+        }
+        ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+        return;
+    }
     switch(key) {
         case GLFW_KEY_Q:
             if (action == GLFW_PRESS) {
-                
-                if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
-                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                } else if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
-                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                }
             }
             break;
         case GLFW_KEY_ESCAPE:
@@ -84,9 +103,10 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
                 app->m_texture_manager.need_reload();
             }
             break;
-        case GLFW_KEY_P:
+        case GLFW_KEY_LEFT_ALT:
             if (action == GLFW_PRESS) {
                 app->m_window.toggle_mouse_able();
+                app->m_camera.reset_camera();
             }
             break;
             
@@ -95,10 +115,22 @@ void App::key_callback(GLFWwindow* window, int key, int scancode, int action, in
     app->m_world.get_player("TestPlayer").update_player_move_state(key, action);
 }
 
-void App::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+void App::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) { 
+    ImGuiIO& io = ImGui::GetIO();
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+        return;
+    }
     switch (button) {
         case GLFW_MOUSE_BUTTON_LEFT:
             if (action == GLFW_PRESS) {
+                if(app->m_window.is_mouse_enable()) {
+                    app->m_window.toggle_mouse_able();
+                    app->m_camera.reset_camera();
+                    break;;
+                }
                 Input::get_input_state().mouse_state.left = true;
             }
             if (action == GLFW_RELEASE) {
@@ -117,8 +149,13 @@ void App::mouse_button_callback(GLFWwindow* window, int button, int action, int 
 }
 
 void App::window_focus_callback(GLFWwindow* window, int focused) {
+    ImGuiIO& io = ImGui::GetIO();
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_WindowFocusCallback(window, focused);
+        return;
+    }
     if (focused) {
         app->m_camera.reset_camera();
     }
@@ -126,23 +163,45 @@ void App::window_focus_callback(GLFWwindow* window, int focused) {
 }
 
 void App::window_reshape_callback(GLFWwindow* window, int new_width, int new_height) {
+    
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
     ASSERT_MSG(app, "nullptr");
     app->m_window.update_viewport();
 }
 
 void App::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    ImGuiIO& io = ImGui::GetIO();
+    
     App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
+        return;
+    }
     auto& player = app->m_world.get_player("TestPlayer");
     player.update_scroll(yoffset);
 }
 
-void App::render() {
+void App::cursor_enter_callback(GLFWwindow* window, int entered) {
+    ImGuiIO& io = ImGui::GetIO();
+    App* app = static_cast<App*>(glfwGetWindowUserPointer(window));
+    ASSERT_MSG(app, "nullptr");
+    if (io.WantCaptureMouse && app->m_window.is_mouse_enable()) {
+        ImGui_ImplGlfw_CursorEnterCallback(window, entered);
+        return;
+    }
+}
 
+void App::render() {
+    
+    if (glfwGetWindowAttrib(m_window.get_glfw_window(), GLFW_ICONIFIED) != 0)
+        {
+            ImGui_ImplGlfw_Sleep(10);
+            return;
+        }
     m_renderer.render();
 
     glfwSwapBuffers(m_window.get_glfw_window());
-
 }
 
 void App::run() {
@@ -178,11 +237,12 @@ void App::update() {
     const auto& player= m_world.get_player("TestPlayer");
     if (player_gait != player.get_gait()) {
         player_gait = player.get_gait();
+        float fov = static_cast<float>(Config::get().get<double>("player.fov"));
         if (player_gait == Gait::WALK) {
-            m_renderer.update_fov(NORMAL_FOV);
+            m_renderer.update_fov(fov);
         }
         if (player_gait == Gait::RUN) {
-            m_renderer.update_fov(NORMAL_FOV + 3.0f);
+            m_renderer.update_fov(fov + 5.0f);
         }
     }
 
@@ -214,6 +274,25 @@ float App::delte_time() {
 
 float App::get_fps() {
     return fps;
+}
+
+Camera& App::camera() {
+    return m_camera;
+}
+DevPanel& App::dev_panel() {
+    return m_dev_panel;
+}
+Renderer& App::renderer() {
+    return m_renderer;
+}
+TextureManager& App::texture_manager() {
+    return m_texture_manager;
+}
+Window& App::window() {
+    return m_window;
+}
+World& App::world() {
+    return m_world;
 }
 
 }

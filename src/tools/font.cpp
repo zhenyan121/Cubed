@@ -4,6 +4,8 @@
 #include <Cubed/tools/log.hpp>
 #include <Cubed/tools/shader_tools.hpp>
 
+namespace fs = std::filesystem;
+
 namespace Cubed {
 
 
@@ -12,7 +14,7 @@ Font::Font() {
     if (FT_Init_FreeType(&m_ft)) {
         Logger::error("FREETYPE: Could not init FreeType Library");
     }
-    if (FT_New_Face(m_ft, ASSETS_PATH "fonts/IBMPlexSans-Regular.ttf", 0, &m_face)) {
+    if (FT_New_Face(m_ft, font_path().c_str(), 0, &m_face)) {
         Logger::error("FREETYPE: Failed to load font");
     }
 
@@ -123,6 +125,10 @@ std::vector<Vertex2D> Font::vertices(const std::string &text, float x, float y, 
 
 GLuint Font::text_texture() {
     return m_text_texture;
+}
+
+const fs::path& Font::font_path() {
+    return m_font_path;
 }
 
 }

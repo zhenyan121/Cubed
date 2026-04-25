@@ -114,8 +114,14 @@ public:
             std::abort();
         }
         table->insert_or_assign(n_key, std::forward<T>(val));
+        
+    }
+    template <typename T>
+    void set_and_save(std::string_view key, T&& val)  {
+        set(key, std::forward(val));
         save_to_file();
     }
+    toml::node_view<toml::node> val_view(std::string_view key);
 
 private:
     

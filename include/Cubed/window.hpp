@@ -12,6 +12,7 @@ public:
     const GLFWwindow* get_glfw_window() const;
     GLFWwindow* get_glfw_window();
     void init();
+    void imgui_init();
     void update_viewport();
     // end of frame to reload!
     void hot_reload();

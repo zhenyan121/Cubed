@@ -80,6 +80,10 @@ FetchContent_Declare(
     GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
+
+add_subdirectory(third_party/imgui)
+
+
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(${PROJECT_NAME}
@@ -88,6 +92,7 @@ add_executable(${PROJECT_NAME}
     src/debug_collector.cpp
     src/camera.cpp
     src/config.cpp
+    src/dev_panel.cpp
     src/gameplay/biome.cpp
     src/gameplay/chunk.cpp
     src/gameplay/player.cpp
@@ -143,6 +148,7 @@ target_link_libraries(${PROJECT_NAME}
         soil2
         Freetype::Freetype
         tomlplusplus::tomlplusplus
+        imgui
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

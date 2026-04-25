@@ -44,6 +44,8 @@ void Config::create_config() {
         [world]
         rendering_distance = 24
         
+        [devpanel]
+        theme = 0 # 0 is Dark Theme, 1 is Light Theme
     )"sv;
 
     try {
@@ -79,5 +81,40 @@ void Config::save_to_file() {
     Logger::info("Save File Success");
 }
 
+toml::node_view<toml::node> Config::val_view(std::string_view key) {
+    size_t cur = 0;
+    auto pos = key.find('.');
+    toml::table* table = &m_tbl;
+    while (pos != std::string_view::npos) {
+        std::string_view s = key.substr(cur, pos - cur);
+        if (s.empty()) {
+            Logger::error("Empty key/table name in path '{}'", key);
+            ASSERT(false);
+            std::abort();
+        }
+        cur = pos + 1;
+        pos = key.find('.', cur);
+        if (auto* next = (*table)[s].as_table()) {
+            table = next;
+        } else {
+            Logger::error("Can't find table {}", s);
+            ASSERT(false);
+            std::abort();
+        }
+    }
+    std::string_view n_key = key.substr(cur);
+    if (n_key.empty()) {
+        Logger::error("Trailing dot in path '{}'", key);
+        ASSERT(false);
+        std::abort();
+    }
+    auto view = (*table)[n_key];
+    if (!view) {
+        Logger::error("The view is null");
+        ASSERT(false);
+        std::abort();
+    }
+    return view;
+}
 
 }

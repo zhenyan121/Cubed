@@ -1,6 +1,7 @@
 #include <Cubed/app.hpp>
 #include <Cubed/camera.hpp>
 #include <Cubed/config.hpp>
+#include <Cubed/dev_panel.hpp>
 #include <Cubed/primitive_data.hpp>
 #include <Cubed/debug_collector.hpp>
 #include <Cubed/gameplay/player.hpp>
@@ -19,8 +20,9 @@
 #include <format>
 namespace Cubed {
 
-Renderer::Renderer(const Camera& camera, World& world, const TextureManager& texture_manager):
+Renderer::Renderer(const Camera& camera, World& world, const TextureManager& texture_manager, DevPanel& dev_panel):
     m_camera(camera),
+    m_dev_panel(dev_panel),
     m_texture_manager(texture_manager),
     m_world(world)
 {
@@ -144,6 +146,7 @@ void Renderer::render() {
     glBindVertexArray(m_vao[4]);
     render_text();
     glBindVertexArray(0);
+    render_dev_panel();
 }
 
 void Renderer::render_outline() {
@@ -280,6 +283,12 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_proj_loc, 1 ,GL_FALSE, glm::value_ptr(m_p_mat));
     m_mvp_mat = m_p_mat * m_mv_mat;
     m_world.render(m_mvp_mat);
+}
+
+void Renderer::render_dev_panel() {
+    glDisable(GL_DEPTH_TEST);
+    m_dev_panel.render();
+    glEnable(GL_DEPTH_TEST);
 }
 
 }
