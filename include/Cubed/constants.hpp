@@ -16,6 +16,11 @@ constexpr int PRE_LOAD_DISTANCE = 24;
 constexpr int MAX_DISTANCE = 128;
 
 constexpr float DEFAULT_FOV = 70.0f;
+constexpr float DEFAULT_MAX_WALK_SPEED = 4.5f;
+constexpr float DEFAULT_MAX_RUN_SPEED = 7.0f;
+constexpr float DEFAULT_ACCELERATION = 10.0f;   
+constexpr float DEFAULT_DECELERATION = 15.0f;
+constexpr float DEFAULT_G = 22.5f;
 
 using HeightMapArray = std::array<std::array<float, CHUCK_SIZE>, CHUCK_SIZE>;
 

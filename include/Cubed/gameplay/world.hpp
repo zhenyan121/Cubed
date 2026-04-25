@@ -28,8 +28,6 @@ private:
     using ChunkUpdateList = std::vector<std::pair<ChunkPos, Chunk>>;
     using ConstChunkMap = std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;  
-    
-    bool m_could_gen = true;
 
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
     std::unordered_map<ChunkPos , Chunk, ChunkPos::Hash> m_chunks;
@@ -46,6 +44,8 @@ private:
     std::condition_variable m_gen_cv;
     std::atomic<bool> m_gen_running{false};
     std::atomic<bool> m_need_gen_chunk{false};
+    std::atomic<bool> m_is_rebuilding {false};
+    std::atomic<bool> m_could_gen{true};
     std::atomic<int> m_rendering_distance{24};
     std::vector<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
@@ -92,6 +92,8 @@ public:
     void push_delete_vbo(GLuint vbo);
 
     void hot_reload();
+
+    void rebuild_world();
 
 };
 

@@ -7,7 +7,7 @@ namespace Cubed {
 
 
 enum class GameMode {
-    CREATIVE,
+    CREATIVE = 0,
     SPECTATOR
 };
 

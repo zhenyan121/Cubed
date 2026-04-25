@@ -3,6 +3,7 @@
 
 #include <Cubed/AABB.hpp>
 #include <Cubed/config.hpp>
+#include <Cubed/constants.hpp>
 #include <Cubed/gameplay/block.hpp>
 #include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/gameplay/game_mode.hpp>
@@ -14,7 +15,7 @@
 namespace Cubed {
 
 enum class Gait{
-    WALK,
+    WALK = 0,
     RUN
 };
 
@@ -23,27 +24,28 @@ class World;
 class Player {
 private:
     using enum GameMode;
-    constexpr static float WALK_SPEED = 4.5f;
-    constexpr static float RUN_SPEED = 7.0f;
-    constexpr static float ACCELERATION = 10.0f;   
-    constexpr static float DECELERATION = 15.0f;
-    constexpr static float G = 22.5f;
+    float m_max_walk_speed = DEFAULT_MAX_WALK_SPEED;
+    float m_max_run_speed = DEFAULT_MAX_RUN_SPEED;
+    float m_acceleration = DEFAULT_ACCELERATION;   
+    float m_deceleration = DEFAULT_DECELERATION;
+    float m_g = DEFAULT_G;
 
     constexpr static float MAX_SPACE_ON_TIME = 0.3f; 
+
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     
     float m_sensitivity = 0.15f;
 
-    float max_speed = WALK_SPEED;
-    float y_speed = 0.0f;
+    float m_max_speed = m_max_walk_speed;
+    float m_y_speed = 0.0f;
     bool can_up = true;
     
     float space_on_time = 0.0f;
     bool space_on = false;
     bool is_fly = false;
     
-    float speed = 0;
+    float m_xz_speed = 0.0f;
     
     glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 move_distance {0.0f, 0.0f, 0.0f};
@@ -91,7 +93,15 @@ public:
     void update_player_move_state(int key, int action);
     void update_scroll(double yoffset);
 
-    
+    float& max_walk_speed();
+    float& max_run_speed();
+    float& max_speed();
+    float& acceleration(); 
+    float& deceleration();
+    float& g();
+
+    Gait& gait();
+    GameMode& game_mode();    
 
 };
 

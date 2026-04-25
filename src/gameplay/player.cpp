@@ -141,6 +141,7 @@ void Player::change_mode(GameMode mode) {
     } else if (mode == SPECTATOR) {
         is_fly = true;
         m_gait = Gait::RUN;
+        m_max_speed = m_max_run_speed;
     }
 }
 
@@ -165,7 +166,7 @@ void Player::update(float delta_time) {
             m_player_pos.x, m_player_pos.y, m_player_pos.z
         ));
     
-    DebugCollector::get().report("speed", std::format("Speed: {:.2} m/s", speed));
+    DebugCollector::get().report("speed", std::format("Speed: {:.2} m/s", m_xz_speed));
 }
 
 void Player::update_player_move_state(int key, int action) {
@@ -212,7 +213,7 @@ void Player::update_player_move_state(int key, int action) {
                 if (space_on) {
                     if (m_game_mode == CREATIVE) {
                         is_fly = !is_fly ? true : false;
-                        y_speed = 0.0f;
+                        m_y_speed = 0.0f;
                     }
                     space_on = false;
                     space_on_time = 0.0f;
@@ -356,10 +357,10 @@ void Player::update_move(float delta_time) {
     }
     if (m_game_mode != SPECTATOR) {
         if (m_gait == Gait::RUN) {
-            max_speed = RUN_SPEED;
+            m_max_speed = m_max_run_speed;
         }
         if (m_gait == Gait::WALK) {
-            max_speed = WALK_SPEED;
+            m_max_speed = m_max_walk_speed;
         }
     }
 
@@ -374,45 +375,45 @@ void Player::update_move(float delta_time) {
     // calculate speed
     if (m_move_state.forward || m_move_state.back || m_move_state.left || m_move_state.right || m_move_state.up) {
         direction = glm::vec3(0.0f, 0.0f, 0.0f);
-        speed += ACCELERATION * delta_time;
-        if (speed > max_speed) {
-            speed = max_speed;
+        m_xz_speed += m_acceleration * delta_time;
+        if (m_xz_speed > m_max_speed) {
+            m_xz_speed = m_max_speed;
         }
     } else {
-        speed += -DECELERATION * delta_time;
-        if (speed < 0) {
-            speed = 0;
+        m_xz_speed += -m_deceleration * delta_time;
+        if (m_xz_speed < 0) {
+            m_xz_speed = 0;
             direction = glm::vec3(0.0f, 0.0f, 0.0f);
         }
     }
 
     update_direction();
 
-    move_distance = {direction.x * speed * delta_time, 0.0f, direction.z * speed * delta_time};
+    move_distance = {direction.x * m_xz_speed * delta_time, 0.0f, direction.z * m_xz_speed * delta_time};
     
     if (is_fly) {
         if (m_move_state.up) {
-        y_speed = 7.5f;
+        m_y_speed = 7.5f;
         }
 
         if (m_move_state.down) {
-            y_speed = -7.5f;
+            m_y_speed = -7.5f;
         }
 
         if (!m_move_state.down && !m_move_state.up) {
-            y_speed = 0.0f;
+            m_y_speed = 0.0f;
         }
     } else {
         if (m_move_state.up && can_up) {
-        y_speed = 7.5;
+        m_y_speed = 7.5;
         can_up = false;
         
         }
 
-        y_speed += -G * delta_time;
+        m_y_speed += -m_g * delta_time;
     }
     
-    move_distance.y = y_speed * delta_time;
+    move_distance.y = m_y_speed * delta_time;
     // y
     update_y_move();
     // x
@@ -482,7 +483,7 @@ void Player::update_y_move() {
                     };
                     if (player_box.intersects(block_box)) {
                         m_player_pos.y -= move_distance.y;
-                        y_speed = 0.0f;
+                        m_y_speed = 0.0f;
                         if (move_distance.y < 0) {
                             can_up = true;
                             is_fly = false;
@@ -530,14 +531,40 @@ void Player::update_z_move() {
 void Player::update_scroll(double yoffset) {
     if (m_game_mode == SPECTATOR) {
         if (yoffset > 0) {
-            max_speed += 1.0f;
+            if (m_max_speed < 500.0f) {
+                m_max_speed += 1.0f;
+            }
         } else {
-            if (max_speed > WALK_SPEED) {
-                max_speed -= 1.0f;
+            if (m_max_speed > 1.0f) {
+                m_max_speed -= 1.0f;
             }
         }
     }   
 }
 
+float& Player::max_walk_speed() {
+    return m_max_walk_speed;
+}
+float& Player::max_run_speed() {
+    return m_max_run_speed;
+}
+float& Player::max_speed() {
+    return m_max_speed;
+}
+float& Player::acceleration() {
+    return m_acceleration;
+}
+float& Player::deceleration() {
+    return m_deceleration;
+}
+float& Player::g() {
+    return m_g;
+}
+Gait& Player::gait() {
+    return m_gait;
+}
+GameMode& Player::game_mode() {
+    return m_game_mode;
+}
 
 }

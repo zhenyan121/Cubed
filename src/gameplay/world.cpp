@@ -6,6 +6,7 @@
 #include <Cubed/tools/cubed_assert.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/math_tools.hpp>
+#include <Cubed/tools/perlin_noise.hpp>
 
 #include <execution>
 
@@ -669,6 +670,29 @@ void World::hot_reload() {
     int dist = config.get<int>("world.rendering_distance");
     m_rendering_distance = dist <= MAX_DISTANCE ? dist : MAX_DISTANCE;
     need_gen();
+}
+
+void World::rebuild_world() {
+    if (m_is_rebuilding) {
+        return;
+    }
+    m_is_rebuilding = true;
+    stop_gen_thread();
+    
+    {
+        std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
+        m_chunks.clear();
+        m_new_chunk_queue.clear();
+    }
+    m_could_gen = true;
+    PerlinNoise::reload();
+    start_gen_thread();
+    need_gen();
+    
+    m_is_rebuilding = false;
+    for (auto& player : m_players) {
+        player.second.set_player_pos({0.0f, 255.0f, 0.0f});
+    }
 }
 
 }
