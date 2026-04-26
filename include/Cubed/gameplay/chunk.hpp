@@ -73,8 +73,10 @@ public:
     void gen_phase_four(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap);
     // Generate Block
     void gen_phase_five();
+    // Adjust Block;
+    void gen_phase_six(const std::array<std::optional<std::vector<uint8_t>>, 4>& neighbor_block);
     // Generate Structure
-    void gen_phase_six();
+    void gen_phase_seven();
     //void gen_vertex_data();
     // 0 : (1, 0)
     // 1 : (-1, 0) 

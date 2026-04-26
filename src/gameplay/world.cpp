@@ -183,10 +183,25 @@ void World::init_chunks() {
     }
 
     for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_five();
-        chunks.gen_phase_six();
+        chunks.gen_phase_five(); 
     }
-
+    std::array<std::optional<std::vector<uint8_t>>, 4> neighbor_block;
+    for (auto& [pos, chunks] : m_chunks) {
+        for (int i = 0; i < 4; i++) {
+            auto neighbor_pos = pos + CHUNK_DIR[i];
+            auto it = m_chunks.find(neighbor_pos);
+            if (it == m_chunks.end()) {
+                neighbor_block[i] = std::nullopt;
+                continue;
+            }
+            neighbor_block[i] = it->second.get_chunk_blocks();
+            
+        }
+        chunks.gen_phase_six(neighbor_block);
+    }
+    for (auto& [pos, chunks] : m_chunks) {
+        chunks.gen_phase_seven(); 
+    }
     std::atomic<int> sync{0};
     sync.store(1, std::memory_order_release);
     sync.load(std::memory_order_acquire);
@@ -336,7 +351,25 @@ void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.5f;
     for (auto& [pos, chunks] : new_chunks) {
         chunks.gen_phase_five();
-        chunks.gen_phase_six();
+    }
+    std::array<std::optional<std::vector<uint8_t>>, 4> neighbor_blocks_data;
+    for (auto& [pos, chunks] : new_chunks) {
+        {
+            //std::lock_guard lk(m_chunks_mutex);
+            for (int i = 0; i < 4; i++) {
+                auto neighbor_pos = pos + CHUNK_DIR[i];
+                auto it = new_chunks_neighbor.find(neighbor_pos);
+                if (it == new_chunks_neighbor.end()) {
+                    neighbor_blocks_data[i] = std::nullopt;
+                    continue;
+                }
+                neighbor_blocks_data[i] = it->second->get_chunk_blocks();
+            }
+        }
+        chunks.gen_phase_six(neighbor_blocks_data);
+    }
+    for (auto& [pos, chunks] : new_chunks) {
+        chunks.gen_phase_seven();
     }
     m_chunk_gen_fraction = 0.6f;
     for (auto& [pos, chunk] : new_chunks) {

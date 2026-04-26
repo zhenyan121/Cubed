@@ -377,7 +377,109 @@ void Chunk::gen_phase_five() {
 
 }
 
-void Chunk::gen_phase_six() {
+void Chunk::gen_phase_six(const std::array<std::optional<std::vector<uint8_t>>, 4>& neighbor_block) {
+    constexpr int BLEND_RADIUS = 12;
+    constexpr int WORLD_HEIGHT = WORLD_SIZE_Y;
+
+    // Helper lambda: get top block type from a neighbor's block data at (nx, nz)
+    auto get_top_block_from_neighbor = [&](const std::vector<uint8_t>& blocks, int nx, int nz) -> uint8_t {
+        // Search from topmost y downwards for the first non-zero block
+        for (int y = WORLD_HEIGHT - 1; y >= 0; --y) {
+            int idx = get_index(nx, y, nz); // linear index: y * area + z * size + x
+            if (idx >= 0 && idx < static_cast<int>(blocks.size()) && blocks[idx] != 0) {
+                return blocks[idx];
+            }
+        }
+        return 0; // fallback, should not happen for valid chunks
+    };
+
+    // For each column (x, z)
+    for (int x = 0; x < CHUCK_SIZE; ++x) {
+        for (int z = 0; z < CHUCK_SIZE; ++z) {
+            // Get the current top block type of this column from m_blocks
+            uint8_t type_self = 0;
+            int top_y = -1;
+            top_y = m_heightmap[x][z];
+            type_self = m_blocks[get_index(x, top_y, z)];
+
+            if (top_y == -1) continue; // no block? skip
+
+            // Weight map: type -> total weight
+            std::unordered_map<uint8_t, float> weights;
+            weights[type_self] = 1.0f; // self weight
+
+            // --- Right neighbor (index 0) ---
+            if (neighbor_block[0] && x >= CHUCK_SIZE - BLEND_RADIUS) {
+                int dist = (CHUCK_SIZE - 1) - x;
+                float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                t = t * t * (3.0f - 2.0f * t); // smoothstep
+                if (t > 0.0f) {
+                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[0], 0, z);
+                    weights[type_neighbor] += t;
+                }
+            }
+
+            // --- Left neighbor (index 1) ---
+            if (neighbor_block[1] && x < BLEND_RADIUS) {
+                int dist = x;
+                float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                t = t * t * (3.0f - 2.0f * t);
+                if (t > 0.0f) {
+                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[1], CHUCK_SIZE - 1, z);
+                    weights[type_neighbor] += t;
+                }
+            }
+
+            // --- Front neighbor (index 2) ---
+            if (neighbor_block[2] && z >= CHUCK_SIZE - BLEND_RADIUS) {
+                int dist = (CHUCK_SIZE - 1) - z;
+                float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                t = t * t * (3.0f - 2.0f * t);
+                if (t > 0.0f) {
+                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[2], x, 0);
+                    weights[type_neighbor] += t;
+                }
+            }
+
+            // --- Back neighbor (index 3) ---
+            if (neighbor_block[3] && z < BLEND_RADIUS) {
+                int dist = z;
+                float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
+                t = t * t * (3.0f - 2.0f * t);
+                if (t > 0.0f) {
+                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[3], x, CHUCK_SIZE - 1);
+                    weights[type_neighbor] += t;
+                }
+            }
+
+            // Find type with maximum total weight
+            uint8_t final_type = type_self;
+            float max_weight = weights[type_self];
+            for (const auto& [type, w] : weights) {
+                if (w > max_weight) {
+                    max_weight = w;
+                    final_type = type;
+                }
+            }
+
+            // Update the top block if the type changed
+            if (final_type != type_self) {
+                m_blocks[get_index(x, top_y, z)] = final_type;
+                unsigned fill_type = 2;
+                if (final_type == 1) {
+                    fill_type = 2;
+                } else if (final_type == 4) {
+                    fill_type = 4;
+                }
+                for (int y = top_y - 5; y < top_y; y++) {
+                    m_blocks[get_index(x, y, z)] = fill_type;
+                }
+            }
+        }
+    }
+}
+
+void Chunk::gen_phase_seven() {
     if (m_biome == Biome::FOREST) {
         std::array<int, SIZE_X> x_arr;
         std::iota(x_arr.begin(), x_arr.end(), 0);

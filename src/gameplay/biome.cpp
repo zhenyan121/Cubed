@@ -23,7 +23,7 @@ static ForestParams forest {
     Biome::FOREST,
     {0.5f, 1.0f},
     {0.5f, 1.0f},
-    {0.004f, 0.012f, 0.022f},
+    {0.004f, 0.010f, 0.020f},
     {64, 12}
     },
     0.1f
@@ -93,13 +93,13 @@ Biome get_biome_from_noise(float temp, float humid) {
 */
 Biome get_biome_from_noise(float temp, float humid) {
     using enum Biome;
-    if (plain.temp.first <= temp && temp <= plain.temp.second && plain.humid.first <= humid && humid <= plain.humid.second) {
+    if (plain.temp.first <= temp && temp < plain.temp.second && plain.humid.first <= humid && humid < plain.humid.second) {
         return PLAIN;
     }
-    if (forest.temp.first <= temp && temp <= forest.temp.second && forest.humid.first <= humid && humid <= forest.humid.second) {
+    if (forest.temp.first <= temp && temp < forest.temp.second && forest.humid.first <= humid && humid < forest.humid.second) {
         return FOREST;
     }
-    if (desert.temp.first <= temp && temp <= desert.temp.second && desert.humid.first <= humid && humid <= desert.humid.second) {
+    if (desert.temp.first <= temp && temp < desert.temp.second && desert.humid.first <= humid && humid < desert.humid.second) {
         return DESERT;
     }
     if (mountain.temp.first <= temp && temp <= mountain.temp.second && mountain.humid.first <= humid && humid <= mountain.humid.second) {
