@@ -45,7 +45,11 @@ void Config::create_config() {
         rendering_distance = 24
         
         [devpanel]
-        theme = 0 # 0 is Dark Theme, 1 is Light Theme
+        theme = 0       # 0 is Dark Theme, 1 is Light Theme
+
+        [texture]
+        aniso = 1       # i is the minimun value, indicating off 
+
     )"sv;
 
     try {

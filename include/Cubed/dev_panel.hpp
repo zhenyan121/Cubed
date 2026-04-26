@@ -8,13 +8,18 @@ class App;
 class Player;
 class DevPanel {
     struct ConfigView {
-        float fov;
-        bool fullscreen;
-        bool v_sync;
-        float mouse_sensitivity;
-        int width;
-        int height;
-        int rendering_distance;
+        float fov = 70.0f;
+        bool fullscreen = false;
+        bool v_sync = true;
+        float mouse_sensitivity = 0.15f;
+        int width = 800;
+        int height = 600;
+        int rendering_distance = 24;
+        int aniso = 1;
+        int max_aniso = 1;
+        bool is_enable_aniso = false;
+        bool is_support_aniso = true;
+        bool is_reload = true;
     };
     struct PlayerProfile {
         int game_mode = 0;
@@ -42,8 +47,9 @@ private:
     void show_world_tab_item();
     void show_player_tab_item();
 
+    void update_config_view();
     void update_player_profile();
-
+    
 };
 
 

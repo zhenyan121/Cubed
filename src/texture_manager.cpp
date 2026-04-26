@@ -99,7 +99,13 @@ void TextureManager::load_ui_texture(unsigned id) {
 }
 
 void TextureManager::init_texture() {
-
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &m_max_aniso);
+    if (m_max_aniso > 0.0f) {
+        Logger::info("Support anisotropic filtering max_aniso is {}", m_max_aniso);
+    }
+    m_aniso = Config::get().get<int>("texture.aniso");
+    m_aniso = std::min(static_cast<int>(m_max_aniso), m_aniso);
+    Logger::info("Setting Texture Aniso is {}", m_aniso);
     MapTable::init_map();
     Logger::info("Map Init Success");
     glGenTextures(1, &m_texture_array);
@@ -125,14 +131,10 @@ void TextureManager::init_texture() {
     Tools::check_opengl_error();
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     Tools::check_opengl_error();
-
-    GLfloat max_aniso = 0.0f;
-    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_aniso);
-    if (max_aniso > 0.0f) {
-        Logger::info("Support anisotropic filtering max_aniso is {}", max_aniso);
-        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
-    }    
-
+    if (m_aniso >= 1) {
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(m_aniso));
+    }
+    
     glGenTextures(1, &m_block_status_array);
     Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
@@ -157,9 +159,8 @@ void TextureManager::init_texture() {
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     Tools::check_opengl_error();
 
-    if (max_aniso > 0.0f) {
-        Logger::info("Support anisotropic filtering max_aniso is {}", max_aniso);
-        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, max_aniso);
+    if (m_aniso >= 1) {
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(m_aniso));
     }
     
     glGenTextures(1, &m_ui_array);
@@ -196,8 +197,13 @@ void TextureManager::need_reload() {
 
 void TextureManager::hot_reload() {
     delet_texture();
+    
     init_texture();
     m_need_reload = false;
+}
+
+int TextureManager::max_aniso() const {
+    return static_cast<int>(m_max_aniso);
 }
 
 }

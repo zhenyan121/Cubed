@@ -50,18 +50,7 @@ DevPanel::DevPanel(App& app) :
 
 void DevPanel::init() {
     m_player = &m_app.world().get_player("TestPlayer");
-    auto config = Config::get();
-    m_config.fov = static_cast<float>(config.val_view("player.fov").value_or(70.0));
-    m_config.fullscreen = config.val_view("window.fullscreen").value_or(false);
-    m_config.v_sync = config.val_view("window.V-Sync").value_or(true);
-    m_config.mouse_sensitivity = static_cast<float>(config.val_view("player.mouse_sensitivity").value_or(0.15));
-    m_config.width = config.val_view("window.width").value_or(800);
-    m_config.height = config.val_view("window.height").value_or(600);
-    m_config.rendering_distance = config.val_view("world.rendering_distance").value_or(24);
-    m_theme = config.val_view("devpanel.theme").value_or(0);
-    if (m_theme != 1 && m_theme != 0) {
-        m_theme = 0;
-    }
+    update_config_view();
     update_player_profile();
 }
 
@@ -186,7 +175,47 @@ void DevPanel::show_settings_tab_item() {
             Config::get().set("window.V-Sync", m_config.v_sync);
             m_app.window().hot_reload();
         }
-
+        if (ImGui::Checkbox("Aniso", &m_config.is_enable_aniso)) {
+            m_config.is_reload = false;
+            if (m_config.is_enable_aniso) {
+                m_config.max_aniso = m_app.texture_manager().max_aniso();
+                if (m_config.max_aniso < 2) {
+                    m_config.is_support_aniso = false;
+                } else {
+                    m_config.aniso = 2;
+                }
+            } else {
+                m_config.aniso = 1;
+            }
+            
+        }
+        if (m_config.is_enable_aniso) {
+            ImGui::SameLine();
+            if (!m_config.is_support_aniso) {
+                ImGui::Text("Not Support\n");
+            } else {
+                if (ImGui::SliderInt("##aniso", &m_config.aniso, 2, m_config.max_aniso)) {
+                    m_config.is_reload = false;
+                    int log = static_cast<int>(std::log2(m_config.aniso) + 0.5f);
+                    m_config.aniso = static_cast<int>(std::pow(2, log));
+                    if (m_config.aniso < 2) {
+                        m_config.aniso = 2;
+                    }
+                    if (m_config.aniso > m_config.max_aniso) {
+                        m_config.aniso = m_config.max_aniso;
+                    }
+                }
+            }
+        }
+        if (ImGui::Button("ReloadTexture")) {
+            Config::get().set("texture.aniso", m_config.aniso);
+            m_app.texture_manager().hot_reload();
+            m_config.is_reload = true;
+        }
+        if (!m_config.is_reload) {
+            ImGui::SameLine();
+            ImGui::Text("Your need to click this button to apply config\n");
+        }
         if (ImGui::Combo("Theme", &m_theme, THEMES, IM_ARRAYSIZE(THEMES))) {
             if (m_theme == 0) {
                 ImGui::StyleColorsDark();
@@ -311,7 +340,27 @@ void DevPanel::show_player_tab_item() {
         ImGui::EndTabItem();
     }
 }
-
+void DevPanel::update_config_view() {
+    auto config = Config::get();
+    m_config.fov = static_cast<float>(config.val_view("player.fov").value_or(70.0));
+    m_config.fullscreen = config.val_view("window.fullscreen").value_or(false);
+    m_config.v_sync = config.val_view("window.V-Sync").value_or(true);
+    m_config.mouse_sensitivity = static_cast<float>(config.val_view("player.mouse_sensitivity").value_or(0.15));
+    m_config.width = config.val_view("window.width").value_or(800);
+    m_config.height = config.val_view("window.height").value_or(600);
+    m_config.rendering_distance = config.val_view("world.rendering_distance").value_or(24);
+    m_theme = config.val_view("devpanel.theme").value_or(0);
+    if (m_theme != 1 && m_theme != 0) {
+        m_theme = 0;
+    }
+    m_config.aniso = config.val_view("texture.aniso").value_or(1);
+    m_config.max_aniso = m_app.texture_manager().max_aniso();
+    if (m_config.aniso <= 1) {
+        m_config.is_enable_aniso = false;
+    } else {
+        m_config.is_enable_aniso = true;
+    }
+}
 void DevPanel::update_player_profile() {
     if (!m_player) {
         Logger::error("Player is Nullptr");

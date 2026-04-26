@@ -12,6 +12,8 @@ private:
     GLuint m_block_status_array;
     GLuint m_texture_array; 
     GLuint m_ui_array;
+    GLfloat m_max_aniso = 0.0f;
+    int m_aniso = 1;
     void load_block_status(unsigned status_id);
     void load_block_texture(unsigned block_id);
     void load_ui_texture(unsigned id);
@@ -29,7 +31,7 @@ public:
     void hot_reload();
     void need_reload();
     void update();
-    
+    int max_aniso() const;
 };
 
 
