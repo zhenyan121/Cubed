@@ -212,12 +212,15 @@ void DevPanel::show_world_tab_item() {
                     ImGuiInputTextFlags_EnterReturnsTrue,
                     filter_unsigned)) 
             {
-                PerlinNoise::seed(static_cast<unsigned int>(std::strtoul(perlin_noise_input_buffer, nullptr, 10)));   
+                ChunkGenerator::seed(static_cast<unsigned int>(std::strtoul(perlin_noise_input_buffer, nullptr, 10)));   
                 m_text_editing.perlin_seed = false;
+                m_player->set_player_pos({0.0f, 255.0f, 0.0f});
+                m_app.world().rebuild_world();
+
             }
         }
         if (!m_text_editing.perlin_seed) {
-            ImGui::Text("Perlin Noise Seed: %u", PerlinNoise::seed());
+            ImGui::Text("ChunkGenerator Seed: %u", ChunkGenerator::seed());
             if (ImGui::IsItemClicked()) {
                 m_text_editing.perlin_seed = true;
             }

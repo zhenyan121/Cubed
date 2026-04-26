@@ -95,6 +95,7 @@ add_executable(${PROJECT_NAME}
     src/dev_panel.cpp
     src/gameplay/biome.cpp
     src/gameplay/chunk.cpp
+    src/gameplay/chunk_generator.cpp
     src/gameplay/player.cpp
     src/gameplay/tree.cpp
     src/gameplay/world.cpp

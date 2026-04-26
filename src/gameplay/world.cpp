@@ -722,7 +722,7 @@ void World::rebuild_world() {
         m_new_chunk_queue.clear();
     }
     m_could_gen = true;
-    PerlinNoise::reload();
+    ChunkGenerator::reload();
     start_gen_thread();
     need_gen();
     

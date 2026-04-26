@@ -10,16 +10,14 @@
 namespace Cubed {
 
 
-void PerlinNoise::init() {
+void PerlinNoise::init(unsigned seed) {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
-    auto seed = std::random_device{}();
     Logger::info("Init Perlin Noise With Seed {}", seed);
     std::shuffle(p.begin(), p.end(), std::mt19937(seed));
 
     p.insert(p.end(), p.begin(), p.end());
     is_init = true;
-    m_seed = seed;
 }
 
 float PerlinNoise::noise(float x, float y, float z) {
@@ -74,27 +72,15 @@ float PerlinNoise::grad(int hash, float x, float y, float z) {
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 }
 
-void PerlinNoise::reload() {
-    if (!is_seed_change) {
-        Logger::warn("Seed Not Change");
-        return;
-    }
+void PerlinNoise::reload(unsigned seed) {
     is_init = false;
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
-    Logger::info("Reload Perlin Noise With Seed {}", m_seed);
-    std::shuffle(p.begin(), p.end(), std::mt19937(m_seed));
+    Logger::info("Reload Perlin Noise With Seed {}", seed);
+    std::shuffle(p.begin(), p.end(), std::mt19937(seed));
 
     p.insert(p.end(), p.begin(), p.end());
     is_init = true;
-    is_seed_change = false;
 }
 
-const unsigned& PerlinNoise::seed() {
-    return m_seed;
-}
-void PerlinNoise::seed(unsigned seed) {
-    m_seed = seed;
-    is_seed_change = true;
-}
 }

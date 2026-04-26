@@ -52,7 +52,7 @@ void App::init() {
     glfwSetScrollCallback(m_window.get_glfw_window(), mouse_scroll_callback);
     glfwSetCursorEnterCallback(m_window.get_glfw_window(), cursor_enter_callback);
     glfwSetCharCallback(m_window.get_glfw_window(), char_callback);
-    PerlinNoise::init();
+    ChunkGenerator::init();
     
     m_renderer.init();
     Logger::info("Renderer Init Success");

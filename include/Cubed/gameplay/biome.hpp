@@ -20,6 +20,7 @@ enum class Biome {
     NONE
 };
 
+
 struct BiomeHeightRange {
     int base_y;
     int amplitude;
@@ -30,6 +31,13 @@ struct BiomeNonAdjacent {
     std::vector<Biome> second;
     Biome replace;
 };
+
+static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT {{
+    {Biome::PLAIN, {Biome::NONE}, Biome::PLAIN},
+    {Biome::FOREST, {Biome::DESERT}, Biome::PLAIN},
+    {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::PLAIN},
+    {Biome::MOUNTAIN, {Biome::DESERT}, Biome::PLAIN}
+}};
 
 struct BaseBiomeParams {
     Biome biome;

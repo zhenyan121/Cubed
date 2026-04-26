@@ -6,6 +6,7 @@
 #include <Cubed/config.hpp>
 #include <Cubed/primitive_data.hpp>
 #include <Cubed/gameplay/biome.hpp>
+#include <Cubed/gameplay/chunk_generator.hpp>
 #include <Cubed/gameplay/chunk_pos.hpp>
 #include <Cubed/gameplay/block.hpp>
 
@@ -19,22 +20,17 @@ private:
     static constexpr int SIZE_X = CHUCK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUCK_SIZE;
-    
-    static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT {{
-        {Biome::PLAIN, {Biome::NONE}, Biome::PLAIN},
-        {Biome::FOREST, {Biome::DESERT}, Biome::PLAIN},
-        {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::PLAIN},
-        {Biome::MOUNTAIN, {Biome::DESERT}, Biome::PLAIN}
-    }
-    };
+
     using HeightMapArray = std::array<std::array<float, SIZE_Z>, SIZE_X>;
     std::atomic<bool> m_dirty {false};
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data {false};
     std::atomic<size_t> m_vertex_sum = 0;
+    std::atomic<Biome> m_biome = Biome::PLAIN;
     std::mutex m_vertexs_data_mutex;
     
-    std::atomic<Biome> m_biome = Biome::PLAIN;
+    std::unique_ptr<ChunkGenerator> m_generator;
+
     ChunkPos m_chunk_pos;
     World& m_world;
     HeightMapArray m_heightmap;
@@ -57,25 +53,25 @@ public:
     Chunk& operator=(Chunk&&) noexcept;
 
     Biome get_biome() const;
-
+    ChunkPos get_chunk_pos() const;
     const std::vector<uint8_t>& get_chunk_blocks() const;    
     HeightMapArray get_heightmap() const;
     static int get_index(int x, int y, int z);
     static int get_index(const glm::vec3& pos);
     // Init Chunk
-    // Generate Biome
+    // Determine biome from temperature and humidity noise
     void gen_phase_one();
-    // Adjust Biome
+    // Resolve biome adjacency conflicts with neighbor chunks
     void gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks);
-    // Generate Heightmap
+    // Generate heightmap using biome-specific noise
     void gen_phase_three();
-    // Adjust Height
+    // Blend heightmap with neighbors for smooth transitions
     void gen_phase_four(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap);
-    // Generate Block
+    // Generate terrain blocks from heightmap and biome
     void gen_phase_five();
-    // Adjust Block;
+    // Blend surface blocks at chunk borders with neighbors
     void gen_phase_six(const std::array<std::optional<std::vector<uint8_t>>, 4>& neighbor_block);
-    // Generate Structure
+    // Generate biome-specific vegetation/structures
     void gen_phase_seven();
     //void gen_vertex_data();
     // 0 : (1, 0)
@@ -96,6 +92,11 @@ public:
 
     void set_chunk_block(int index, unsigned id);
     
+    ChunkPos chunk_pos() const;
+    Biome biome() const;
+    void biome(Biome b);
+    HeightMapArray& heightmap();
+    std::vector<uint8_t>& blocks();
 };
 
 
