@@ -19,6 +19,7 @@ class DevPanel {
     struct PlayerProfile {
         int game_mode = 0;
         int gait = 0;
+        float pos[3] = {0.0f, 0.0f, 0.0f};
     };
     struct TextEditing {
         bool perlin_seed = false;

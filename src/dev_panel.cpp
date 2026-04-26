@@ -264,14 +264,19 @@ void DevPanel::show_player_tab_item() {
         }
         if (m_player->game_mode() == GameMode::CREATIVE) {
             if (ImGui::Combo("Gait", &m_player_profile.gait, GAITS, IM_ARRAYSIZE(GAITS))) {
-            if (m_player_profile.gait == 0) {
-                m_player->gait() = Gait::WALK;
-            } else if (m_player_profile.gait == 1) {
-                m_player->gait() = Gait::RUN;
-            } else {
-                ASSERT_MSG(false, "Unknown Gait");
+                if (m_player_profile.gait == 0) {
+                    m_player->gait() = Gait::WALK;
+                } else if (m_player_profile.gait == 1) {
+                    m_player->gait() = Gait::RUN;
+                } else {
+                    ASSERT_MSG(false, "Unknown Gait");
+                }
             }
         }
+        ImGui::DragFloat3("##player_pos", m_player_profile.pos);
+        ImGui::SameLine();
+        if (ImGui::Button("TP")) {
+            m_player->set_player_pos({m_player_profile.pos[0], m_player_profile.pos[1], m_player_profile.pos[2]});
         }
         ImGui::SliderFloat("Acceleration", &m_player->acceleration(), 1.0f, 200.0f);
         ImGui::SliderFloat("Deceleration", &m_player->deceleration(), 1.0f, 200.0f);
