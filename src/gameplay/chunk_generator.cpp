@@ -4,6 +4,8 @@
 #include <Cubed/gameplay/tree.hpp>
 #include <Cubed/tools/cubed_hash.hpp>
 #include <Cubed/tools/perlin_noise.hpp>
+
+#include <numeric>
 namespace Cubed {
 
 ChunkGenerator::ChunkGenerator(Chunk& chunk) :
