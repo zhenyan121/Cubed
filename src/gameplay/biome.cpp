@@ -45,7 +45,7 @@ static MountainParams mountain {
     Biome::MOUNTAIN,
     {0.0f, 0.5f},
     {0.5f, 1.0f},
-    {0.006f, 0.015f, 0.030f},
+    {0.006f, 0.014f, 0.010f},
     {70, 70}
     }
 };
