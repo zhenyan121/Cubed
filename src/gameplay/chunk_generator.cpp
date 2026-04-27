@@ -66,6 +66,7 @@ void ChunkGenerator::resolve_biome_adjacency_conflict(const std::array<const Chu
             for (auto b : non.second) {
                 if (b == biome) {
                     m_biome = non.replace;
+                    m_chunk.biome(m_biome);
                     return;
                 }
             }
