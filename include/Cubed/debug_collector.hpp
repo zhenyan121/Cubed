@@ -1,18 +1,16 @@
 #pragma once
 
-#include <Cubed/primitive_data.hpp>
-#include <Cubed/ui/text.hpp>
+#include "Cubed/ui/text.hpp"
 
 #include <unordered_map>
 
 namespace Cubed {
 
-
 class DebugCollector {
 public:
     static DebugCollector& get();
     DebugCollector();
-    
+
     std::unordered_map<std::size_t, Text>& all_texts();
 
     Text& text(std::string_view name);
@@ -23,4 +21,4 @@ private:
     std::unordered_map<std::size_t, Text> m_texts;
 };
 
-}
+} // namespace Cubed

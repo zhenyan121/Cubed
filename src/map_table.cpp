@@ -1,17 +1,18 @@
-#include <Cubed/map_table.hpp>
-#include <Cubed/gameplay/block.hpp>
-#include <Cubed/tools/cubed_assert.hpp>
-#include <Cubed/tools/cubed_hash.hpp>
+#include "Cubed/map_table.hpp"
+
+#include "Cubed/gameplay/block.hpp"
+#include "Cubed/tools/cubed_assert.hpp"
+#include "Cubed/tools/cubed_hash.hpp"
 
 namespace Cubed {
 
 std::unordered_map<unsigned, std::string> MapTable::id_to_name_map;
 std::unordered_map<size_t, unsigned> MapTable::name_to_id_map;
 
-
 const std::string& MapTable::get_name_from_id(unsigned id) {
     auto it = id_to_name_map.find(id);
-    ASSERT_MSG(it != id_to_name_map.end(), "Id: " + std::to_string(id) + " is not exist");
+    ASSERT_MSG(it != id_to_name_map.end(),
+               "Id: " + std::to_string(id) + " is not exist");
     return it->second;
 }
 unsigned MapTable::get_id_from_name(const std::string& name) {
@@ -28,8 +29,6 @@ void MapTable::init_map() {
         id_to_name_map[i] = BLOCK_REISTER[i];
         name_to_id_map[HASH::str(BLOCK_REISTER[i])] = i;
     }
-    
 }
 
-}
-
+} // namespace Cubed

@@ -1,16 +1,14 @@
-#include <Cubed/gameplay/chunk_generator.hpp>
+#include "Cubed/gameplay/chunk_generator.hpp"
 
-#include <Cubed/gameplay/chunk.hpp>
-#include <Cubed/gameplay/tree.hpp>
-#include <Cubed/tools/cubed_hash.hpp>
-#include <Cubed/tools/perlin_noise.hpp>
+#include "Cubed/gameplay/chunk.hpp"
+#include "Cubed/gameplay/tree.hpp"
+#include "Cubed/tools/cubed_hash.hpp"
+#include "Cubed/tools/perlin_noise.hpp"
 
 #include <numeric>
 namespace Cubed {
 
-ChunkGenerator::ChunkGenerator(Chunk& chunk) :
-    m_chunk(chunk)
-{
+ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ASSERT_MSG(is_init, "ChunksGenerator is not init");
     ChunkPos pos = m_chunk.get_chunk_pos();
     unsigned seed = HASH::mix_hash(pos.x, pos.z, m_generator_seed);
@@ -33,26 +31,26 @@ void ChunkGenerator::reload() {
     is_seed_change = false;
 }
 
-const unsigned& ChunkGenerator::seed() {
-    return m_generator_seed;
-}
+const unsigned& ChunkGenerator::seed() { return m_generator_seed; }
 void ChunkGenerator::seed(unsigned s) {
     is_seed_change = true;
     m_generator_seed = s;
 }
 
-
 void ChunkGenerator::assign_chunk_biome() {
     auto m_chunk_pos = m_chunk.chunk_pos();
     float x = static_cast<float>(m_chunk_pos.x);
     float z = static_cast<float>(m_chunk_pos.z);
-    float temp  = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 0.0f, z * BIOME_NOISE_FREQUENCY);
-    float humid = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 1.0f, z * BIOME_NOISE_FREQUENCY);
+    float temp = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 0.0f,
+                                    z * BIOME_NOISE_FREQUENCY);
+    float humid = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 1.0f,
+                                     z * BIOME_NOISE_FREQUENCY);
     auto biome = get_biome_from_noise(temp, humid);
     m_chunk.biome(biome);
 }
 
-void ChunkGenerator::resolve_biome_adjacency_conflict(const std::array<const Chunk*, 4>& adj_chunks) {
+void ChunkGenerator::resolve_biome_adjacency_conflict(
+    const std::array<const Chunk*, 4>& adj_chunks) {
     auto m_biome = m_chunk.biome();
     for (auto& chunk : adj_chunks) {
         if (chunk == nullptr) {
@@ -75,33 +73,36 @@ void ChunkGenerator::resolve_biome_adjacency_conflict(const std::array<const Chu
 }
 
 void ChunkGenerator::generate_heightmap() {
-    
+
     auto m_chunk_pos = m_chunk.chunk_pos();
     auto& m_heightmap = m_chunk.heightmap();
     auto m_biome = m_chunk.biome();
 
     for (int x = 0; x < CHUCK_SIZE; x++) {
         for (int z = 0; z < CHUCK_SIZE; z++) {
-             
+
             float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
             float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
 
             auto sample_height = [&](Biome b) -> float {
                 auto range = get_biome_height_range(b);
                 auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
-                float n =
-                    1.00f * PerlinNoise::noise(world_x * f1, 0.5f, world_z * f1) +
-                    0.50f * PerlinNoise::noise(world_x * f2, 0.5f, world_z * f2) +
-                    0.25f * PerlinNoise::noise(world_x * f3, 0.5f, world_z * f3);
+                float n = 1.00f * PerlinNoise::noise(world_x * f1, 0.5f,
+                                                     world_z * f1) +
+                          0.50f * PerlinNoise::noise(world_x * f2, 0.5f,
+                                                     world_z * f2) +
+                          0.25f * PerlinNoise::noise(world_x * f3, 0.5f,
+                                                     world_z * f3);
                 n /= 1.75f;
                 return range.base_y + n * range.amplitude;
             };
-            m_heightmap[x][z] = sample_height(m_biome); 
+            m_heightmap[x][z] = sample_height(m_biome);
         }
     }
 }
 
-void ChunkGenerator::blend_heightmap_boundaries(const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
+void ChunkGenerator::blend_heightmap_boundaries(
+    const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
     auto& m_heightmap = m_chunk.heightmap();
 
     // Width of interpolation influence (in number of cells)
@@ -119,8 +120,11 @@ void ChunkGenerator::blend_heightmap_boundaries(const std::array<std::optional<H
                 int dist = (SIZE_X - 1) - x; // distance from right border
                 if (dist < BLEND_RADIUS) {
                     // Neighbor's boundary row is its x=0 column
-                    float neighbor_h = static_cast<float>((*neighbor_heightmap[0])[0][z]);
-                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS; // larger weight when closer
+                    float neighbor_h =
+                        static_cast<float>((*neighbor_heightmap[0])[0][z]);
+                    float t =
+                        1.0f - static_cast<float>(dist) /
+                                   BLEND_RADIUS; // larger weight when closer
                     // Use smoothstep for a more natural transition
                     t = t * t * (3.0f - 2.0f * t);
                     blended += t * neighbor_h;
@@ -132,7 +136,8 @@ void ChunkGenerator::blend_heightmap_boundaries(const std::array<std::optional<H
             if (neighbor_heightmap[1] != std::nullopt) {
                 int dist = x; // distance from left border
                 if (dist < BLEND_RADIUS) {
-                    float neighbor_h = static_cast<float>((*neighbor_heightmap[1])[SIZE_X - 1][z]);
+                    float neighbor_h = static_cast<float>(
+                        (*neighbor_heightmap[1])[SIZE_X - 1][z]);
                     float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                     t = t * t * (3.0f - 2.0f * t);
                     blended += t * neighbor_h;
@@ -144,7 +149,8 @@ void ChunkGenerator::blend_heightmap_boundaries(const std::array<std::optional<H
             if (neighbor_heightmap[2] != std::nullopt) {
                 int dist = (SIZE_Z - 1) - z;
                 if (dist < BLEND_RADIUS) {
-                    float neighbor_h = static_cast<float>((*neighbor_heightmap[2])[x][0]);
+                    float neighbor_h =
+                        static_cast<float>((*neighbor_heightmap[2])[x][0]);
                     float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                     t = t * t * (3.0f - 2.0f * t);
                     blended += t * neighbor_h;
@@ -156,7 +162,8 @@ void ChunkGenerator::blend_heightmap_boundaries(const std::array<std::optional<H
             if (neighbor_heightmap[3] != std::nullopt) {
                 int dist = z;
                 if (dist < BLEND_RADIUS) {
-                    float neighbor_h = static_cast<float>((*neighbor_heightmap[3])[x][SIZE_Z - 1]);
+                    float neighbor_h = static_cast<float>(
+                        (*neighbor_heightmap[3])[x][SIZE_Z - 1]);
                     float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                     t = t * t * (3.0f - 2.0f * t);
                     blended += t * neighbor_h;
@@ -196,7 +203,6 @@ void ChunkGenerator::generate_terrain_blocks() {
                     } else {
                         m_blocks[Chunk::get_index(x, y, z)] = 2;
                     }
-                    
                 }
                 if (height > 110) {
                     m_blocks[Chunk::get_index(x, height - 1, z)] = 3;
@@ -219,19 +225,24 @@ void ChunkGenerator::generate_terrain_blocks() {
     }
 }
 
-void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional<std::vector<uint8_t>>, 4>& neighbor_block) {
+void ChunkGenerator::blend_surface_blocks_borders(
+    const std::array<std::optional<std::vector<uint8_t>>, 4>& neighbor_block) {
     auto& m_blocks = m_chunk.blocks();
     auto& m_heightmap = m_chunk.heightmap();
-    
+
     constexpr int BLEND_RADIUS = 12;
     constexpr int WORLD_HEIGHT = WORLD_SIZE_Y;
 
-    // Helper lambda: get top block type from a neighbor's block data at (nx, nz)
-    auto get_top_block_from_neighbor = [&](const std::vector<uint8_t>& blocks, int nx, int nz) -> uint8_t {
+    // Helper lambda: get top block type from a neighbor's block data at (nx,
+    // nz)
+    auto get_top_block_from_neighbor = [&](const std::vector<uint8_t>& blocks,
+                                           int nx, int nz) -> uint8_t {
         // Search from topmost y downwards for the first non-zero block
         for (int y = WORLD_HEIGHT - 1; y >= 0; --y) {
-            int idx = Chunk::get_index(nx, y, nz); // linear index: y * area + z * size + x
-            if (idx >= 0 && idx < static_cast<int>(blocks.size()) && blocks[idx] != 0) {
+            int idx = Chunk::get_index(
+                nx, y, nz); // linear index: y * area + z * size + x
+            if (idx >= 0 && idx < static_cast<int>(blocks.size()) &&
+                blocks[idx] != 0) {
                 return blocks[idx];
             }
         }
@@ -247,7 +258,8 @@ void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional
             top_y = m_heightmap[x][z];
             type_self = m_blocks[Chunk::get_index(x, top_y, z)];
 
-            if (top_y == -1) continue; // no block? skip
+            if (top_y == -1)
+                continue; // no block? skip
 
             // Weight map: type -> total weight
             std::unordered_map<uint8_t, float> weights;
@@ -259,7 +271,8 @@ void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t); // smoothstep
                 if (t > 0.0f) {
-                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[0], 0, z);
+                    uint8_t type_neighbor =
+                        get_top_block_from_neighbor(*neighbor_block[0], 0, z);
                     weights[type_neighbor] += t;
                 }
             }
@@ -270,7 +283,8 @@ void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
-                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[1], CHUCK_SIZE - 1, z);
+                    uint8_t type_neighbor = get_top_block_from_neighbor(
+                        *neighbor_block[1], CHUCK_SIZE - 1, z);
                     weights[type_neighbor] += t;
                 }
             }
@@ -281,7 +295,8 @@ void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
-                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[2], x, 0);
+                    uint8_t type_neighbor =
+                        get_top_block_from_neighbor(*neighbor_block[2], x, 0);
                     weights[type_neighbor] += t;
                 }
             }
@@ -292,7 +307,8 @@ void ChunkGenerator::blend_surface_blocks_borders(const std::array<std::optional
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
-                    uint8_t type_neighbor = get_top_block_from_neighbor(*neighbor_block[3], x, CHUCK_SIZE - 1);
+                    uint8_t type_neighbor = get_top_block_from_neighbor(
+                        *neighbor_block[3], x, CHUCK_SIZE - 1);
                     weights[type_neighbor] += t;
                 }
             }
@@ -337,14 +353,12 @@ void ChunkGenerator::generate_vegetation() {
         for (auto x : x_arr) {
             for (auto z : z_arr) {
                 if (m_random.random_bool(forest_params().tree_frequency)) {
-                    build_tree(m_chunk, {x, static_cast<int>(m_heightmap[x][z]), z});
+                    build_tree(m_chunk,
+                               {x, static_cast<int>(m_heightmap[x][z]), z});
                 }
-                
             }
         }
     }
 }
 
-
-
-}
+} // namespace Cubed

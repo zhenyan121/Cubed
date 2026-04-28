@@ -1,27 +1,24 @@
-#include <Cubed/shader.hpp>
-#include <Cubed/tools/cubed_assert.hpp>
-#include <Cubed/tools/cubed_hash.hpp>
-#include <Cubed/tools/log.hpp>
-#include <Cubed/tools/shader_tools.hpp>
+#include "Cubed/shader.hpp"
+
+#include "Cubed/tools/cubed_assert.hpp"
+#include "Cubed/tools/cubed_hash.hpp"
+#include "Cubed/tools/log.hpp"
+#include "Cubed/tools/shader_tools.hpp"
 
 namespace Cubed {
 
+Shader::Shader() {}
 
-Shader::Shader() {
-
-}
-
-Shader::Shader(const std::string& name, const std::string& v_shader_path, const std::string& f_shader_path) {
+Shader::Shader(const std::string& name, const std::string& v_shader_path,
+               const std::string& f_shader_path) {
     m_program = Tools::create_shader_program(v_shader_path, f_shader_path);
     m_name = name;
     m_hash = HASH::str(name);
 }
 
-Shader::Shader(Shader&& shader) noexcept:
-    m_program(shader.m_program),
-    m_hash(shader.m_hash),
-    m_name(std::move(shader.m_name))
-{
+Shader::Shader(Shader&& shader) noexcept
+    : m_program(shader.m_program), m_hash(shader.m_hash),
+      m_name(std::move(shader.m_name)) {
     shader.m_hash = 0;
     shader.m_program = 0;
 }
@@ -32,7 +29,7 @@ Shader::~Shader() {
     }
 }
 
-Shader& Shader::operator=(Shader&& shader) noexcept{
+Shader& Shader::operator=(Shader&& shader) noexcept {
     m_hash = shader.m_hash;
     m_name = std::move(shader.m_name);
     m_program = shader.m_program;
@@ -41,7 +38,8 @@ Shader& Shader::operator=(Shader&& shader) noexcept{
     return *this;
 }
 
-void Shader::create(const std::string& name, const std::string& v_shader_path, const std::string& f_shader_path) {
+void Shader::create(const std::string& name, const std::string& v_shader_path,
+                    const std::string& f_shader_path) {
     if (!m_program) {
         Logger::warn("Shader has already created !");
         return;
@@ -72,14 +70,13 @@ GLuint Shader::loc(const std::string& loc) const {
 const std::string& Shader::name() const {
     if (m_name == "-1") {
         Logger::warn("Shader has already created !");
-        
     }
     return m_name;
 }
 
-void Shader::use() const{
+void Shader::use() const {
     ASSERT_MSG(m_program, "Shader don't create !");
     glUseProgram(m_program);
 }
 
-}
+} // namespace Cubed

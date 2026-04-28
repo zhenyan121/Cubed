@@ -1,6 +1,7 @@
 #pragma once
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-namespace Cubed{
+namespace Cubed {
 
 class Renderer;
 class Window {
@@ -19,7 +20,7 @@ public:
 
     void toggle_fullscreen();
     void toggle_mouse_able();
-    
+
 private:
     bool m_mouse_enable = false;
     float m_aspect;
@@ -27,7 +28,6 @@ private:
     int m_width;
     int m_height;
     Renderer& m_renderer;
-    
 };
 
-}
+} // namespace Cubed

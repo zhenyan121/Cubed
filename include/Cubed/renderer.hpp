@@ -1,12 +1,10 @@
 #pragma once
 
-#include <Cubed/config.hpp>
-#include <Cubed/constants.hpp>
-#include <Cubed/primitive_data.hpp>
-#include <Cubed/shader.hpp>
-#include <Cubed/ui/text.hpp>
+#include "Cubed/constants.hpp"
+#include "Cubed/primitive_data.hpp"
+#include "Cubed/shader.hpp"
+#include "Cubed/ui/text.hpp"
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <vector>
 namespace Cubed {
@@ -19,7 +17,8 @@ class Renderer {
 public:
     constexpr static int NUM_VAO = 5;
 
-    Renderer(const Camera& camera, World& world, const TextureManager& texture_manager, DevPanel& dev_panel);
+    Renderer(const Camera& camera, World& world,
+             const TextureManager& texture_manager, DevPanel& dev_panel);
     ~Renderer();
     void hot_reload();
     void init();
@@ -27,8 +26,8 @@ public:
     void render();
     void update_fov(float fov);
     void update_proj_matrix(float aspect, float width, float height);
+
 private:
-    
     const Camera& m_camera;
     DevPanel& m_dev_panel;
     const TextureManager& m_texture_manager;
@@ -37,7 +36,7 @@ private:
     float m_aspect = 0.0f;
     float m_fov = DEFAULT_FOV;
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat;
-    
+
     GLuint m_mv_loc;
     GLuint m_proj_loc;
 
@@ -57,10 +56,10 @@ private:
 
     void render_outline();
     void render_sky();
-    void render_text(); 
+    void render_text();
     void render_ui();
     void render_world();
     void render_dev_panel();
 };
 
-}
+} // namespace Cubed

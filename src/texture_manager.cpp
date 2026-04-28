@@ -1,19 +1,17 @@
-#include <Cubed/texture_manager.hpp>
-#include <Cubed/constants.hpp>
-#include <Cubed/map_table.hpp>
-#include <Cubed/tools/cubed_assert.hpp>
-#include <Cubed/tools/log.hpp>
+#include "Cubed/texture_manager.hpp"
+
+#include "Cubed/config.hpp"
+#include "Cubed/constants.hpp"
+#include "Cubed/map_table.hpp"
+#include "Cubed/tools/cubed_assert.hpp"
+#include "Cubed/tools/log.hpp"
+#include "Cubed/tools/shader_tools.hpp"
 
 namespace Cubed {
 
+TextureManager::TextureManager() {}
 
-TextureManager::TextureManager() {
-
-}
-
-TextureManager::~TextureManager() {
-    delet_texture();   
-}
+TextureManager::~TextureManager() { delet_texture(); }
 
 void TextureManager::delet_texture() {
     glDeleteTextures(1, &m_texture_array);
@@ -21,17 +19,13 @@ void TextureManager::delet_texture() {
     Logger::info("Successfully delete all texture");
 }
 
-GLuint TextureManager::get_block_status_array() const{
+GLuint TextureManager::get_block_status_array() const {
     return m_block_status_array;
 }
 
-GLuint TextureManager::get_texture_array() const{
-    return m_texture_array;
-}
+GLuint TextureManager::get_texture_array() const { return m_texture_array; }
 
-GLuint TextureManager::get_ui_array() const{
-    return m_ui_array;
-}
+GLuint TextureManager::get_ui_array() const { return m_ui_array; }
 
 void TextureManager::load_block_status(unsigned id) {
 
@@ -40,12 +34,8 @@ void TextureManager::load_block_status(unsigned id) {
     unsigned char* image_data = nullptr;
     image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                        0 ,0, id,
-                        16, 16, 1,
-                        GL_RGBA, GL_UNSIGNED_BYTE,
-                        image_data
-                    );
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, id, 16, 16, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, image_data);
     Tools::delete_image_data(image_data);
 }
 
@@ -65,20 +55,15 @@ void TextureManager::load_block_texture(unsigned id) {
     image_data[3] = (Tools::load_image_data(block_texture_path + "/left.png"));
     image_data[4] = (Tools::load_image_data(block_texture_path + "/top.png"));
     image_data[5] = (Tools::load_image_data(block_texture_path + "/base.png"));
-    
+
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
     Tools::check_opengl_error();
     for (int i = 0; i < 6; i++) {
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-            0, 0, id * 6 + i,
-            16, 16, 1,
-            GL_RGBA, GL_UNSIGNED_BYTE,
-            image_data[i]
-            );
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, id * 6 + i, 16, 16, 1,
+                        GL_RGBA, GL_UNSIGNED_BYTE, image_data[i]);
         Tools::check_opengl_error();
         Tools::delete_image_data(image_data[i]);
     }
-
 }
 
 void TextureManager::load_ui_texture(unsigned id) {
@@ -88,20 +73,16 @@ void TextureManager::load_ui_texture(unsigned id) {
     unsigned char* image_data = nullptr;
     image_data = (Tools::load_image_data(path));
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0,
-                        0 ,0, id,
-                        16, 16, 1,
-                        GL_RGBA, GL_UNSIGNED_BYTE,
-                        image_data
-                    );
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, id, 16, 16, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, image_data);
     Tools::delete_image_data(image_data);
-
 }
 
 void TextureManager::init_texture() {
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &m_max_aniso);
     if (m_max_aniso > 0.0f) {
-        Logger::info("Support anisotropic filtering max_aniso is {}", m_max_aniso);
+        Logger::info("Support anisotropic filtering max_aniso is {}",
+                     m_max_aniso);
     }
     m_aniso = Config::get().get<int>("texture.aniso");
     m_aniso = std::min(static_cast<int>(m_max_aniso), m_aniso);
@@ -112,12 +93,8 @@ void TextureManager::init_texture() {
     Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
     Tools::check_opengl_error();
-    glTexImage3D(GL_TEXTURE_2D_ARRAY,
-        0, GL_RGBA,
-        16, 16,
-        MAX_BLOCK_NUM * 6,
-        0, GL_RGBA,
-        GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, MAX_BLOCK_NUM * 6, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     Tools::check_opengl_error();
     for (int i = 0; i < MAX_BLOCK_NUM; i++) {
         load_block_texture(i);
@@ -127,24 +104,22 @@ void TextureManager::init_texture() {
     Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     Tools::check_opengl_error();
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
     Tools::check_opengl_error();
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     Tools::check_opengl_error();
     if (m_aniso >= 1) {
-        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(m_aniso));
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY,
+                        static_cast<GLfloat>(m_aniso));
     }
-    
+
     glGenTextures(1, &m_block_status_array);
     Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_block_status_array);
     Tools::check_opengl_error();
-    glTexImage3D(GL_TEXTURE_2D_ARRAY,
-        0, GL_RGBA,
-        16, 16,
-        MAX_BLOCK_STATUS,
-        0, GL_RGBA,
-        GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, MAX_BLOCK_STATUS, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     Tools::check_opengl_error();
     for (int i = 0; i < MAX_BLOCK_STATUS; i++) {
         load_block_status(i);
@@ -154,25 +129,23 @@ void TextureManager::init_texture() {
     Tools::check_opengl_error();
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     Tools::check_opengl_error();
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
     Tools::check_opengl_error();
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     Tools::check_opengl_error();
 
     if (m_aniso >= 1) {
-        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY, static_cast<GLfloat>(m_aniso));
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY,
+                        static_cast<GLfloat>(m_aniso));
     }
-    
+
     glGenTextures(1, &m_ui_array);
     Tools::check_opengl_error();
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
     Tools::check_opengl_error();
-    glTexImage3D(GL_TEXTURE_2D_ARRAY,
-        0, GL_RGBA,
-        16, 16,
-        MAX_UI_NUM,
-        0, GL_RGBA,
-        GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, MAX_UI_NUM, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     Tools::check_opengl_error();
     for (int i = 0; i < MAX_UI_NUM; i++) {
         load_ui_texture(i);
@@ -180,9 +153,7 @@ void TextureManager::init_texture() {
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_ui_array);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
-
-
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 void TextureManager::update() {
@@ -191,19 +162,15 @@ void TextureManager::update() {
     }
 }
 
-void TextureManager::need_reload() {
-    m_need_reload = true;
-}
+void TextureManager::need_reload() { m_need_reload = true; }
 
 void TextureManager::hot_reload() {
     delet_texture();
-    
+
     init_texture();
     m_need_reload = false;
 }
 
-int TextureManager::max_aniso() const {
-    return static_cast<int>(m_max_aniso);
-}
+int TextureManager::max_aniso() const { return static_cast<int>(m_max_aniso); }
 
-}
+} // namespace Cubed

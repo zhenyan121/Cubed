@@ -3,17 +3,12 @@
 
 namespace Cubed {
 
-
 struct AABB {
     glm::vec3 min{0.0f, 0.0f, 0.0f};
     glm::vec3 max{0.0f, 0.0f, 0.0f};
 
-    AABB(glm::vec3 min_point, glm::vec3 max_point):
-        min(min_point),
-        max(max_point)
-    {
-
-    }
+    AABB(glm::vec3 min_point, glm::vec3 max_point)
+        : min(min_point), max(max_point) {}
 
     bool intersects(const AABB& other) const {
         return (min.x <= other.max.x && max.x >= other.min.x) &&
@@ -22,4 +17,4 @@ struct AABB {
     }
 };
 
-}
+} // namespace Cubed

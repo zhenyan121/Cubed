@@ -1,36 +1,39 @@
 #pragma once
 
+#include "Cubed/tools/log.hpp"
+
 #include <string>
-#include <Cubed/tools/log.hpp>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <psapi.h>
-typedef LONG (WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+#include <windows.h>
+typedef LONG(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 #elif defined(__linux__)
+#include <fstream>
 #include <sys/resource.h>
 #include <unistd.h>
-#include <fstream>
 #endif
 
 namespace Cubed {
-
 
 namespace Tools {
 
 inline bool get_os_version(std::string& str) {
 #ifdef _WIN32
     HMODULE hntdll = GetModuleHandleW(L"ntdll.dll");
-    if (!hntdll) return false;
+    if (!hntdll)
+        return false;
 
     auto prtl_get_version = reinterpret_cast<RtlGetVersionPtr>(
         GetProcAddress(hntdll, "RtlGetVersion"));
-    if (!prtl_get_version) return false;
+    if (!prtl_get_version)
+        return false;
 
-    RTL_OSVERSIONINFOW osvi = { 0 };
+    RTL_OSVERSIONINFOW osvi = {0};
     osvi.dwOSVersionInfoSize = sizeof(osvi);
-    if (prtl_get_version(&osvi) != 0) return false;
+    if (prtl_get_version(&osvi) != 0)
+        return false;
     if (osvi.dwMajorVersion == 10) {
         if (osvi.dwBuildNumber >= 22000) {
             str = "Windows 11 Build " + std::to_string(osvi.dwBuildNumber);
@@ -58,7 +61,7 @@ inline bool get_os_version(std::string& str) {
             continue;
         }
         str = line.substr(eq_pos + 1);
-        
+
         if (str.size() >= 2 && str.front() == '"' && str.back() == '"') {
             str = str.substr(1, str.size() - 2);
             return true;
@@ -74,7 +77,8 @@ inline bool get_os_version(std::string& str) {
 inline size_t get_current_rss() {
 #ifdef _WIN32
     PROCESS_MEMORY_COUNTERS_EX pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+    if (GetProcessMemoryInfo(GetCurrentProcess(),
+                             (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
         return pmc.WorkingSetSize;
     }
     return 0;
@@ -94,19 +98,25 @@ inline std::string get_cpu_info() {
 #ifdef _WIN32
     HKEY h_key;
     std::string cpu_name;
-    
+
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-        L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-        0, KEY_READ, &h_key) == ERROR_SUCCESS) {
-        
+                      L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0,
+                      KEY_READ, &h_key) == ERROR_SUCCESS) {
+
         DWORD dw_size = 0;
-        if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL, NULL, &dw_size) == ERROR_SUCCESS && dw_size > 0) {
+        if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL, NULL,
+                             &dw_size) == ERROR_SUCCESS &&
+            dw_size > 0) {
             std::vector<wchar_t> buffer(dw_size / sizeof(wchar_t));
-            if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL, (LPBYTE)buffer.data(), &dw_size) == ERROR_SUCCESS) {
-                int len = WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1, NULL, 0, NULL, NULL);
+            if (RegQueryValueExW(h_key, L"ProcessorNameString", NULL, NULL,
+                                 (LPBYTE)buffer.data(),
+                                 &dw_size) == ERROR_SUCCESS) {
+                int len = WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1,
+                                              NULL, 0, NULL, NULL);
                 if (len > 0) {
                     std::vector<char> narrow(len);
-                    WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1, narrow.data(), len, NULL, NULL);
+                    WideCharToMultiByte(CP_UTF8, 0, buffer.data(), -1,
+                                        narrow.data(), len, NULL, NULL);
                     cpu_name = narrow.data();
                 }
             }
@@ -117,7 +127,7 @@ inline std::string get_cpu_info() {
         cpu_name = "Unknown";
     }
     return cpu_name;
-#elif defined (__linux__)
+#elif defined(__linux__)
     std::ifstream file("/proc/cpuinfo");
     if (!file.is_open()) {
         return std::string{"Unkown"};
@@ -141,8 +151,6 @@ inline std::string get_cpu_info() {
 #endif
 }
 
+} // namespace Tools
 
-}
-
-
-}
+} // namespace Cubed

@@ -29,11 +29,12 @@ class DevPanel {
     struct TextEditing {
         bool perlin_seed = false;
     };
+
 public:
     DevPanel(App& app);
     void init();
     void render();
-    
+
 private:
     App& m_app;
     ConfigView m_config;
@@ -50,8 +51,6 @@ private:
 
     void update_config_view();
     void update_player_profile();
-    
 };
 
-
-}
+} // namespace Cubed

@@ -4,7 +4,6 @@
 
 namespace Cubed {
 
-
 struct MoveState {
     bool forward = false;
     bool back = false;
@@ -30,10 +29,8 @@ struct InputState {
 };
 
 namespace Input {
-    InputState& get_input_state();
-
-    
-}
-
+InputState& get_input_state();
 
 }
+
+} // namespace Cubed

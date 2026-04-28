@@ -17,5 +17,4 @@ private:
     std::mt19937 m_engine;
 };
 
-
-}
+} // namespace Cubed

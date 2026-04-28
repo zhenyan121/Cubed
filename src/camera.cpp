@@ -1,13 +1,11 @@
-#include <Cubed/camera.hpp>
-#include <Cubed/gameplay/player.hpp>
-#include <Cubed/tools/cubed_assert.hpp>
+#include "Cubed/camera.hpp"
+
+#include "Cubed/gameplay/player.hpp"
+#include "Cubed/tools/cubed_assert.hpp"
 
 namespace Cubed {
 
-
-Camera::Camera() {
-
-}
+Camera::Camera() {}
 
 void Camera::update_move_camera() {
     ASSERT_MSG(m_player, "nullptr");
@@ -16,7 +14,6 @@ void Camera::update_move_camera() {
     m_camera_pos = glm::vec3(pos.x, pos.y + 1.6f, pos.z);
 }
 
-
 void Camera::camera_init(Player* player) {
     m_player = player;
     update_move_camera();
@@ -24,13 +21,9 @@ void Camera::camera_init(Player* player) {
     hot_reload();
 }
 
-void Camera::hot_reload() {
+void Camera::hot_reload() {}
 
-}
-
-void Camera::reset_camera() {
-    m_firse_mouse = true;
-}
+void Camera::reset_camera() { m_firse_mouse = true; }
 
 void Camera::update_cursor_position_camera(double xpos, double ypos) {
     if (m_firse_mouse) {
@@ -49,14 +42,12 @@ void Camera::update_cursor_position_camera(double xpos, double ypos) {
     m_player->update_front_vec(offset_x, offset_y);
 }
 
-const glm::mat4 Camera::get_camera_lookat() const{
+const glm::mat4 Camera::get_camera_lookat() const {
     ASSERT_MSG(m_player, "nullptr");
-    return glm::lookAt(m_camera_pos, m_camera_pos + m_player->get_front(), glm::vec3(0.0f, 1.0f, 0.0f));
+    return glm::lookAt(m_camera_pos, m_camera_pos + m_player->get_front(),
+                       glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-const glm::vec3& Camera::get_camera_pos() const {
-    return m_camera_pos;
-}
+const glm::vec3& Camera::get_camera_pos() const { return m_camera_pos; }
 
-
-}
+} // namespace Cubed

@@ -1,15 +1,12 @@
-#include <Cubed/debug_collector.hpp>
+#include "Cubed/debug_collector.hpp"
 
-#include <Cubed/config.hpp>
-#include <Cubed/tools/system_info.hpp>
-#include <Cubed/tools/cubed_hash.hpp>
+#include "Cubed/config.hpp"
+#include "Cubed/tools/cubed_hash.hpp"
+#include "Cubed/tools/system_info.hpp"
 
 namespace Cubed {
 
-
-DebugCollector::DebugCollector() {
-
-}
+DebugCollector::DebugCollector() {}
 
 DebugCollector& DebugCollector::get() {
     static DebugCollector instance;
@@ -27,70 +24,54 @@ void DebugCollector::init_text() {
     Text opengl_version_text("opengl_version");
     Text biome_text("biome");
     Text speed_text("speed");
-    version_text
-        .position(0.0f, 100.0f)
+    version_text.position(0.0f, 100.0f)
         .scale(0.8f)
         .color(Color::WHITE)
         .text("Version: " + Config::get().get<std::string>("version"));
-    fps_text
-        .position(0.0f, 50.0f)
-        .text("FPS: 0");
-    player_pos_text
-        .position(0.0f, 150.0f)
+    fps_text.position(0.0f, 50.0f).text("FPS: 0");
+    player_pos_text.position(0.0f, 150.0f)
         .scale(0.8f)
         .text("x: 0.00 y: 0.00 z: 0.00");
-    rendered_chunk_text
-        .text("Rendered Chunk: 0")
+    rendered_chunk_text.text("Rendered Chunk: 0")
         .scale(0.8f)
         .position(0.0, 200.0f);
-    rss_text
-        .text("RSS: 0mb")
-        .scale(0.8f)
-        .position(0.0f, 300.0f);
+    rss_text.text("RSS: 0mb").scale(0.8f).position(0.0f, 300.0f);
     std::string os;
-    
+
     Text os_text("os");
-        os_text
-        .scale(0.8f)
-        .position(0.0f, 250.0f);
+    os_text.scale(0.8f).position(0.0f, 250.0f);
     if (Tools::get_os_version(os)) {
-        os_text
-            .text("OS: " + os);
+        os_text.text("OS: " + os);
         Logger::info("System: {}", os);
     } else {
-        os_text
-            .text("OS: Unknown");
-            
+        os_text.text("OS: Unknown");
     }
-    cpu_text
-        .text("CPU: " + Tools::get_cpu_info())
+    cpu_text.text("CPU: " + Tools::get_cpu_info())
         .scale(0.7f)
         .position(0.0f, 350.0f);
     gpu_text
-        .text(std::string{"GPU: "} + reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
+        .text(std::string{"GPU: "} +
+              reinterpret_cast<const char*>(glGetString(GL_RENDERER)))
         .scale(0.7f)
         .position(0.0f, 400.0f);
     opengl_version_text
-        .text("OpenGL: " + std::to_string(GLVersion.major) + "." + std::to_string(GLVersion.minor))
+        .text("OpenGL: " + std::to_string(GLVersion.major) + "." +
+              std::to_string(GLVersion.minor))
         .scale(0.7f)
         .position(0.0f, 450.0f);
-    biome_text
-        .text("Biome: ")
-        .scale(0.8f)
-        .position(0.0f, 500.0f);
-    speed_text
-        .text("Speed: 0 m/s")
-        .scale(0.8f)
-        .position(0.0f, 550.0f);
+    biome_text.text("Biome: ").scale(0.8f).position(0.0f, 500.0f);
+    speed_text.text("Speed: 0 m/s").scale(0.8f).position(0.0f, 550.0f);
     m_texts.insert({version_text.uuid(), std::move(version_text)});
     m_texts.insert({fps_text.uuid(), std::move(fps_text)});
     m_texts.insert({player_pos_text.uuid(), std::move(player_pos_text)});
-    m_texts.insert({rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
+    m_texts.insert(
+        {rendered_chunk_text.uuid(), std::move(rendered_chunk_text)});
     m_texts.insert({os_text.uuid(), std::move(os_text)});
     m_texts.insert({rss_text.uuid(), std::move(rss_text)});
     m_texts.insert({cpu_text.uuid(), std::move(cpu_text)});
     m_texts.insert({gpu_text.uuid(), std::move(gpu_text)});
-    m_texts.insert({opengl_version_text.uuid(), std::move(opengl_version_text)});
+    m_texts.insert(
+        {opengl_version_text.uuid(), std::move(opengl_version_text)});
     m_texts.insert({biome_text.uuid(), std::move(biome_text)});
     m_texts.insert({speed_text.uuid(), std::move(speed_text)});
 }
@@ -100,7 +81,7 @@ std::unordered_map<std::size_t, Text>& DebugCollector::all_texts() {
 }
 
 Text& DebugCollector::text(std::string_view name) {
-    std::size_t id  = HASH::str(name);
+    std::size_t id = HASH::str(name);
     auto it = m_texts.find(id);
     ASSERT_MSG(it != m_texts.end(), "Can't Find Text");
     return it->second;
@@ -111,4 +92,4 @@ void DebugCollector::report(std::string_view name, std::string_view content) {
     t.text(content);
 }
 
-}
+} // namespace Cubed

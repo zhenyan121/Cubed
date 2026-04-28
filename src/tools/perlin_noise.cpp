@@ -1,14 +1,14 @@
-#include <Cubed/tools/perlin_noise.hpp>
+#include "Cubed/tools/perlin_noise.hpp"
 
-#include <Cubed/config.hpp>
-#include <Cubed/tools/cubed_assert.hpp>
-#include <Cubed/tools/cubed_random.hpp>
+#include "Cubed/config.hpp"
+#include "Cubed/tools/cubed_assert.hpp"
+#include "Cubed/tools/cubed_random.hpp"
+
 #include <algorithm>
 #include <numeric>
 #include <random>
 
 namespace Cubed {
-
 
 void PerlinNoise::init(unsigned seed) {
     p.resize(256);
@@ -41,27 +41,23 @@ float PerlinNoise::noise(float x, float y, float z) {
     int ba = p[b] + iz;
     int bb = p[b + 1] + iz;
 
-    float res = lerp (w,
-        lerp (v,
-            lerp(u, grad(p[aa], x, y, z), grad(p[ba], x - 1, y, z)),
-            lerp(u, grad(p[ab], x, y - 1, z), grad(p[bb], x - 1, y - 1, z))
-        ),
+    float res = lerp(
+        w,
+        lerp(v, lerp(u, grad(p[aa], x, y, z), grad(p[ba], x - 1, y, z)),
+             lerp(u, grad(p[ab], x, y - 1, z), grad(p[bb], x - 1, y - 1, z))),
         lerp(v,
-            lerp(u, grad(p[aa + 1], x, y, z - 1), grad(p[ba + 1], x - 1, y, z - 1)),
-            lerp(u, grad(p[ab + 1], x, y - 1, z - 1), grad(p[bb + 1 ], x - 1, y - 1, z - 1))
-        )
-        
+             lerp(u, grad(p[aa + 1], x, y, z - 1),
+                  grad(p[ba + 1], x - 1, y, z - 1)),
+             lerp(u, grad(p[ab + 1], x, y - 1, z - 1),
+                  grad(p[bb + 1], x - 1, y - 1, z - 1)))
+
     );
     return (res + 1.0f) / 2.0f;
 }
 
-float PerlinNoise::fade(float t) {
-    return t * t * t * (t * (t * 6 - 15) + 10);
-}
+float PerlinNoise::fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 
-float PerlinNoise::lerp(float t, float a, float b) {
-    return a + t * (b - a);
-}
+float PerlinNoise::lerp(float t, float a, float b) { return a + t * (b - a); }
 
 float PerlinNoise::grad(int hash, float x, float y, float z) {
     int h = hash & 15;
@@ -83,4 +79,4 @@ void PerlinNoise::reload(unsigned seed) {
     is_init = true;
 }
 
-}
+} // namespace Cubed
