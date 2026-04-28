@@ -1,4 +1,3 @@
-
 # .github/workflows/format-check.yml
 name: Code Format Check
 
@@ -7,7 +6,7 @@ on: [push, pull_request]
 jobs:
   formatting:
     runs-on: ubuntu-latest
-    container: silkeh/clang:21    # 修改为存在的版本
+    container: silkeh/clang:latest   
     steps:
       - uses: actions/checkout@v4
       - name: Run clang-format
