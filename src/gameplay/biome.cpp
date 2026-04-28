@@ -19,7 +19,7 @@ static ForestParams forest{{Biome::FOREST,
                             {0.5f, 1.0f},
                             {0.5f, 1.0f},
                             {0.004f, 0.010f, 0.020f},
-                            {64, 12}},
+                            {62, 12}},
                            0.1f
 
 };
