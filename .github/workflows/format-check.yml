@@ -2,26 +2,14 @@
 # .github/workflows/format-check.yml
 name: Code Format Check
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+on: [push, pull_request]
 
 jobs:
-  clang-format:
+  formatting:
     runs-on: ubuntu-latest
+    container: silkeh/clang:21    # 修改为存在的版本
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install clang-format
+      - name: Run clang-format
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main"
-          sudo apt-get update
-          sudo apt-get install -y clang-format-18
-          sudo ln -sf /usr/bin/clang-format-18 /usr/bin/clang-format
-
-      - name: Check C++ code formatting
-        run: |
-          find src include -name "*.cpp" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+          find src -name '*.cpp' -o -name '*.h' -print0 | xargs -0 clang-format --dry-run --Werror
