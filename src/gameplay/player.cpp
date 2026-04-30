@@ -526,6 +526,19 @@ void Player::update_scroll(double yoffset) {
             }
         }
     }
+    if (m_game_mode == CREATIVE) {
+        if (yoffset < 0) {
+            m_place_block += 1;
+            if (m_place_block >= MAX_BLOCK_NUM) {
+                m_place_block = 1;
+            }
+        } else {
+            m_place_block -= 1;
+            if (m_place_block <= 0) {
+                m_place_block = MAX_BLOCK_NUM - 1;
+            }
+        }
+    }
 }
 
 float& Player::max_walk_speed() { return m_max_walk_speed; }
