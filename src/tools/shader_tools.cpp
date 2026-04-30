@@ -1,6 +1,5 @@
 #include "Cubed/tools/shader_tools.hpp"
 
-#include "Cubed/config.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
 

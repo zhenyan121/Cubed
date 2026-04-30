@@ -3,6 +3,7 @@
 #include "Cubed/app.hpp"
 #include "Cubed/config.hpp"
 #include "Cubed/gameplay/player.hpp"
+#include "Cubed/map_table.hpp"
 #include "Cubed/tools/log.hpp"
 
 #include <imgui.h>
@@ -72,7 +73,9 @@ void DevPanel::render() {
         show_settings_tab_item();
         show_world_tab_item();
         show_player_tab_item();
+        show_items_tab_item();
         show_about_table_bar();
+
         ImGui::EndTabBar();
     }
     ImGui::End();
@@ -437,6 +440,36 @@ void DevPanel::show_player_tab_item() {
         ImGui::EndTabItem();
     }
 }
+
+void DevPanel::show_items_tab_item() {
+    auto& textures = m_app.texture_manager().item_textures();
+    auto& names = MapTable::item_map();
+    if (ImGui::BeginTabItem("item")) {
+        ImGui::Text("Place Block ");
+        ImGui::SameLine();
+        ImGui::Image(static_cast<ImTextureID>(static_cast<intptr_t>(
+                         textures[m_player->place_block()])),
+                     ImVec2{48, 48});
+        for (size_t i = 1; i < textures.size(); i++) {
+            if (ImGui::ImageButton(("##item" + std::to_string(i)).c_str(),
+                                   static_cast<ImTextureID>(
+                                       static_cast<intptr_t>(textures[i])),
+                                   ImVec2{48, 48})) {
+                m_player->set_place_block(i);
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("%s", names[i].c_str());
+                ImGui::EndTooltip();
+            }
+            if (i % 10 != 0) {
+                ImGui::SameLine();
+            }
+        }
+        ImGui::EndTabItem();
+    }
+}
+
 void DevPanel::update_config_view() {
     auto config = Config::get();
     m_config.fov =
