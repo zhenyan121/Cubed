@@ -3,6 +3,9 @@ name: Code Format Check
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   formatting:
     runs-on: ubuntu-latest
