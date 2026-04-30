@@ -42,6 +42,8 @@ private:
 
     float m_xz_speed = 0.0f;
 
+    unsigned m_place_block = 1;
+
     glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 move_distance{0.0f, 0.0f, 0.0f};
     // player is tow block tall, the pos is the lower pos
@@ -85,6 +87,7 @@ public:
     void change_mode(GameMode mode);
     void hot_reload();
     void set_player_pos(const glm::vec3& pos);
+    void set_place_block(unsigned id);
     void update(float delta_time);
     void update_front_vec(float offset_x, float offset_y);
     void update_player_move_state(int key, int action);
@@ -96,6 +99,8 @@ public:
     float& acceleration();
     float& deceleration();
     float& g();
+
+    unsigned place_block() const;
 
     Gait& gait();
     GameMode& game_mode();

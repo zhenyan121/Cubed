@@ -134,6 +134,8 @@ void Player::hot_reload() {
 
 void Player::set_player_pos(const glm::vec3& pos) { m_player_pos = pos; }
 
+void Player::set_place_block(unsigned id) { m_place_block = id; }
+
 void Player::update(float delta_time) {
 
     update_move(delta_time);
@@ -320,7 +322,7 @@ void Player::update_lookup_block() {
                                             static_cast<float>(z + 1)}};
                 AABB player_box = get_aabb();
                 if (!player_box.intersects(block_box)) {
-                    m_world.set_block(near_pos, 1);
+                    m_world.set_block(near_pos, m_place_block);
                 }
             }
             Input::get_input_state().mouse_state.right = false;
@@ -524,6 +526,19 @@ void Player::update_scroll(double yoffset) {
             }
         }
     }
+    if (m_game_mode == CREATIVE) {
+        if (yoffset < 0) {
+            m_place_block += 1;
+            if (m_place_block >= MAX_BLOCK_NUM) {
+                m_place_block = 1;
+            }
+        } else {
+            m_place_block -= 1;
+            if (m_place_block <= 0) {
+                m_place_block = MAX_BLOCK_NUM - 1;
+            }
+        }
+    }
 }
 
 float& Player::max_walk_speed() { return m_max_walk_speed; }
@@ -532,6 +547,7 @@ float& Player::max_speed() { return m_max_speed; }
 float& Player::acceleration() { return m_acceleration; }
 float& Player::deceleration() { return m_deceleration; }
 float& Player::g() { return m_g; }
+unsigned Player::place_block() const { return m_place_block; };
 Gait& Player::gait() { return m_gait; }
 GameMode& Player::game_mode() { return m_game_mode; }
 

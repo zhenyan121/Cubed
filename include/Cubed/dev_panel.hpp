@@ -48,6 +48,7 @@ private:
     void show_settings_tab_item();
     void show_world_tab_item();
     void show_player_tab_item();
+    void show_items_tab_item();
 
     void update_config_view();
     void update_player_profile();
