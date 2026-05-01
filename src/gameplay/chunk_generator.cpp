@@ -7,7 +7,7 @@
 
 #include <numeric>
 namespace Cubed {
-constexpr int BLEND_RADIUS = 8;
+constexpr int BLEND_RADIUS = 12;
 ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ASSERT_MSG(is_init, "ChunksGenerator is not init");
     ChunkPos pos = m_chunk.get_chunk_pos();
