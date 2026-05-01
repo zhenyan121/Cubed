@@ -19,7 +19,7 @@ static ForestParams forest{{Biome::FOREST,
                             {0.5f, 1.0f},
                             {0.5f, 1.0f},
                             {0.004f, 0.010f, 0.020f},
-                            {62, 12}},
+                            {62, 8}},
                            0.1f
 
 };
@@ -36,6 +36,12 @@ static MountainParams mountain{{Biome::MOUNTAIN,
                                 {0.006f, 0.014f, 0.010f},
                                 {70, 70}}};
 
+static RiverParams river{{Biome::RIVER,
+                          {-0.1f, -0.1f},
+                          {-0.1f, -0.1f},
+                          {0.003f, 0.010f, 0.020f},
+                          {50, 6}}};
+
 std::string get_biome_str(Biome biome) {
     std::string str;
     using enum Biome;
@@ -51,6 +57,9 @@ std::string get_biome_str(Biome biome) {
         break;
     case MOUNTAIN:
         str = "Mountain";
+        break;
+    case RIVER:
+        str = "River";
         break;
     case NONE:
         str = "Unknown";
@@ -109,6 +118,8 @@ std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
         return desert.frequencies;
     case MOUNTAIN:
         return mountain.frequencies;
+    case RIVER:
+        return river.frequencies;
     case NONE:
         ASSERT_MSG(false, "Chunk Biome is None");
         throw std::invalid_argument{"Chunk Biome is None"};
@@ -128,6 +139,8 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
         return desert.height_range;
     case MOUNTAIN:
         return mountain.height_range;
+    case RIVER:
+        return river.height_range;
     case NONE:
         ASSERT_MSG(false, "Chunk Biome is None");
         throw std::invalid_argument{"Chunk Biome is None"};
@@ -139,7 +152,7 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
 Biome safe_int_to_biome(int x) {
     using enum Biome;
     static const std::unordered_map<int, Biome> INT_TO_BIOME_MAP{
-        {0, PLAIN}, {1, FOREST}, {2, DESERT}, {3, MOUNTAIN}};
+        {0, PLAIN}, {1, FOREST}, {2, DESERT}, {3, MOUNTAIN}, {4, RIVER}};
 
     auto it = INT_TO_BIOME_MAP.find(x);
     ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");
@@ -194,5 +207,5 @@ PlainParams& plain_params() { return plain; }
 ForestParams& forest_params() { return forest; }
 DesertParams& desert_params() { return desert; }
 MountainParams& mountain_params() { return mountain; }
-
+RiverParams& river_params() { return river; }
 } // namespace Cubed
