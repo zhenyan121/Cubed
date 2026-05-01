@@ -152,7 +152,7 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
 Biome safe_int_to_biome(int x) {
     using enum Biome;
     static const std::unordered_map<int, Biome> INT_TO_BIOME_MAP{
-        {0, PLAIN}, {1, FOREST}, {2, DESERT}, {3, MOUNTAIN}};
+        {0, PLAIN}, {1, FOREST}, {2, DESERT}, {3, MOUNTAIN}, {4, RIVER}};
 
     auto it = INT_TO_BIOME_MAP.find(x);
     ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");
