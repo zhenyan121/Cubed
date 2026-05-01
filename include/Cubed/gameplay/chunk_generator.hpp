@@ -50,8 +50,8 @@ private:
     static inline std::atomic<bool> is_seed_change{false};
     Chunk& m_chunk;
     Random m_random;
-    std::array<Biome, 4> neighbor_biome{Biome::NONE, Biome::NONE, Biome::NONE,
-                                        Biome::NONE};
+    std::array<BiomeType, 4> neighbor_biome{BiomeType::NONE, BiomeType::NONE,
+                                            BiomeType::NONE, BiomeType::NONE};
     bool is_neighbor_river = false;
 };
 

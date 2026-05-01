@@ -24,7 +24,7 @@ private:
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data{false};
     std::atomic<size_t> m_vertex_sum = 0;
-    std::atomic<Biome> m_biome = Biome::PLAIN;
+    std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
 
     std::unique_ptr<ChunkGenerator> m_generator;
@@ -50,7 +50,7 @@ public:
     Chunk(Chunk&&) noexcept;
     Chunk& operator=(Chunk&&) noexcept;
 
-    Biome get_biome() const;
+    BiomeType get_biome() const;
     ChunkPos get_chunk_pos() const;
     const std::vector<uint8_t>& get_chunk_blocks() const;
     HeightMapArray get_heightmap() const;
@@ -94,8 +94,8 @@ public:
     void set_chunk_block(int index, unsigned id);
 
     ChunkPos chunk_pos() const;
-    Biome biome() const;
-    void biome(Biome b);
+    BiomeType biome() const;
+    void biome(BiomeType b);
     HeightMapArray& heightmap();
     std::vector<uint8_t>& blocks();
 };

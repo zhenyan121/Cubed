@@ -57,9 +57,9 @@ void ChunkGenerator::resolve_biome_adjacency_conflict(
         if (chunk == nullptr) {
             continue;
         }
-        Biome biome = chunk->get_biome();
+        BiomeType biome = chunk->get_biome();
         neighbor_biome[i] = biome;
-        if (biome == Biome::RIVER) {
+        if (biome == BiomeType::RIVER) {
             is_neighbor_river = true;
         }
         for (const auto& non : NON_ADJACENT) {
@@ -89,7 +89,7 @@ void ChunkGenerator::generate_heightmap() {
             float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
             float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
 
-            auto sample_height = [&](Biome b) -> float {
+            auto sample_height = [&](BiomeType b) -> float {
                 auto range = get_biome_height_range(b);
                 auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
                 float n = 1.00f * PerlinNoise::noise(world_x * f1, 0.5f,
@@ -204,7 +204,7 @@ void ChunkGenerator::generate_terrain_blocks() {
             for (int y = 5; y < height - 5; y++) {
                 m_blocks[Chunk::get_index(x, y, z)] = 3;
             }
-            if (m_biome == Biome::MOUNTAIN) {
+            if (m_biome == BiomeType::MOUNTAIN) {
                 for (int y = height - 5; y <= height - 1; y++) {
                     if (y > 110) {
                         m_blocks[Chunk::get_index(x, y, z)] = 3;
@@ -217,11 +217,11 @@ void ChunkGenerator::generate_terrain_blocks() {
                 } else {
                     m_blocks[Chunk::get_index(x, height - 1, z)] = 1;
                 }
-            } else if (m_biome == Biome::DESERT) {
+            } else if (m_biome == BiomeType::DESERT) {
                 for (int y = height - 5; y <= height; y++) {
                     m_blocks[Chunk::get_index(x, y, z)] = 4;
                 }
-            } else if (m_biome == Biome::RIVER) {
+            } else if (m_biome == BiomeType::RIVER) {
                 for (int y = height - 5; y <= height - 1; y++) {
                     m_blocks[Chunk::get_index(x, y, z)] = 2;
                 }
@@ -344,7 +344,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
-                if (m_chunk.biome() == Biome::RIVER && final_type == 1) {
+                if (m_chunk.biome() == BiomeType::RIVER && final_type == 1) {
                     final_type = 2;
                 }
                 if (is_neighbor_river && final_type == 1) {
@@ -374,7 +374,7 @@ void ChunkGenerator::generate_vegetation() {
     auto m_biome = m_chunk.biome();
     auto& m_blocks = m_chunk.blocks();
     auto& m_heightmap = m_chunk.heightmap();
-    if (m_biome == Biome::FOREST) {
+    if (m_biome == BiomeType::FOREST) {
         std::array<int, SIZE_X> x_arr;
         std::iota(x_arr.begin(), x_arr.end(), 0);
         std::shuffle(x_arr.begin(), x_arr.end(), m_random.engine());
@@ -391,7 +391,7 @@ void ChunkGenerator::generate_vegetation() {
             }
         }
     }
-    if (m_biome == Biome::RIVER) {
+    if (m_biome == BiomeType::RIVER) {
         for (int x = 0; x < SIZE_X; x++) {
             for (int z = 0; z < SIZE_Z; z++) {
                 int height = static_cast<int>(m_heightmap[x][z]);

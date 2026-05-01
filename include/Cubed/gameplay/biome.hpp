@@ -12,7 +12,7 @@ constexpr float FOREST_FREQ = 1.2f;
 constexpr float DESERT_FREQ = 1.2f;
 constexpr float MOUNTAIN_FREQ = 2.0f;
 
-enum class Biome { PLAIN = 0, FOREST, DESERT, MOUNTAIN, RIVER, NONE };
+enum class BiomeType { PLAIN = 0, FOREST, DESERT, MOUNTAIN, RIVER, NONE };
 
 struct BiomeHeightRange {
     int base_y;
@@ -20,19 +20,23 @@ struct BiomeHeightRange {
 };
 
 struct BiomeNonAdjacent {
-    Biome first;
-    std::vector<Biome> second;
-    Biome replace;
+    BiomeType first;
+    std::vector<BiomeType> second;
+    BiomeType replace;
 };
 
 static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT{
-    {{Biome::PLAIN, {Biome::DESERT}, Biome::RIVER},
-     {Biome::FOREST, {Biome::DESERT}, Biome::RIVER},
-     {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::RIVER},
-     {Biome::MOUNTAIN, {Biome::DESERT, Biome::FOREST}, Biome::RIVER}}};
+    {{BiomeType::PLAIN, {BiomeType::DESERT}, BiomeType::RIVER},
+     {BiomeType::FOREST, {BiomeType::DESERT}, BiomeType::RIVER},
+     {BiomeType::DESERT,
+      {BiomeType::MOUNTAIN, BiomeType::FOREST},
+      BiomeType::RIVER},
+     {BiomeType::MOUNTAIN,
+      {BiomeType::DESERT, BiomeType::FOREST},
+      BiomeType::RIVER}}};
 
 struct BaseBiomeParams {
-    Biome biome;
+    BiomeType biome;
     std::pair<float, float> temp;
     std::pair<float, float> humid;
     std::array<float, 3> frequencies;
@@ -51,11 +55,11 @@ struct MountainParams : public BaseBiomeParams {};
 
 struct RiverParams : public BaseBiomeParams {};
 
-std::string get_biome_str(Biome biome);
-Biome get_biome_from_noise(float temp, float humid);
-std::array<float, 3> get_noise_frequencies_for_biome(Biome biome);
-BiomeHeightRange get_biome_height_range(Biome biome);
-Biome safe_int_to_biome(int x);
+std::string get_biome_str(BiomeType biome);
+BiomeType get_biome_from_noise(float temp, float humid);
+std::array<float, 3> get_noise_frequencies_for_biome(BiomeType biome);
+BiomeHeightRange get_biome_height_range(BiomeType biome);
+BiomeType safe_int_to_biome(int x);
 int get_interpolated_height(float world_x, float world_z, float temp,
                             float humid);
 
