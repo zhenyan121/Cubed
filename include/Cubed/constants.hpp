@@ -4,8 +4,9 @@ namespace Cubed {
 
 constexpr int WORLD_SIZE_Y = 256;
 constexpr int CHUCK_SIZE = 16;
+constexpr int SEA_LEVEL = 64;
 
-constexpr int MAX_BLOCK_NUM = 7;
+constexpr int MAX_BLOCK_NUM = 8;
 constexpr int MAX_UI_NUM = 1;
 constexpr int MAX_BLOCK_STATUS = 1;
 constexpr int MAX_BIOME_SUM = 4;

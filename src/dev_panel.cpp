@@ -223,6 +223,32 @@ void DevPanel::show_biome_table_bar() {
                              AMPLITUDE_MIN, AMPLITUDE_MAX);
             ImGui::EndTabItem();
         }
+        if (ImGui::BeginTabItem("River")) {
+            ImGui::SliderFloat("MinTemp##river", &river_params().temp.first,
+                               TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MaxTemp##river", &river_params().temp.second,
+                               TEMP_MIN, TEMP_MAX);
+            ImGui::SliderFloat("MinHumid##river", &river_params().humid.first,
+                               HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("MaxHumid##river", &river_params().humid.second,
+                               HUMID_MIN, HUMID_MAX);
+            ImGui::SliderFloat("Freq One##river",
+                               &river_params().frequencies[0], FREQ1_MIN,
+                               FREQ1_MAX);
+            ImGui::SliderFloat("Freq Two##river",
+                               &river_params().frequencies[1], FREQ2_MIN,
+                               FREQ2_MAX);
+            ImGui::SliderFloat("Freq Three##river",
+                               &river_params().frequencies[2], FREQ3_MIN,
+                               FREQ3_MAX);
+            ImGui::SliderInt("Base Y##river",
+                             &river_params().height_range.base_y,
+                             HEIGHT_BASE_MIN, HEIGHT_BASE_MAX);
+            ImGui::SliderInt("Amplitude##river",
+                             &river_params().height_range.amplitude,
+                             AMPLITUDE_MIN, AMPLITUDE_MAX);
+            ImGui::EndTabItem();
+        }
         ImGui::EndTabBar();
     }
 }

@@ -12,7 +12,7 @@ constexpr float FOREST_FREQ = 1.2f;
 constexpr float DESERT_FREQ = 1.2f;
 constexpr float MOUNTAIN_FREQ = 2.0f;
 
-enum class Biome { PLAIN = 0, FOREST, DESERT, MOUNTAIN, NONE };
+enum class Biome { PLAIN = 0, FOREST, DESERT, MOUNTAIN, RIVER, NONE };
 
 struct BiomeHeightRange {
     int base_y;
@@ -26,10 +26,10 @@ struct BiomeNonAdjacent {
 };
 
 static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT{
-    {{Biome::PLAIN, {Biome::NONE}, Biome::PLAIN},
-     {Biome::FOREST, {Biome::DESERT}, Biome::PLAIN},
-     {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::PLAIN},
-     {Biome::MOUNTAIN, {Biome::DESERT}, Biome::PLAIN}}};
+    {{Biome::PLAIN, {Biome::DESERT}, Biome::RIVER},
+     {Biome::FOREST, {Biome::DESERT}, Biome::RIVER},
+     {Biome::DESERT, {Biome::MOUNTAIN, Biome::FOREST}, Biome::RIVER},
+     {Biome::MOUNTAIN, {Biome::DESERT, Biome::FOREST}, Biome::RIVER}}};
 
 struct BaseBiomeParams {
     Biome biome;
@@ -49,6 +49,8 @@ struct DesertParams : public BaseBiomeParams {};
 
 struct MountainParams : public BaseBiomeParams {};
 
+struct RiverParams : public BaseBiomeParams {};
+
 std::string get_biome_str(Biome biome);
 Biome get_biome_from_noise(float temp, float humid);
 std::array<float, 3> get_noise_frequencies_for_biome(Biome biome);
@@ -61,5 +63,5 @@ PlainParams& plain_params();
 ForestParams& forest_params();
 DesertParams& desert_params();
 MountainParams& mountain_params();
-
+RiverParams& river_params();
 } // namespace Cubed

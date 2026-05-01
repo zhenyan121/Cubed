@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cubed/constants.hpp"
+#include "Cubed/gameplay/biome.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <atomic>
@@ -49,6 +50,9 @@ private:
     static inline std::atomic<bool> is_seed_change{false};
     Chunk& m_chunk;
     Random m_random;
+    std::array<Biome, 4> neighbor_biome{Biome::NONE, Biome::NONE, Biome::NONE,
+                                        Biome::NONE};
+    bool is_neighbor_river = false;
 };
 
 } // namespace Cubed

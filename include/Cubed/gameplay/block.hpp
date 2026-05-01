@@ -39,7 +39,7 @@ struct LookBlock {
 };
 
 constexpr std::array<std::string_view, MAX_BLOCK_NUM> BLOCK_REISTER{
-    "air", "grass_block", "dirt", "stone", "sand", "log", "leaf"};
+    "air", "grass_block", "dirt", "stone", "sand", "log", "leaf", "water"};
 
 const std::array<bool, MAX_BLOCK_NUM> TRANSPARENT_MAP{
     true, false, false, false, false, false, true};
