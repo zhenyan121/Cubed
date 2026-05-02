@@ -26,6 +26,6 @@ static constexpr int SIZE_X = CHUCK_SIZE;
 static constexpr int SIZE_Y = WORLD_SIZE_Y;
 static constexpr int SIZE_Z = CHUCK_SIZE;
 
-using HeightMapArray = std::array<std::array<float, CHUCK_SIZE>, CHUCK_SIZE>;
+using HeightMapArray = std::array<std::array<int, CHUCK_SIZE>, CHUCK_SIZE>;
 
 } // namespace Cubed

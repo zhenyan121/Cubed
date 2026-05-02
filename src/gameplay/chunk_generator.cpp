@@ -96,7 +96,7 @@ void ChunkGenerator::generate_heightmap() {
             float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
             float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
 
-            auto sample_height = [&](BiomeType b) -> float {
+            auto sample_height = [&](BiomeType b) -> int {
                 auto range = get_biome_height_range(b);
                 auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
                 float n = 1.00f * PerlinNoise::noise(world_x * f1, 0.5f,
@@ -106,7 +106,7 @@ void ChunkGenerator::generate_heightmap() {
                           0.25f * PerlinNoise::noise(world_x * f3, 0.5f,
                                                      world_z * f3);
                 n /= 1.75f;
-                return range.base_y + n * range.amplitude;
+                return range.base_y + std::round(n * range.amplitude);
             };
             m_heightmap[x][z] = sample_height(m_biome);
         }
@@ -117,76 +117,100 @@ void ChunkGenerator::blend_heightmap_boundaries(
     const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
     auto& m_heightmap = m_chunk.heightmap();
     auto m_biome = m_chunk.biome();
-    // Width of interpolation influence (in number of cells)
 
+    // --- Right neighbor neighbor[0]: (1, 0) ---
+    for (int z = 0; z < SIZE_Z; z++) {
+        if (neighbor_heightmap[0] != std::nullopt &&
+            neighbor_biome[0] != m_biome) {
+            int edge_x = CHUCK_SIZE - 1;
+            int h = m_heightmap[edge_x][z];
+            int neighbor_h = (*neighbor_heightmap[0])[0][z];
+            if (h <= neighbor_h) {
+                continue;
+            }
+            const int DIR = (edge_x == 0) ? 1 : -1;
+            for (int i = 0; i < BLEND_RADIUS; i++) {
+                int x = edge_x + DIR * i;
+                float t = static_cast<float>(i) / BLEND_RADIUS;
+
+                // float smooth_t = t * t * (3.0f - 2.0f * t);
+                float smooth_t = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+                m_heightmap[x][z] = static_cast<int>(
+                    std::round(neighbor_h + (h - neighbor_h) * smooth_t));
+            }
+        }
+    }
+    // --- Left neighbor neighbor[1]: (-1, 0) ---
+    for (int z = 0; z < SIZE_Z; z++) {
+        if (neighbor_heightmap[1] != std::nullopt &&
+            neighbor_biome[1] != m_biome) {
+            int edge_x = 0;
+            int h = m_heightmap[edge_x][z];
+            int neighbor_h = (*neighbor_heightmap[1])[CHUCK_SIZE - 1][z];
+            if (h <= neighbor_h) {
+                continue;
+            }
+
+            const int DIR = (edge_x == 0) ? 1 : -1;
+            for (int i = 0; i < BLEND_RADIUS; i++) {
+                int x = edge_x + DIR * i;
+                float t = static_cast<float>(i) / BLEND_RADIUS;
+
+                // float smooth_t = t * t * (3.0f - 2.0f * t);
+                float smooth_t = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+                m_heightmap[x][z] = static_cast<int>(
+                    std::round(neighbor_h + (h - neighbor_h) * smooth_t));
+            }
+        }
+    }
+    // --- Front neighbor neighbor[2]: (0, 1) ---
     for (int x = 0; x < SIZE_X; x++) {
-        for (int z = 0; z < SIZE_Z; z++) {
-            float h = static_cast<float>(m_heightmap[x][z]);
-            float total_weight = 1.0f;
-            float blended = h;
-
-            // --- Right neighbor neighbor[0]: (1, 0) ---
-            // Blend when x is close to SIZE_X-1
-            if (neighbor_heightmap[0] != std::nullopt &&
-                neighbor_biome[0] != m_biome) {
-                int dist = (SIZE_X - 1) - x; // distance from right border
-                if (dist < BLEND_RADIUS) {
-                    // Neighbor's boundary row is its x=0 column
-                    float neighbor_h =
-                        static_cast<float>((*neighbor_heightmap[0])[0][z]);
-                    float t =
-                        1.0f - static_cast<float>(dist) /
-                                   BLEND_RADIUS; // larger weight when closer
-                    // Use smoothstep for a more natural transition
-                    t = t * t * (3.0f - 2.0f * t);
-                    blended += t * neighbor_h;
-                    total_weight += t;
-                }
+        if (neighbor_heightmap[2] != std::nullopt &&
+            neighbor_biome[2] != m_biome) {
+            int edge_z = CHUCK_SIZE - 1;
+            int h = m_heightmap[x][edge_z];
+            int neighbor_h = (*neighbor_heightmap[2])[x][0];
+            if (h <= neighbor_h) {
+                continue;
             }
+            const int DIR = (edge_z == 0) ? 1 : -1;
+            for (int i = 0; i < BLEND_RADIUS; i++) {
+                int z = edge_z + DIR * i;
+                float t = static_cast<float>(i) / BLEND_RADIUS;
 
-            // --- Left neighbor neighbor[1]: (-1, 0) ---
-            if (neighbor_heightmap[1] != std::nullopt &&
-                neighbor_biome[1] != m_biome) {
-                int dist = x; // distance from left border
-                if (dist < BLEND_RADIUS) {
-                    float neighbor_h = static_cast<float>(
-                        (*neighbor_heightmap[1])[SIZE_X - 1][z]);
-                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
-                    t = t * t * (3.0f - 2.0f * t);
-                    blended += t * neighbor_h;
-                    total_weight += t;
-                }
+                // float smooth_t = t * t * (3.0f - 2.0f * t);
+                float smooth_t = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+                m_heightmap[x][z] = static_cast<int>(
+                    std::round(neighbor_h + (h - neighbor_h) * smooth_t));
             }
+        }
+    }
 
-            // --- Front neighbor neighbor[2]: (0, 1) ---
-            if (neighbor_heightmap[2] != std::nullopt &&
-                neighbor_biome[2] != m_biome) {
-                int dist = (SIZE_Z - 1) - z;
-                if (dist < BLEND_RADIUS) {
-                    float neighbor_h =
-                        static_cast<float>((*neighbor_heightmap[2])[x][0]);
-                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
-                    t = t * t * (3.0f - 2.0f * t);
-                    blended += t * neighbor_h;
-                    total_weight += t;
-                }
+    // --- Back neighbor neighbor[3]: (0, -1) ---
+    for (int x = 0; x < SIZE_X; x++) {
+        if (neighbor_heightmap[3] != std::nullopt &&
+            neighbor_biome[3] != m_biome) {
+            int edge_z = 0;
+            int h = m_heightmap[x][edge_z];
+            int neighbor_h = (*neighbor_heightmap[3])[x][CHUCK_SIZE - 1];
+            if (h <= neighbor_h) {
+                continue;
             }
-
-            // --- Back neighbor neighbor[3]: (0, -1) ---
-            if (neighbor_heightmap[3] != std::nullopt &&
-                neighbor_biome[3] != m_biome) {
-                int dist = z;
-                if (dist < BLEND_RADIUS) {
-                    float neighbor_h = static_cast<float>(
-                        (*neighbor_heightmap[3])[x][SIZE_Z - 1]);
-                    float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
-                    t = t * t * (3.0f - 2.0f * t);
-                    blended += t * neighbor_h;
-                    total_weight += t;
-                }
+            int delta_h = h - neighbor_h;
+            int step = delta_h / BLEND_RADIUS;
+            if (step < 1) {
+                continue;
             }
+            const int DIR = (edge_z == 0) ? 1 : -1;
+            for (int i = 0; i < BLEND_RADIUS; i++) {
+                int z = edge_z + DIR * i;
+                float t = static_cast<float>(i) / BLEND_RADIUS;
 
-            m_heightmap[x][z] = static_cast<int>(blended / total_weight);
+                // float smooth_t = t * t * (3.0f - 2.0f * t);
+                float smooth_t = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+                m_heightmap[x][z] = static_cast<int>(
+                    std::round(neighbor_h + (h - neighbor_h) * smooth_t));
+            }
         }
     }
 }

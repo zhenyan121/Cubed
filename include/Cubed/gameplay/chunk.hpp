@@ -19,7 +19,6 @@ private:
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUCK_SIZE;
 
-    using HeightMapArray = std::array<std::array<float, SIZE_Z>, SIZE_X>;
     std::atomic<bool> m_dirty{false};
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data{false};
