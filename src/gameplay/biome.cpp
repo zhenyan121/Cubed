@@ -2,20 +2,18 @@
 
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
-#include "Cubed/tools/perlin_noise.hpp"
 
-#include <cmath>
 #include <unordered_map>
 
 namespace Cubed {
 
-static PlainParams plain{{Biome::PLAIN,
+static PlainParams plain{{BiomeType::PLAIN,
                           {0.0f, 0.5f},
                           {0.0f, 0.5f},
                           {0.003f, 0.010f, 0.020f},
                           {62, 8}}};
 
-static ForestParams forest{{Biome::FOREST,
+static ForestParams forest{{BiomeType::FOREST,
                             {0.5f, 1.0f},
                             {0.5f, 1.0f},
                             {0.004f, 0.010f, 0.020f},
@@ -24,27 +22,27 @@ static ForestParams forest{{Biome::FOREST,
 
 };
 
-static DesertParams desert{{Biome::DESERT,
+static DesertParams desert{{BiomeType::DESERT,
                             {0.5f, 1.0f},
                             {0.0f, 0.5f},
                             {0.003f, 0.010f, 0.020f},
                             {61, 12}}};
 
-static MountainParams mountain{{Biome::MOUNTAIN,
+static MountainParams mountain{{BiomeType::MOUNTAIN,
                                 {0.0f, 0.5f},
                                 {0.5f, 1.0f},
                                 {0.006f, 0.014f, 0.010f},
                                 {70, 70}}};
 
-static RiverParams river{{Biome::RIVER,
+static RiverParams river{{BiomeType::RIVER,
                           {-0.1f, -0.1f},
                           {-0.1f, -0.1f},
                           {0.003f, 0.010f, 0.020f},
                           {50, 6}}};
 
-std::string get_biome_str(Biome biome) {
+std::string get_biome_str(BiomeType biome) {
     std::string str;
-    using enum Biome;
+    using enum BiomeType;
     switch (biome) {
     case PLAIN:
         str = "Plain";
@@ -86,8 +84,8 @@ Biome get_biome_from_noise(float temp, float humid) {
     return Biome::FOREST;
 }
 */
-Biome get_biome_from_noise(float temp, float humid) {
-    using enum Biome;
+BiomeType get_biome_from_noise(float temp, float humid) {
+    using enum BiomeType;
     if (plain.temp.first <= temp && temp < plain.temp.second &&
         plain.humid.first <= humid && humid < plain.humid.second) {
         return PLAIN;
@@ -107,8 +105,8 @@ Biome get_biome_from_noise(float temp, float humid) {
     Logger::warn("Invail Temp {} or Humid {}", temp, humid);
     return PLAIN;
 }
-std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
-    using enum Biome;
+std::array<float, 3> get_noise_frequencies_for_biome(BiomeType biome) {
+    using enum BiomeType;
     switch (biome) {
     case PLAIN:
         return plain.frequencies;
@@ -128,8 +126,8 @@ std::array<float, 3> get_noise_frequencies_for_biome(Biome biome) {
     return {0.003f, 0.015f, 0.06f};
 }
 
-BiomeHeightRange get_biome_height_range(Biome biome) {
-    using enum Biome;
+BiomeHeightRange get_biome_height_range(BiomeType biome) {
+    using enum BiomeType;
     switch (biome) {
     case PLAIN:
         return plain.height_range;
@@ -149,16 +147,16 @@ BiomeHeightRange get_biome_height_range(Biome biome) {
     return {62, 4};
 }
 
-Biome safe_int_to_biome(int x) {
-    using enum Biome;
-    static const std::unordered_map<int, Biome> INT_TO_BIOME_MAP{
+BiomeType safe_int_to_biome(int x) {
+    using enum BiomeType;
+    static const std::unordered_map<int, BiomeType> INT_TO_BIOME_MAP{
         {0, PLAIN}, {1, FOREST}, {2, DESERT}, {3, MOUNTAIN}, {4, RIVER}};
 
     auto it = INT_TO_BIOME_MAP.find(x);
     ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");
     return it->second;
 }
-
+/*
 int get_interpolated_height(float world_x, float world_z, float temp,
                             float humid) {
 
@@ -186,7 +184,7 @@ int get_interpolated_height(float world_x, float world_z, float temp,
     w_desert /= total;
     w_forest /= total;
 
-    auto sample_height = [&](Biome b) -> float {
+    auto sample_height = [&](BiomeType b) -> float {
         auto range = get_biome_height_range(b);
         auto [f1, f2, f3] = get_noise_frequencies_for_biome(b);
         float n = 1.00f * PerlinNoise::noise(world_x * f1, 0.5f, world_z * f1) +
@@ -196,13 +194,13 @@ int get_interpolated_height(float world_x, float world_z, float temp,
         return range.base_y + n * range.amplitude;
     };
 
-    float h = w_mountain * sample_height(Biome::MOUNTAIN) +
-              w_plain * sample_height(Biome::PLAIN) +
-              w_desert * sample_height(Biome::DESERT) +
-              w_forest * sample_height(Biome::FOREST);
+    float h = w_mountain * sample_height(BiomeType::MOUNTAIN) +
+              w_plain * sample_height(BiomeType::PLAIN) +
+              w_desert * sample_height(BiomeType::DESERT) +
+              w_forest * sample_height(BiomeType::FOREST);
     return static_cast<int>(h);
 }
-
+*/
 PlainParams& plain_params() { return plain; }
 ForestParams& forest_params() { return forest; }
 DesertParams& desert_params() { return desert; }

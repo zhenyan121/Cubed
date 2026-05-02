@@ -111,6 +111,12 @@ add_executable(${PROJECT_NAME}
     src/tools/perlin_noise.cpp
     src/ui/text.cpp
     src/window.cpp
+    src/gameplay/builders/biome_builder.cpp
+    src/gameplay/builders/plain_builder.cpp
+    src/gameplay/builders/mountain_builder.cpp
+    src/gameplay/builders/river_builder.cpp
+    src/gameplay/builders/desert_builder.cpp
+    src/gameplay/builders/forest_builder.cpp
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

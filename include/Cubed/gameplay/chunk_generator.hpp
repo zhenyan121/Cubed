@@ -2,21 +2,17 @@
 
 #include "Cubed/constants.hpp"
 #include "Cubed/gameplay/biome.hpp"
+#include "Cubed/gameplay/builders/biome_builder.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <atomic>
+#include <memory>
 #include <optional>
 namespace Cubed {
 
 class Chunk;
 
 class ChunkGenerator {
-    static constexpr int SIZE_X = CHUCK_SIZE;
-    static constexpr int SIZE_Y = WORLD_SIZE_Y;
-    static constexpr int SIZE_Z = CHUCK_SIZE;
-    using HeightMapArray =
-        std::array<std::array<float, CHUCK_SIZE>, CHUCK_SIZE>;
-
 public:
     ChunkGenerator(Chunk& chunk);
 
@@ -44,15 +40,22 @@ public:
     // Generate Structure
     void generate_vegetation();
 
+    Chunk& chunk();
+    Random& random();
+    bool neighbor_river() const;
+
 private:
     static inline std::atomic<bool> is_init{false};
     static inline unsigned m_generator_seed{0};
     static inline std::atomic<bool> is_seed_change{false};
     Chunk& m_chunk;
     Random m_random;
-    std::array<Biome, 4> neighbor_biome{Biome::NONE, Biome::NONE, Biome::NONE,
-                                        Biome::NONE};
+    std::array<BiomeType, 4> neighbor_biome{BiomeType::NONE, BiomeType::NONE,
+                                            BiomeType::NONE, BiomeType::NONE};
+    std::unique_ptr<BiomeBuilder> m_biome_builder{nullptr};
     bool is_neighbor_river = false;
+
+    void make_biome_builder();
 };
 
 } // namespace Cubed

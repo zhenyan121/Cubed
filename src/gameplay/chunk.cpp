@@ -46,7 +46,7 @@ Chunk& Chunk::operator=(Chunk&& other) noexcept {
     return *this;
 }
 
-Biome Chunk::get_biome() const { return m_biome.load(); }
+BiomeType Chunk::get_biome() const { return m_biome.load(); }
 
 ChunkPos Chunk::get_chunk_pos() const { return m_chunk_pos; }
 
@@ -300,9 +300,9 @@ void Chunk::set_chunk_block(int index, unsigned id) {
 
 ChunkPos Chunk::chunk_pos() const { return m_chunk_pos; }
 
-Biome Chunk::biome() const { return m_biome; }
+BiomeType Chunk::biome() const { return m_biome; }
 
-void Chunk::biome(Biome b) { m_biome = b; }
+void Chunk::biome(BiomeType b) { m_biome = b; }
 
 HeightMapArray& Chunk::heightmap() { return m_heightmap; }
 std::vector<uint8_t>& Chunk::blocks() { return m_blocks; }
