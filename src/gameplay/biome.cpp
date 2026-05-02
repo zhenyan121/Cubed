@@ -2,9 +2,7 @@
 
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
-#include "Cubed/tools/perlin_noise.hpp"
 
-#include <cmath>
 #include <unordered_map>
 
 namespace Cubed {
@@ -158,7 +156,7 @@ BiomeType safe_int_to_biome(int x) {
     ASSERT_MSG(it != INT_TO_BIOME_MAP.end(), ":Can't Find");
     return it->second;
 }
-
+/*
 int get_interpolated_height(float world_x, float world_z, float temp,
                             float humid) {
 
@@ -202,7 +200,7 @@ int get_interpolated_height(float world_x, float world_z, float temp,
               w_forest * sample_height(BiomeType::FOREST);
     return static_cast<int>(h);
 }
-
+*/
 PlainParams& plain_params() { return plain; }
 ForestParams& forest_params() { return forest; }
 DesertParams& desert_params() { return desert; }

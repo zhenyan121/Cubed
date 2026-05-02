@@ -22,6 +22,9 @@ constexpr float DEFAULT_MAX_RUN_SPEED = 7.0f;
 constexpr float DEFAULT_ACCELERATION = 10.0f;
 constexpr float DEFAULT_DECELERATION = 15.0f;
 constexpr float DEFAULT_G = 22.5f;
+static constexpr int SIZE_X = CHUCK_SIZE;
+static constexpr int SIZE_Y = WORLD_SIZE_Y;
+static constexpr int SIZE_Z = CHUCK_SIZE;
 
 using HeightMapArray = std::array<std::array<float, CHUCK_SIZE>, CHUCK_SIZE>;
 
