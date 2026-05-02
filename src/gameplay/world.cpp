@@ -11,8 +11,6 @@
 
 namespace Cubed {
 
-static constexpr ChunkPos CHUNK_DIR[]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
 struct ChunkRenderData {
     std::array<const std::vector<uint8_t>*, 4> neighbor_block;
     Chunk* chunk;
@@ -67,18 +65,8 @@ Player& World::get_player(const std::string& name) {
 }
 
 void World::init_world() {
-    m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE);
+    m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     auto t1 = std::chrono::system_clock::now();
-    for (int s = 0; s < PRE_LOAD_DISTANCE; s++) {
-        for (int t = 0; t < PRE_LOAD_DISTANCE; t++) {
-            int ns = s - PRE_LOAD_DISTANCE / 2;
-            int nt = t - PRE_LOAD_DISTANCE / 2;
-
-            ChunkPos pos{ns, nt};
-
-            m_chunks.emplace(pos, Chunk(*this, pos));
-        }
-    }
 
     Logger::info("Max Support Thread is {}",
                  std::thread::hardware_concurrency());
@@ -138,59 +126,172 @@ pending_gen_data.end(), [](ChunkRenderData& data){ if(!data.chunk) { return ;
 */
 
 void World::init_chunks() {
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_one();
-    }
-    std::array<const Chunk*, 4> neighbor_chunks;
-    for (auto& [pos, chunks] : m_chunks) {
-        for (int i = 0; i < 4; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                neighbor_chunks[i] = nullptr;
-                continue;
+
+    for (int i = 1; i <= PRE_LOAD_DISTANCE; i++) {
+        int dis_x = 0 + i;
+        int dis_z = 0 + i;
+        for (int x = 0; x < dis_x; x++) {
+            for (int z = 0; z < dis_z; z++) {
+                int nx = x - dis_x / 2;
+                int nz = z - dis_z / 2;
+                ChunkPos pos{nx, nz};
+                auto it = m_chunks.find(pos);
+                if (it == m_chunks.end()) {
+                    m_chunks.emplace(pos, Chunk(*this, pos));
+                }
             }
-            neighbor_chunks[i] = &it->second;
         }
-        chunks.gen_phase_two(neighbor_chunks);
+        ChunkHashMap temp_neighbor;
+        for (int x = 0; x < dis_x + 2; x++) {
+            for (int z = 0; z < dis_z + 2; z++) {
+                int nx = x - (dis_x + 2) / 2;
+                int nz = z - (dis_z + 2) / 2;
+                ChunkPos pos{nx, nz};
+                auto it = m_chunks.find(pos);
+                if (it == m_chunks.end()) {
+                    auto it = temp_neighbor.find(pos);
+                    if (it == temp_neighbor.end()) {
+                        temp_neighbor.emplace(pos, Chunk(*this, pos));
+                    }
+                }
+            }
+        }
+        for (auto& [pos, chunks] : m_chunks) {
+            chunks.gen_phase_one();
+        }
+        for (auto& [pos, chunks] : temp_neighbor) {
+            chunks.gen_phase_one();
+        }
+
+        std::array<const Chunk*, 8> neighbor_chunks;
+        for (auto& [pos, chunks] : m_chunks) {
+            for (int i = 0; i < 8; i++) {
+                auto neighbor_pos = pos + CHUNK_DIR[i];
+                auto it = m_chunks.find(neighbor_pos);
+                if (it == m_chunks.end()) {
+                    auto it = temp_neighbor.find(neighbor_pos);
+                    if (it == temp_neighbor.end()) {
+                        neighbor_chunks[i] = nullptr;
+                        ASSERT_MSG(false, "Neighbor Chunk is nullptr");
+                    } else {
+                        neighbor_chunks[i] = &it->second;
+                    }
+                    continue;
+                }
+                neighbor_chunks[i] = &it->second;
+            }
+            chunks.gen_phase_two(neighbor_chunks);
+        }
+        for (auto& [pos, chunks] : temp_neighbor) {
+            for (int i = 0; i < 4; i++) {
+                auto neighbor_pos = pos + CHUNK_DIR[i];
+                auto it = m_chunks.find(neighbor_pos);
+                if (it == m_chunks.end()) {
+                    auto it = temp_neighbor.find(neighbor_pos);
+                    if (it == temp_neighbor.end()) {
+                        neighbor_chunks[i] = nullptr;
+                    } else {
+                        neighbor_chunks[i] = &it->second;
+                    }
+                    continue;
+                }
+                neighbor_chunks[i] = &it->second;
+            }
+            chunks.gen_phase_two(neighbor_chunks);
+        }
+        for (auto& [pos, chunks] : m_chunks) {
+            chunks.gen_phase_three();
+        }
+        for (auto& [pos, chunks] : temp_neighbor) {
+            chunks.gen_phase_three();
+        }
+
+        for (int i = 0; i < 4; i++) {
+            for (auto& [pos, chunks] : m_chunks) {
+                std::array<std::optional<HeightMapArray>, 8>
+                    neighbor_chunk_heightmap;
+                std::array<BiomeType, 8> neighbor_biome;
+                for (int i = 0; i < 8; i++) {
+
+                    auto neighbor_pos = pos + CHUNK_DIR[i];
+                    auto it = m_chunks.find(neighbor_pos);
+                    if (it == m_chunks.end()) {
+                        auto it = temp_neighbor.find(neighbor_pos);
+                        if (it == temp_neighbor.end()) {
+                            neighbor_chunk_heightmap[i] = std::nullopt;
+                            neighbor_biome[i] = BiomeType::NONE;
+                            ASSERT_MSG(false, "Neighbor Chunk is nullptr");
+                        } else {
+                            neighbor_chunk_heightmap[i] =
+                                it->second.get_heightmap();
+                            neighbor_biome[i] = it->second.biome();
+                        }
+
+                        continue;
+                    }
+                    neighbor_chunk_heightmap[i] = it->second.get_heightmap();
+                    neighbor_biome[i] = it->second.biome();
+                }
+                chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
+            }
+            for (auto& [pos, chunks] : temp_neighbor) {
+                std::array<std::optional<HeightMapArray>, 8>
+                    neighbor_chunk_heightmap;
+                std::array<BiomeType, 8> neighbor_biome;
+                for (int i = 0; i < 4; i++) {
+                    auto neighbor_pos = pos + CHUNK_DIR[i];
+                    auto it = m_chunks.find(neighbor_pos);
+                    if (it == m_chunks.end()) {
+                        auto it = temp_neighbor.find(neighbor_pos);
+                        if (it == temp_neighbor.end()) {
+                            neighbor_chunk_heightmap[i] = std::nullopt;
+                            neighbor_biome[i] = BiomeType::NONE;
+                        } else {
+                            neighbor_chunk_heightmap[i] =
+                                it->second.get_heightmap();
+                            neighbor_biome[i] = it->second.biome();
+                        }
+
+                        continue;
+                    }
+                    neighbor_chunk_heightmap[i] = it->second.get_heightmap();
+                    neighbor_biome[i] = it->second.biome();
+                }
+                chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
+            }
+        }
+
+        for (auto& [pos, chunks] : m_chunks) {
+            chunks.gen_phase_five();
+        }
+        for (auto& [pos, chunks] : temp_neighbor) {
+            chunks.gen_phase_five();
+        }
+        std::array<std::optional<std::vector<uint8_t>>, 4> neighbor_block;
+        for (auto& [pos, chunks] : m_chunks) {
+            for (int i = 0; i < 4; i++) {
+                auto neighbor_pos = pos + CHUNK_DIR[i];
+                auto it = m_chunks.find(neighbor_pos);
+                if (it == m_chunks.end()) {
+                    auto it = temp_neighbor.find(neighbor_pos);
+                    if (it == temp_neighbor.end()) {
+                        neighbor_block[i] = std::nullopt;
+                        ASSERT_MSG(false, "Neighbor Chunk is nullptr");
+                    } else {
+                        neighbor_block[i] = it->second.get_chunk_blocks();
+                    }
+
+                    continue;
+                }
+                neighbor_block[i] = it->second.get_chunk_blocks();
+            }
+            chunks.gen_phase_six(neighbor_block);
+        }
+        for (auto& [pos, chunks] : m_chunks) {
+            chunks.gen_phase_seven();
+        }
     }
 
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_three();
-    }
-    std::array<std::optional<HeightMapArray>, 4> neighbor_chunk_heightmap;
-    for (auto& [pos, chunks] : m_chunks) {
-        for (int i = 0; i < 4; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                neighbor_chunk_heightmap[i] = std::nullopt;
-                continue;
-            }
-            neighbor_chunk_heightmap[i] = it->second.get_heightmap();
-        }
-        chunks.gen_phase_four(neighbor_chunk_heightmap);
-    }
-
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_five();
-    }
-    std::array<std::optional<std::vector<uint8_t>>, 4> neighbor_block;
-    for (auto& [pos, chunks] : m_chunks) {
-        for (int i = 0; i < 4; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                neighbor_block[i] = std::nullopt;
-                continue;
-            }
-            neighbor_block[i] = it->second.get_chunk_blocks();
-        }
-        chunks.gen_phase_six(neighbor_block);
-    }
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_seven();
-    }
     std::atomic<int> sync{0};
     sync.store(1, std::memory_order_release);
     sync.load(std::memory_order_acquire);
@@ -266,7 +367,7 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
     }
     return {chunk_x, chunk_z};
 }
-
+/*
 void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.0f;
     ChunkPosSet required_chunks;
@@ -396,7 +497,7 @@ void World::gen_chunks_internal() {
     }
     m_chunk_gen_fraction = 1.0f;
 }
-
+*/
 void World::sync_player_pos(glm::vec3& player_pos) {
     std::lock_guard lk(m_gen_player_pos_mutex);
     player_pos = m_gen_player_pos;
@@ -488,7 +589,7 @@ void World::start_gen_thread() {
             m_need_gen_chunk = false;
             lk.unlock();
 
-            gen_chunks_internal();
+            // gen_chunks_internal();
         }
     });
 }

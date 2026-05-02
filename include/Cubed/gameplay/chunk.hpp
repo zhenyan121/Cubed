@@ -59,12 +59,13 @@ public:
     // Determine biome from temperature and humidity noise
     void gen_phase_one();
     // Resolve biome adjacency conflicts with neighbor chunks
-    void gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks);
+    void gen_phase_two(const std::array<const Chunk*, 8>& adj_chunks);
     // Generate heightmap using biome-specific noise
     void gen_phase_three();
     // Blend heightmap with neighbors for smooth transitions
     void gen_phase_four(
-        const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap);
+        const std::array<std::optional<HeightMapArray>, 8>& neighbor_heightmap,
+        const std::array<BiomeType, 8>& neighbor_biome);
     // Generate terrain blocks from heightmap and biome
     void gen_phase_five();
     // Blend surface blocks at chunk borders with neighbors

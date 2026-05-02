@@ -25,12 +25,13 @@ public:
     void assign_chunk_biome();
     // Adjust Biome
     void resolve_biome_adjacency_conflict(
-        const std::array<const Chunk*, 4>& adj_chunks);
+        const std::array<const Chunk*, 8>& adj_chunks);
     // Generate Heightmap
     void generate_heightmap();
     // Adjust Height
     void blend_heightmap_boundaries(
-        const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap);
+        const std::array<std::optional<HeightMapArray>, 8>& neighbor_heightmap,
+        const std::array<BiomeType, 8>& neighbor_biome);
     // Generate Block
     void generate_terrain_blocks();
     // Adjust Block;
@@ -39,10 +40,11 @@ public:
             neighbor_block);
     // Generate Structure
     void generate_vegetation();
-
+    BiomeType get_biome_at(float world_x, float world_z);
     Chunk& chunk();
     Random& random();
     bool neighbor_river() const;
+    const std::array<BiomeType, 8>& neighbor_biome() const;
 
 private:
     static inline std::atomic<bool> is_init{false};
@@ -50,11 +52,10 @@ private:
     static inline std::atomic<bool> is_seed_change{false};
     Chunk& m_chunk;
     Random m_random;
-    std::array<BiomeType, 4> neighbor_biome{BiomeType::NONE, BiomeType::NONE,
-                                            BiomeType::NONE, BiomeType::NONE};
     std::unique_ptr<BiomeBuilder> m_biome_builder{nullptr};
     bool is_neighbor_river = false;
-
+    bool is_cur_chunk_ins = false;
+    std::array<BiomeType, 8> m_neighbor_biome;
     void make_biome_builder();
 };
 

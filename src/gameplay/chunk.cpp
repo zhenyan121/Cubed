@@ -215,7 +215,7 @@ void Chunk::gen_phase_one() {
     m_generator->assign_chunk_biome();
 }
 
-void Chunk::gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks) {
+void Chunk::gen_phase_two(const std::array<const Chunk*, 8>& adj_chunks) {
     if (!m_generator) {
         Logger::error("ChunkGenerator is Nullptr");
         return;
@@ -232,12 +232,13 @@ void Chunk::gen_phase_three() {
 }
 
 void Chunk::gen_phase_four(
-    const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
+    const std::array<std::optional<HeightMapArray>, 8>& neighbor_heightmap,
+    const std::array<BiomeType, 8>& neighbor_biome) {
     if (!m_generator) {
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
-    m_generator->blend_heightmap_boundaries(neighbor_heightmap);
+    m_generator->blend_heightmap_boundaries(neighbor_heightmap, neighbor_biome);
 }
 
 void Chunk::gen_phase_five() {

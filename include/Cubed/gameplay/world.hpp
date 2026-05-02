@@ -28,9 +28,9 @@ private:
     using ConstChunkMap =
         std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
-
+    using ChunkHashMap = std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash>;
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
-    std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash> m_chunks;
+    ChunkHashMap m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
     std::vector<glm::vec4> m_planes;
 

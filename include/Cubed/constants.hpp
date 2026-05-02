@@ -1,4 +1,6 @@
 #pragma once
+#include "Cubed/gameplay/chunk_pos.hpp"
+
 #include <array>
 namespace Cubed {
 
@@ -25,6 +27,9 @@ constexpr float DEFAULT_G = 22.5f;
 static constexpr int SIZE_X = CHUCK_SIZE;
 static constexpr int SIZE_Y = WORLD_SIZE_Y;
 static constexpr int SIZE_Z = CHUCK_SIZE;
+
+constexpr ChunkPos CHUNK_DIR[]{{1, 0}, {-1, 0}, {0, 1},  {0, -1},
+                               {1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
 
 using HeightMapArray = std::array<std::array<int, CHUCK_SIZE>, CHUCK_SIZE>;
 
