@@ -28,9 +28,9 @@ private:
     using ConstChunkMap =
         std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
-
+    using ChunkHashMap = std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash>;
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
-    std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash> m_chunks;
+    ChunkHashMap m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
     std::vector<glm::vec4> m_planes;
 
@@ -63,11 +63,10 @@ private:
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
                                           ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkUpdateList& new_chunks);
+                                          const ChunkUpdateList& new_chunks,
+                                          ChunkHashMap& temp_neighbor);
     void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
                                                        ConstChunkMap&);
-    void start_gen_thread();
-    void stop_gen_thread();
 
 public:
     World();
@@ -105,6 +104,8 @@ public:
     float chunk_gen_fraction() const;
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
+    void start_gen_thread();
+    void stop_gen_thread();
 };
 
 } // namespace Cubed

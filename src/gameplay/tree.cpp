@@ -39,8 +39,8 @@ bool build_tree(Chunk& chunk, const glm::ivec3& pos) {
         int x = tree_node.x;
         int y = tree_node.y;
         int z = tree_node.z;
-        if (x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y ||
-            z >= CHUCK_SIZE) {
+        if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+            z >= CHUNK_SIZE) {
             return false;
         }
         if (block[Chunk::get_index(tree_node)] != 0) {

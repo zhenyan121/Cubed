@@ -42,6 +42,7 @@ private:
     PlayerProfile m_player_profile;
     TextEditing m_text_editing;
     bool m_need_save_config = false;
+    bool m_gen_thread_running = true;
     int m_theme = 0;
     void show_about_table_bar();
     void show_biome_table_bar();

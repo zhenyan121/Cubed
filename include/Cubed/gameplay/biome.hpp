@@ -23,12 +23,8 @@ struct BiomeNonAdjacent {
 static inline const std::vector<BiomeNonAdjacent> NON_ADJACENT{
     {{BiomeType::PLAIN, {BiomeType::DESERT}, BiomeType::RIVER},
      {BiomeType::FOREST, {BiomeType::DESERT}, BiomeType::RIVER},
-     {BiomeType::DESERT,
-      {BiomeType::MOUNTAIN, BiomeType::FOREST},
-      BiomeType::RIVER},
-     {BiomeType::MOUNTAIN,
-      {BiomeType::DESERT, BiomeType::FOREST},
-      BiomeType::RIVER}}};
+     {BiomeType::DESERT, {BiomeType::FOREST}, BiomeType::RIVER},
+     {BiomeType::MOUNTAIN, {BiomeType::NONE}, BiomeType::RIVER}}};
 
 struct BaseBiomeParams {
     BiomeType biome;

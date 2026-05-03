@@ -59,15 +59,15 @@ HeightMapArray Chunk::get_heightmap() const {
 }
 
 int Chunk::get_index(int x, int y, int z) {
-    ASSERT(!(x < 0 || y < 0 || z < 0 || x >= CHUCK_SIZE || y >= WORLD_SIZE_Y ||
-             z >= CHUCK_SIZE));
-    if ((x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z < 0 ||
-        (x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z >=
-            CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y) {
+    ASSERT(!(x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+             z >= CHUNK_SIZE));
+    if ((x * WORLD_SIZE_Y + y) * CHUNK_SIZE + z < 0 ||
+        (x * WORLD_SIZE_Y + y) * CHUNK_SIZE + z >=
+            CHUNK_SIZE * CHUNK_SIZE * WORLD_SIZE_Y) {
         Logger::error("block pos x {} y {} z {} range error", x, y, z);
         ASSERT(0);
     }
-    return (x * WORLD_SIZE_Y + y) * CHUCK_SIZE + z;
+    return (x * WORLD_SIZE_Y + y) * CHUNK_SIZE + z;
 }
 
 int Chunk::get_index(const glm::vec3& pos) {
@@ -89,8 +89,8 @@ void Chunk::gen_vertex_data(
     for (int x = 0; x < SIZE_X; x++) {
         for (int y = 0; y < SIZE_Y; y++) {
             for (int z = 0; z < SIZE_Z; z++) {
-                int world_x = x + m_chunk_pos.x * CHUCK_SIZE;
-                int world_z = z + m_chunk_pos.z * CHUCK_SIZE;
+                int world_x = x + m_chunk_pos.x * CHUNK_SIZE;
+                int world_z = z + m_chunk_pos.z * CHUNK_SIZE;
                 int world_y = y;
                 int cur_id = m_blocks[get_index(x, y, z)];
                 // air
@@ -121,11 +121,11 @@ void Chunk::gen_vertex_data(
                                 }
                                 int x, y, z;
                                 y = world_ny;
-                                x = world_nx - neighbor_x * CHUCK_SIZE;
-                                z = world_nz - neighbor_z * CHUCK_SIZE;
+                                x = world_nx - neighbor_x * CHUNK_SIZE;
+                                z = world_nz - neighbor_z * CHUNK_SIZE;
                                 if (x < 0 || y < 0 || z < 0 ||
-                                    x >= CHUCK_SIZE || y >= WORLD_SIZE_Y ||
-                                    z >= CHUCK_SIZE) {
+                                    x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+                                    z >= CHUNK_SIZE) {
                                     return false;
                                 }
 
@@ -215,7 +215,7 @@ void Chunk::gen_phase_one() {
     m_generator->assign_chunk_biome();
 }
 
-void Chunk::gen_phase_two(const std::array<const Chunk*, 4>& adj_chunks) {
+void Chunk::gen_phase_two(const std::array<const Chunk*, 8>& adj_chunks) {
     if (!m_generator) {
         Logger::error("ChunkGenerator is Nullptr");
         return;
@@ -232,12 +232,13 @@ void Chunk::gen_phase_three() {
 }
 
 void Chunk::gen_phase_four(
-    const std::array<std::optional<HeightMapArray>, 4>& neighbor_heightmap) {
+    const std::array<std::optional<HeightMapArray>, 8>& neighbor_heightmap,
+    const std::array<BiomeType, 8>& neighbor_biome) {
     if (!m_generator) {
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
-    m_generator->blend_heightmap_boundaries(neighbor_heightmap);
+    m_generator->blend_heightmap_boundaries(neighbor_heightmap, neighbor_biome);
 }
 
 void Chunk::gen_phase_five() {

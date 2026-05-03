@@ -123,14 +123,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Building with AddressSanitizer enabled for target: ${PROJECT_NAME}")
 
     target_compile_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address
+        #-fsanitize=address
         #-fsanitize=thread
         -fno-omit-frame-pointer   
         -g                        
     )
 
     target_link_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address
+        #-fsanitize=address
         #-fsanitize=thread
     )
 
