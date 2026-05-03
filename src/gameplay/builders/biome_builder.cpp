@@ -7,9 +7,9 @@ void BiomeBuilder::build_bottom() {
     ChunkGenerator& chunk_generator = get_chunk_generator();
     Chunk& chunk = chunk_generator.chunk();
     auto& m_blocks = chunk.blocks();
-    for (int x = 0; x < CHUCK_SIZE; x++) {
+    for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int y = 0; y < 5; y++) {
-            for (int z = 0; z < CHUCK_SIZE; z++) {
+            for (int z = 0; z < CHUNK_SIZE; z++) {
                 m_blocks[Chunk::get_index(x, y, z)] = 3;
             }
         }

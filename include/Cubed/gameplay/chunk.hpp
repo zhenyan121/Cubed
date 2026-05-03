@@ -15,9 +15,9 @@ class World;
 // if want to use, do init_chunk(), gen_vertex_data() and
 class Chunk {
 private:
-    static constexpr int SIZE_X = CHUCK_SIZE;
+    static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
-    static constexpr int SIZE_Z = CHUCK_SIZE;
+    static constexpr int SIZE_Z = CHUNK_SIZE;
 
     std::atomic<bool> m_dirty{false};
     std::atomic<bool> m_need_upload{true};

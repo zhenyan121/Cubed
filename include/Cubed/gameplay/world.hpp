@@ -63,11 +63,10 @@ private:
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
                                           ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkUpdateList& new_chunks);
+                                          const ChunkUpdateList& new_chunks,
+                                          ChunkHashMap& temp_neighbor);
     void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
                                                        ConstChunkMap&);
-    void start_gen_thread();
-    void stop_gen_thread();
 
 public:
     World();
@@ -105,6 +104,8 @@ public:
     float chunk_gen_fraction() const;
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
+    void start_gen_thread();
+    void stop_gen_thread();
 };
 
 } // namespace Cubed

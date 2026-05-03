@@ -387,6 +387,14 @@ void DevPanel::show_world_tab_item() {
         if (ImGui::Button("Spawn Point")) {
             m_player->set_player_pos({0.0f, 255.0f, 0.0f});
         }
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Gen Thread", &m_gen_thread_running)) {
+            if (m_gen_thread_running) {
+                m_app.world().start_gen_thread();
+            } else {
+                m_app.world().stop_gen_thread();
+            }
+        }
         ImGui::Text("Chunk Build Progress\n");
         ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
         show_biome_table_bar();

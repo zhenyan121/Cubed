@@ -43,7 +43,6 @@ public:
     BiomeType get_biome_at(float world_x, float world_z);
     Chunk& chunk();
     Random& random();
-    bool neighbor_river() const;
     const std::array<BiomeType, 8>& neighbor_biome() const;
 
 private:
@@ -53,7 +52,6 @@ private:
     Chunk& m_chunk;
     Random m_random;
     std::unique_ptr<BiomeBuilder> m_biome_builder{nullptr};
-    bool is_neighbor_river = false;
     bool is_cur_chunk_ins = false;
     std::array<BiomeType, 8> m_neighbor_biome;
     void make_biome_builder();

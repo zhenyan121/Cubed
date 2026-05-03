@@ -65,9 +65,6 @@ void ChunkGenerator::resolve_biome_adjacency_conflict(
             continue;
         }
         BiomeType biome = chunk->get_biome();
-        if (biome == BiomeType::RIVER) {
-            is_neighbor_river = true;
-        }
         for (const auto& non : NON_ADJACENT) {
             if (m_biome != non.first) {
                 continue;
@@ -89,11 +86,11 @@ void ChunkGenerator::generate_heightmap() {
     auto& m_heightmap = m_chunk.heightmap();
     auto m_biome = m_chunk.biome();
 
-    for (int x = 0; x < CHUCK_SIZE; x++) {
-        for (int z = 0; z < CHUCK_SIZE; z++) {
+    for (int x = 0; x < CHUNK_SIZE; x++) {
+        for (int z = 0; z < CHUNK_SIZE; z++) {
 
-            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUCK_SIZE);
-            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUCK_SIZE);
+            float world_x = static_cast<float>(x + m_chunk_pos.x * CHUNK_SIZE);
+            float world_z = static_cast<float>(z + m_chunk_pos.z * CHUNK_SIZE);
 
             auto sample_height = [&](BiomeType b) -> int {
                 auto range = get_biome_height_range(b);
@@ -123,7 +120,7 @@ void ChunkGenerator::blend_heightmap_boundaries(
         if (neighbor_heightmap[0] != std::nullopt &&
             neighbor_biome[0] != m_biome) {
             is_cur_chunk_ins = true;
-            int edge_x = CHUCK_SIZE - 1;
+            int edge_x = CHUNK_SIZE - 1;
             int h = m_heightmap[edge_x][z];
             int neighbor_h = (*neighbor_heightmap[0])[0][z];
             if (h <= neighbor_h) {
@@ -148,7 +145,7 @@ void ChunkGenerator::blend_heightmap_boundaries(
             is_cur_chunk_ins = true;
             int edge_x = 0;
             int h = m_heightmap[edge_x][z];
-            int neighbor_h = (*neighbor_heightmap[1])[CHUCK_SIZE - 1][z];
+            int neighbor_h = (*neighbor_heightmap[1])[CHUNK_SIZE - 1][z];
             if (h <= neighbor_h) {
                 continue;
             }
@@ -170,7 +167,7 @@ void ChunkGenerator::blend_heightmap_boundaries(
         if (neighbor_heightmap[2] != std::nullopt &&
             neighbor_biome[2] != m_biome) {
             is_cur_chunk_ins = true;
-            int edge_z = CHUCK_SIZE - 1;
+            int edge_z = CHUNK_SIZE - 1;
             int h = m_heightmap[x][edge_z];
             int neighbor_h = (*neighbor_heightmap[2])[x][0];
             if (h <= neighbor_h) {
@@ -196,7 +193,7 @@ void ChunkGenerator::blend_heightmap_boundaries(
             is_cur_chunk_ins = true;
             int edge_z = 0;
             int h = m_heightmap[x][edge_z];
-            int neighbor_h = (*neighbor_heightmap[3])[x][CHUCK_SIZE - 1];
+            int neighbor_h = (*neighbor_heightmap[3])[x][CHUNK_SIZE - 1];
             if (h <= neighbor_h) {
                 continue;
             }
@@ -213,6 +210,7 @@ void ChunkGenerator::blend_heightmap_boundaries(
             }
         }
     }
+
     if (is_cur_chunk_ins) {
         return;
     }
@@ -220,8 +218,8 @@ void ChunkGenerator::blend_heightmap_boundaries(
     if (neighbor_heightmap[4] != std::nullopt && neighbor_biome[4] != m_biome) {
         for (int i = 0; i < BLEND_RADIUS; i++) {
             for (int j = 0; j < BLEND_RADIUS; j++) {
-                int x = (CHUCK_SIZE - 1) - i;
-                int z = (CHUCK_SIZE - 1) - j;
+                int x = (CHUNK_SIZE - 1) - i;
+                int z = (CHUNK_SIZE - 1) - j;
                 int h = m_heightmap[x][z];
 
                 int h_right = (neighbor_heightmap[0] != std::nullopt)
@@ -257,15 +255,15 @@ void ChunkGenerator::blend_heightmap_boundaries(
         for (int i = 0; i < BLEND_RADIUS; i++) {
             for (int j = 0; j < BLEND_RADIUS; j++) {
                 int x = i;
-                int z = (CHUCK_SIZE - 1) - j;
+                int z = (CHUNK_SIZE - 1) - j;
                 int h = m_heightmap[x][z];
                 int h_left = (neighbor_heightmap[1] != std::nullopt)
-                                 ? (*neighbor_heightmap[1])[CHUCK_SIZE - 1][z]
+                                 ? (*neighbor_heightmap[1])[CHUNK_SIZE - 1][z]
                                  : h;
                 int h_front = (neighbor_heightmap[2] != std::nullopt)
                                   ? (*neighbor_heightmap[2])[x][0]
                                   : h;
-                int h_corner = (*neighbor_heightmap[5])[CHUCK_SIZE - 1][0];
+                int h_corner = (*neighbor_heightmap[5])[CHUNK_SIZE - 1][0];
 
                 float tx = static_cast<float>(i) / BLEND_RADIUS;
                 float tz = static_cast<float>(j) / BLEND_RADIUS;
@@ -288,16 +286,16 @@ void ChunkGenerator::blend_heightmap_boundaries(
     if (neighbor_heightmap[6] != std::nullopt && neighbor_biome[6] != m_biome) {
         for (int i = 0; i < BLEND_RADIUS; i++) {
             for (int j = 0; j < BLEND_RADIUS; j++) {
-                int x = (CHUCK_SIZE - 1) - i;
+                int x = (CHUNK_SIZE - 1) - i;
                 int z = j;
                 int h = m_heightmap[x][z];
                 int h_right = (neighbor_heightmap[0] != std::nullopt)
                                   ? (*neighbor_heightmap[0])[0][z]
                                   : h;
                 int h_back = (neighbor_heightmap[3] != std::nullopt)
-                                 ? (*neighbor_heightmap[3])[x][CHUCK_SIZE - 1]
+                                 ? (*neighbor_heightmap[3])[x][CHUNK_SIZE - 1]
                                  : h;
-                int h_corner = (*neighbor_heightmap[6])[0][CHUCK_SIZE - 1];
+                int h_corner = (*neighbor_heightmap[6])[0][CHUNK_SIZE - 1];
 
                 float tx = static_cast<float>(i) / BLEND_RADIUS;
                 float tz = static_cast<float>(j) / BLEND_RADIUS;
@@ -324,13 +322,13 @@ void ChunkGenerator::blend_heightmap_boundaries(
                 int z = j;
                 int h = m_heightmap[x][z];
                 int h_left = (neighbor_heightmap[1] != std::nullopt)
-                                 ? (*neighbor_heightmap[1])[CHUCK_SIZE - 1][z]
+                                 ? (*neighbor_heightmap[1])[CHUNK_SIZE - 1][z]
                                  : h;
                 int h_back = (neighbor_heightmap[3] != std::nullopt)
-                                 ? (*neighbor_heightmap[3])[x][CHUCK_SIZE - 1]
+                                 ? (*neighbor_heightmap[3])[x][CHUNK_SIZE - 1]
                                  : h;
                 int h_corner =
-                    (*neighbor_heightmap[7])[CHUCK_SIZE - 1][CHUCK_SIZE - 1];
+                    (*neighbor_heightmap[7])[CHUNK_SIZE - 1][CHUNK_SIZE - 1];
 
                 float tx = static_cast<float>(i) / BLEND_RADIUS;
                 float tz = static_cast<float>(j) / BLEND_RADIUS;
@@ -356,7 +354,7 @@ void ChunkGenerator::generate_terrain_blocks() {
         Logger::error("BiomeBuilder is nullptr");
         return;
     }
-    m_chunk.blocks().assign(CHUCK_SIZE * CHUCK_SIZE * WORLD_SIZE_Y, 0);
+    m_chunk.blocks().assign(CHUNK_SIZE * CHUNK_SIZE * WORLD_SIZE_Y, 0);
     m_biome_builder->build_biome();
 }
 
@@ -384,8 +382,8 @@ void ChunkGenerator::blend_surface_blocks_borders(
     };
 
     // For each column (x, z)
-    for (int x = 0; x < CHUCK_SIZE; ++x) {
-        for (int z = 0; z < CHUCK_SIZE; ++z) {
+    for (int x = 0; x < CHUNK_SIZE; ++x) {
+        for (int z = 0; z < CHUNK_SIZE; ++z) {
             // Get the current top block type of this column from m_blocks
             uint8_t type_self = 0;
             int top_y = -1;
@@ -400,8 +398,8 @@ void ChunkGenerator::blend_surface_blocks_borders(
             weights[type_self] = 1.0f; // self weight
 
             // --- Right neighbor (index 0) ---
-            if (neighbor_block[0] && x >= CHUCK_SIZE - BLEND_RADIUS) {
-                int dist = (CHUCK_SIZE - 1) - x;
+            if (neighbor_block[0] && x >= CHUNK_SIZE - BLEND_RADIUS) {
+                int dist = (CHUNK_SIZE - 1) - x;
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t); // smoothstep
                 if (t > 0.0f) {
@@ -418,14 +416,14 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
                     uint8_t type_neighbor = get_top_block_from_neighbor(
-                        *neighbor_block[1], CHUCK_SIZE - 1, z);
+                        *neighbor_block[1], CHUNK_SIZE - 1, z);
                     weights[type_neighbor] += t;
                 }
             }
 
             // --- Front neighbor (index 2) ---
-            if (neighbor_block[2] && z >= CHUCK_SIZE - BLEND_RADIUS) {
-                int dist = (CHUCK_SIZE - 1) - z;
+            if (neighbor_block[2] && z >= CHUNK_SIZE - BLEND_RADIUS) {
+                int dist = (CHUNK_SIZE - 1) - z;
                 float t = 1.0f - static_cast<float>(dist) / BLEND_RADIUS;
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
@@ -442,7 +440,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 t = t * t * (3.0f - 2.0f * t);
                 if (t > 0.0f) {
                     uint8_t type_neighbor = get_top_block_from_neighbor(
-                        *neighbor_block[3], x, CHUCK_SIZE - 1);
+                        *neighbor_block[3], x, CHUNK_SIZE - 1);
                     weights[type_neighbor] += t;
                 }
             }
@@ -463,13 +461,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 if (m_chunk.biome() == BiomeType::RIVER && final_type == 1) {
                     final_type = 2;
                 }
-                if (is_neighbor_river && final_type == 1) {
-                    if (top_y < SEA_LEVEL) {
-                        final_type = 2;
-                    } else {
-                        final_type = 1;
-                    }
-                }
+
                 m_blocks[Chunk::get_index(x, top_y, z)] = final_type;
                 // bottom block
                 unsigned fill_type = 2;
@@ -522,7 +514,6 @@ void ChunkGenerator::make_biome_builder() {
 Chunk& ChunkGenerator::chunk() { return m_chunk; }
 
 Random& ChunkGenerator::random() { return m_random; }
-bool ChunkGenerator::neighbor_river() const { return is_neighbor_river; }
 const std::array<BiomeType, 8>& ChunkGenerator::neighbor_biome() const {
     return m_neighbor_biome;
 }

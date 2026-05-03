@@ -5,7 +5,7 @@
 namespace Cubed {
 
 constexpr int WORLD_SIZE_Y = 256;
-constexpr int CHUCK_SIZE = 16;
+constexpr int CHUNK_SIZE = 16;
 constexpr int SEA_LEVEL = 64;
 
 constexpr int MAX_BLOCK_NUM = 8;
@@ -24,13 +24,13 @@ constexpr float DEFAULT_MAX_RUN_SPEED = 7.0f;
 constexpr float DEFAULT_ACCELERATION = 10.0f;
 constexpr float DEFAULT_DECELERATION = 15.0f;
 constexpr float DEFAULT_G = 22.5f;
-static constexpr int SIZE_X = CHUCK_SIZE;
+static constexpr int SIZE_X = CHUNK_SIZE;
 static constexpr int SIZE_Y = WORLD_SIZE_Y;
-static constexpr int SIZE_Z = CHUCK_SIZE;
+static constexpr int SIZE_Z = CHUNK_SIZE;
 
 constexpr ChunkPos CHUNK_DIR[]{{1, 0}, {-1, 0}, {0, 1},  {0, -1},
                                {1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
 
-using HeightMapArray = std::array<std::array<int, CHUCK_SIZE>, CHUCK_SIZE>;
+using HeightMapArray = std::array<std::array<int, CHUNK_SIZE>, CHUNK_SIZE>;
 
 } // namespace Cubed
