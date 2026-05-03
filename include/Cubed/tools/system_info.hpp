@@ -6,8 +6,10 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#include <psapi.h>
+// clang-format off
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 typedef LONG(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 #elif defined(__linux__)
 #include <fstream>

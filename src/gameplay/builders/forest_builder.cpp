@@ -3,6 +3,9 @@
 #include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/chunk_generator.hpp"
 #include "Cubed/gameplay/tree.hpp"
+
+#include <numeric>
+
 namespace Cubed {
 ForestBuilder::ForestBuilder(ChunkGenerator& chunk_generator)
     : m_chunk_generator(chunk_generator) {}
