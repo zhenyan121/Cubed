@@ -307,4 +307,5 @@ void Chunk::biome(BiomeType b) { m_biome = b; }
 
 HeightMapArray& Chunk::heightmap() { return m_heightmap; }
 std::vector<uint8_t>& Chunk::blocks() { return m_blocks; }
+World& Chunk::world() { return m_world; }
 } // namespace Cubed

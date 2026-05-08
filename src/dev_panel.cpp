@@ -354,7 +354,8 @@ void DevPanel::show_settings_tab_item() {
 void DevPanel::show_world_tab_item() {
     if (ImGui::BeginTabItem("world")) {
         if (m_text_editing.perlin_seed) {
-            if (ImGui::InputText("Perlin Noise Seed", perlin_noise_input_buffer,
+            if (ImGui::InputText("ChunkGenerator Seed",
+                                 perlin_noise_input_buffer,
                                  sizeof(perlin_noise_input_buffer),
                                  ImGuiInputTextFlags_CallbackCharFilter |
                                      ImGuiInputTextFlags_EnterReturnsTrue,
@@ -395,6 +396,7 @@ void DevPanel::show_world_tab_item() {
                 m_app.world().stop_gen_thread();
             }
         }
+        ImGui::Text("Cave Sum %d", m_app.world().cave_carcer().cave_sum());
         ImGui::Text("Chunk Build Progress\n");
         ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
         show_biome_table_bar();

@@ -27,6 +27,10 @@ inline uint32_t mix_hash(int32_t a, int32_t b, uint32_t fixed_seed) {
 
     return h;
 }
+inline uint32_t combine_32(uint32_t seed, uint32_t v) {
+    seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+}
 } // namespace HASH
 
 } // namespace Cubed

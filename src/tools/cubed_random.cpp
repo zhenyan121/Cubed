@@ -1,7 +1,5 @@
 #include "Cubed/tools/cubed_random.hpp"
 
-#include "Cubed/tools/log.hpp"
-
 namespace Cubed {
 
 Random::Random() {}
@@ -18,6 +16,14 @@ unsigned Random::seed() { return m_seed; }
 void Random::init(unsigned seed) {
     m_seed = seed;
     m_engine.seed(seed);
+}
+int Random::random_int(int min, int max) {
+    std::uniform_int_distribution<int> dist(min, max);
+    return dist(m_engine);
+}
+float Random::random_float(float min, float max) {
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(m_engine);
 }
 
 } // namespace Cubed

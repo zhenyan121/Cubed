@@ -55,6 +55,7 @@ private:
     bool is_cur_chunk_ins = false;
     std::array<BiomeType, 8> m_neighbor_biome;
     void make_biome_builder();
+    void generate_cave();
 };
 
 } // namespace Cubed

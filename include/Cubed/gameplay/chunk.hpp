@@ -98,6 +98,7 @@ public:
     void biome(BiomeType b);
     HeightMapArray& heightmap();
     std::vector<uint8_t>& blocks();
+    World& world();
 };
 
 } // namespace Cubed
