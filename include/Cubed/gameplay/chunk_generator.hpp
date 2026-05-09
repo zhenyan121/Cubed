@@ -20,7 +20,7 @@ public:
     static void reload();
     static const unsigned& seed();
     static void seed(unsigned s);
-
+    unsigned chunk_seed() const;
     // Generate Biome
     void assign_chunk_biome();
     // Adjust Biome
@@ -54,7 +54,10 @@ private:
     std::unique_ptr<BiomeBuilder> m_biome_builder{nullptr};
     bool is_cur_chunk_ins = false;
     std::array<BiomeType, 8> m_neighbor_biome;
+    unsigned m_chunk_seed = 0;
+
     void make_biome_builder();
+    void generate_cave();
 };
 
 } // namespace Cubed

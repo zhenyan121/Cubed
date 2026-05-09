@@ -5,12 +5,14 @@ namespace Cubed {
 class Random {
 public:
     Random();
-
+    Random(unsigned seed);
     bool random_bool(double probability);
     std::mt19937& engine();
     unsigned seed();
 
     void init(unsigned seed);
+    int random_int(int min, int max);
+    float random_float(float min, float max);
 
 private:
     unsigned int m_seed = 0;

@@ -117,6 +117,8 @@ add_executable(${PROJECT_NAME}
     src/gameplay/builders/river_builder.cpp
     src/gameplay/builders/desert_builder.cpp
     src/gameplay/builders/forest_builder.cpp
+    src/gameplay/cave_carver.cpp
+    src/gameplay/cave_path.cpp
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

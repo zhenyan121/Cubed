@@ -7,9 +7,9 @@
 #include "Cubed/gameplay/builders/river_builder.hpp"
 #include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/tree.hpp"
+#include "Cubed/gameplay/world.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/perlin_noise.hpp"
-
 namespace Cubed {
 
 using enum BiomeType;
@@ -20,6 +20,7 @@ ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ChunkPos pos = m_chunk.get_chunk_pos();
     unsigned seed = HASH::mix_hash(pos.x, pos.z, m_generator_seed);
     m_random.init(seed);
+    m_chunk_seed = seed;
 }
 
 void ChunkGenerator::init() {
@@ -43,7 +44,12 @@ void ChunkGenerator::seed(unsigned s) {
     is_seed_change = true;
     m_generator_seed = s;
 }
-
+unsigned ChunkGenerator::chunk_seed() const {
+    if (m_chunk_seed == 0) {
+        Logger::warn("Chunk Seed Generator Fail");
+    }
+    return m_chunk_seed;
+}
 void ChunkGenerator::assign_chunk_biome() {
     auto m_chunk_pos = m_chunk.chunk_pos();
     float x = static_cast<float>(m_chunk_pos.x);
@@ -356,6 +362,7 @@ void ChunkGenerator::generate_terrain_blocks() {
     }
     m_chunk.blocks().assign(CHUNK_SIZE * CHUNK_SIZE * WORLD_SIZE_Y, 0);
     m_biome_builder->build_biome();
+    generate_cave();
 }
 
 void ChunkGenerator::blend_surface_blocks_borders(
@@ -508,6 +515,61 @@ void ChunkGenerator::make_biome_builder() {
     case NONE:
         m_biome_builder = nullptr;
         break;
+    }
+}
+
+void ChunkGenerator::generate_cave() {
+    auto& cave_carver = m_chunk.world().cave_carcer();
+    auto& paths = cave_carver.paths();
+    const auto& chunk_pos = m_chunk.chunk_pos();
+    auto& blocks = m_chunk.blocks();
+    const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
+    const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
+    const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
+    const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
+    const int CHUNK_MIN_Y = 0;
+    const int CHUNK_MAX_Y = SIZE_Y - 1;
+    for (auto& [id, path] : paths) {
+        for (const auto& point : path.points()) {
+
+            const glm::vec3& center = point.pos;
+            float rad_xz = point.rad_xz;
+            float rad_y = point.rad_y;
+
+            int min_x = static_cast<int>(std::floor(center.x - rad_xz));
+            int max_x = static_cast<int>(std::floor(center.x + rad_xz));
+            int min_z = static_cast<int>(std::floor(center.z - rad_xz));
+            int max_z = static_cast<int>(std::floor(center.z + rad_xz));
+            int min_y = static_cast<int>(std::floor(center.y - rad_y));
+            int max_y = static_cast<int>(std::floor(center.y + rad_y));
+
+            min_x = std::max(min_x, CHUNK_MIN_X);
+            max_x = std::min(max_x, CHUNK_MAX_X);
+            min_z = std::max(min_z, CHUNK_MIN_Z);
+            max_z = std::min(max_z, CHUNK_MAX_Z);
+            min_y = std::max(min_y, CHUNK_MIN_Y);
+            max_y = std::min(max_y, CHUNK_MAX_Y);
+
+            for (int wx = min_x; wx <= max_x; ++wx) {
+                int x = wx - CHUNK_MIN_X;
+                for (int wz = min_z; wz <= max_z; ++wz) {
+                    int z = wz - CHUNK_MIN_Z;
+                    for (int wy = min_y; wy <= max_y; ++wy) {
+                        int y = wy;
+                        glm::vec3 pos(static_cast<float>(wx),
+                                      static_cast<float>(wy),
+                                      static_cast<float>(wz));
+                        if (point.contains(pos)) {
+                            if (y == 0) {
+                                continue;
+                            }
+                            blocks[Chunk::get_index(x, y, z)] = 0;
+                        }
+                    }
+                }
+            }
+        }
+        path.clear_chunk(chunk_pos);
     }
 }
 

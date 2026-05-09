@@ -46,6 +46,7 @@ private:
     int m_theme = 0;
     void show_about_table_bar();
     void show_biome_table_bar();
+    void show_cave_table_bar();
     void show_settings_tab_item();
     void show_world_tab_item();
     void show_player_tab_item();

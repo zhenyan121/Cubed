@@ -1,10 +1,11 @@
 #include "Cubed/tools/math_tools.hpp"
 
+#include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
-
 namespace Cubed {
 
 namespace Math {
+
 void extract_frustum_planes(const glm::mat4& mvp_matrix,
                             std::vector<glm::vec4>& planes) {
     if (planes.size() != 6) {
@@ -35,6 +36,13 @@ void extract_frustum_planes(const glm::mat4& mvp_matrix,
     for (auto& p : planes) {
         p = glm::normalize(p);
     }
+}
+
+float smootherstep(float edge0, float edge1, float x) {
+
+    x = std::clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+
+    return x * x * x * (x * (6.0f * x - 15.0f) + 10.0f);
 }
 
 } // namespace Math

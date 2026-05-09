@@ -24,7 +24,7 @@ Chunk::Chunk(Chunk&& other) noexcept
       m_chunk_pos(std::move(other.m_chunk_pos)), m_world(other.m_world),
       m_heightmap(std::move(other.m_heightmap)),
       m_blocks(std::move(other.m_blocks)), m_vbo(other.m_vbo),
-      m_vertexs_data(std::move(other.m_vertexs_data)) {
+      m_vertexs_data(std::move(other.m_vertexs_data)), m_seed(other.m_seed) {
     other.m_vbo = 0;
 }
 
@@ -43,6 +43,7 @@ Chunk& Chunk::operator=(Chunk&& other) noexcept {
     m_is_on_gen_vertex_data = other.m_is_on_gen_vertex_data.load();
     m_need_upload = other.m_need_upload.load();
     m_vertex_sum = other.m_vertex_sum.load();
+    m_seed = other.m_seed;
     return *this;
 }
 
@@ -213,6 +214,7 @@ void Chunk::gen_phase_one() {
         return;
     }
     m_generator->assign_chunk_biome();
+    m_seed = m_generator->chunk_seed();
 }
 
 void Chunk::gen_phase_two(const std::array<const Chunk*, 8>& adj_chunks) {
@@ -255,7 +257,7 @@ void Chunk::gen_phase_six(
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
-    m_generator->blend_surface_blocks_borders(neighbor_block);
+    // m_generator->blend_surface_blocks_borders(neighbor_block);
 }
 
 void Chunk::gen_phase_seven() {
@@ -307,4 +309,11 @@ void Chunk::biome(BiomeType b) { m_biome = b; }
 
 HeightMapArray& Chunk::heightmap() { return m_heightmap; }
 std::vector<uint8_t>& Chunk::blocks() { return m_blocks; }
+World& Chunk::world() { return m_world; }
+unsigned Chunk::seed() const {
+    if (m_seed == 0) {
+        Logger::warn("Seed Not Generator");
+    }
+    return m_seed;
+}
 } // namespace Cubed

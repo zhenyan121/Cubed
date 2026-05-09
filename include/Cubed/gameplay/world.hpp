@@ -1,5 +1,6 @@
 #pragma once
 #include "Cubed/AABB.hpp"
+#include "Cubed/gameplay/cave_carver.hpp"
 #include "Cubed/gameplay/chunk.hpp"
 
 #include <atomic>
@@ -45,6 +46,7 @@ private:
     std::atomic<bool> m_gen_running{false};
     std::atomic<bool> m_need_gen_chunk{false};
     std::atomic<bool> m_is_rebuilding{false};
+    std::atomic<bool> m_chunk_gen_finished{false};
     std::atomic<bool> m_could_gen{true};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<float> m_chunk_gen_fraction{0.0f};
@@ -52,6 +54,8 @@ private:
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
+
+    CaveCarver m_cave_carcer;
 
     void init_chunks();
 
@@ -106,6 +110,8 @@ public:
     void rendering_distance(int rendering_distance);
     void start_gen_thread();
     void stop_gen_thread();
+
+    CaveCarver& cave_carcer();
 };
 
 } // namespace Cubed

@@ -237,10 +237,7 @@ void Player::update_front_vec(float offset_x, float offset_y) {
 
     m_yaw = std::fmod(m_yaw, 360.0);
 
-    if (m_pitch > 89.0f)
-        m_pitch = 89.0f;
-    if (m_pitch < -89.0f)
-        m_pitch = -89.0f;
+    m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
 
     m_front.x = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
     m_front.y = sin(glm::radians(m_pitch));

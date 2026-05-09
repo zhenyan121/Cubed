@@ -7,8 +7,6 @@
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/math_tools.hpp"
 
-#include <execution>
-
 namespace Cubed {
 
 struct ChunkRenderData {
@@ -65,23 +63,30 @@ Player& World::get_player(const std::string& name) {
 }
 
 void World::init_world() {
+    m_cave_carcer.init(ChunkGenerator::seed());
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     auto t1 = std::chrono::system_clock::now();
 
     Logger::info("Max Support Thread is {}",
                  std::thread::hardware_concurrency());
+    // init players
+    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+
+    start_gen_thread();
     init_chunks();
     auto t2 = std::chrono::system_clock::now();
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
     Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
-    // init players
-    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+
     Logger::info("TestPlayer Create Finish");
-
-    start_gen_thread();
-    hot_reload();
 }
-
+void World::init_chunks() {
+    hot_reload();
+    while (!m_chunk_gen_finished) {
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+    }
+}
+/*
 void World::init_chunks() {
 
     int dis_x = PRE_LOAD_DISTANCE;
@@ -112,11 +117,13 @@ void World::init_chunks() {
             }
         }
     }
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_one();
+    for (auto& [pos, chunk] : m_chunks) {
+        chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
-    for (auto& [pos, chunks] : temp_neighbor) {
-        chunks.gen_phase_one();
+    for (auto& [pos, chunk] : temp_neighbor) {
+        chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
 
     std::array<const Chunk*, 8> neighbor_chunks;
@@ -251,6 +258,8 @@ void World::init_chunks() {
     sync.store(1, std::memory_order_release);
     sync.load(std::memory_order_acquire);
 
+    m_cave_carcer.cleanup_finished_caves();
+
     std::vector<ChunkRenderData> pending_gen_data;
     pending_gen_data.reserve(m_chunks.size());
     for (auto& [pos, chunk] : m_chunks) {
@@ -278,7 +287,7 @@ void World::init_chunks() {
         chunk.upload_to_gpu();
     }
 }
-
+*/
 void World::render(const glm::mat4& mvp_matrix) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
     int rendered_sum = 0;
@@ -325,6 +334,7 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 
 void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.0f;
+    m_chunk_gen_finished = false;
     ChunkPosSet required_chunks;
     compute_required_chunks(required_chunks);
 
@@ -356,9 +366,11 @@ void World::gen_chunks_internal() {
 
     for (auto& [pos, chunk] : new_chunks) {
         chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
     for (auto& [pos, chunk] : temp_neighbor) {
         chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
     m_chunk_gen_fraction = 0.2f;
     std::array<const Chunk*, 8> neighbor_chunks;
@@ -500,7 +512,9 @@ void World::gen_chunks_internal() {
             m_new_chunk_queue.emplace_back(std::move(x));
         }
     }
+    m_cave_carcer.cleanup_finished_caves();
     m_chunk_gen_fraction = 1.0f;
+    m_chunk_gen_finished = true;
 }
 
 void World::sync_player_pos(glm::vec3& player_pos) {
@@ -819,7 +833,7 @@ void World::rebuild_world() {
     }
     m_is_rebuilding = true;
     stop_gen_thread();
-
+    m_cave_carcer.reload(ChunkGenerator::seed());
     {
         std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
         m_chunks.clear();
@@ -840,5 +854,7 @@ int World::rendering_distance() const { return m_rendering_distance.load(); }
 void World::rendering_distance(int rendering_distance) {
     m_rendering_distance = rendering_distance;
 }
+
+CaveCarver& World::cave_carcer() { return m_cave_carcer; }
 
 } // namespace Cubed
