@@ -27,7 +27,7 @@ void CaveCarver::add_path(const glm::vec3& pos) {
 void CaveCarver::try_to_add_path(const ChunkPos& chunk_pos,
                                  unsigned chunk_seed) {
     Random random{chunk_seed};
-    if (random.random_bool(0.05)) {
+    if (random.random_bool(static_cast<double>(m_cave_probability))) {
         const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
         const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
         const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
@@ -48,5 +48,5 @@ void CaveCarver::cleanup_finished_caves() {
 }
 
 int CaveCarver::cave_sum() const { return m_sum; }
-
+float& CaveCarver::cave_probability() { return m_cave_probability; }
 } // namespace Cubed
