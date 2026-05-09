@@ -10,9 +10,6 @@ std::unordered_map<int, CavePath>& CaveCarver::paths() { return m_paths; }
 void CaveCarver::init(unsigned world_seed) {
     m_seed = world_seed;
     m_sum = 0;
-    m_paths.emplace(m_sum,
-                    CavePath{m_seed, m_sum, glm::vec3{0.0f, 20.0f, 0.0f}});
-    m_sum++;
     m_random.init(m_seed);
 }
 
