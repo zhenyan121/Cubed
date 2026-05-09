@@ -7,8 +7,6 @@
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/math_tools.hpp"
 
-#include <execution>
-
 namespace Cubed {
 
 struct ChunkRenderData {
@@ -71,18 +69,24 @@ void World::init_world() {
 
     Logger::info("Max Support Thread is {}",
                  std::thread::hardware_concurrency());
+    // init players
+    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+
+    start_gen_thread();
     init_chunks();
     auto t2 = std::chrono::system_clock::now();
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
     Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
-    // init players
-    m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
+
     Logger::info("TestPlayer Create Finish");
-
-    start_gen_thread();
-    hot_reload();
 }
-
+void World::init_chunks() {
+    hot_reload();
+    while (!m_chunk_gen_finished) {
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+    }
+}
+/*
 void World::init_chunks() {
 
     int dis_x = PRE_LOAD_DISTANCE;
@@ -283,7 +287,7 @@ void World::init_chunks() {
         chunk.upload_to_gpu();
     }
 }
-
+*/
 void World::render(const glm::mat4& mvp_matrix) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
     int rendered_sum = 0;
@@ -330,6 +334,7 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 
 void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.0f;
+    m_chunk_gen_finished = false;
     ChunkPosSet required_chunks;
     compute_required_chunks(required_chunks);
 
@@ -509,6 +514,7 @@ void World::gen_chunks_internal() {
     }
     m_cave_carcer.cleanup_finished_caves();
     m_chunk_gen_fraction = 1.0f;
+    m_chunk_gen_finished = true;
 }
 
 void World::sync_player_pos(glm::vec3& player_pos) {
