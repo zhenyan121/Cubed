@@ -19,6 +19,6 @@ private:
     unsigned m_seed = 0;
     int m_sum = 0;
     Random m_random;
-    float m_cave_probability = 0.03f;
+    float m_cave_probability = 0.035f;
 };
 } // namespace Cubed
