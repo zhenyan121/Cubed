@@ -20,6 +20,7 @@ ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ChunkPos pos = m_chunk.get_chunk_pos();
     unsigned seed = HASH::mix_hash(pos.x, pos.z, m_generator_seed);
     m_random.init(seed);
+    m_chunk_seed = seed;
 }
 
 void ChunkGenerator::init() {
@@ -43,7 +44,12 @@ void ChunkGenerator::seed(unsigned s) {
     is_seed_change = true;
     m_generator_seed = s;
 }
-
+unsigned ChunkGenerator::chunk_seed() const {
+    if (m_chunk_seed == 0) {
+        Logger::warn("Chunk Seed Generator Fail");
+    }
+    return m_chunk_seed;
+}
 void ChunkGenerator::assign_chunk_biome() {
     auto m_chunk_pos = m_chunk.chunk_pos();
     float x = static_cast<float>(m_chunk_pos.x);

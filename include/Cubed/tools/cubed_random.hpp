@@ -5,7 +5,7 @@ namespace Cubed {
 class Random {
 public:
     Random();
-
+    Random(unsigned seed);
     bool random_bool(double probability);
     std::mt19937& engine();
     unsigned seed();

@@ -113,12 +113,13 @@ void World::init_chunks() {
             }
         }
     }
-    for (auto& [pos, chunks] : m_chunks) {
-        m_cave_carcer.try_to_add_path(pos);
-        chunks.gen_phase_one();
+    for (auto& [pos, chunk] : m_chunks) {
+        chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
-    for (auto& [pos, chunks] : temp_neighbor) {
-        chunks.gen_phase_one();
+    for (auto& [pos, chunk] : temp_neighbor) {
+        chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
 
     std::array<const Chunk*, 8> neighbor_chunks;
@@ -359,11 +360,12 @@ void World::gen_chunks_internal() {
     // build new chunk, but the neighbor in m_chunks also need to re-build
 
     for (auto& [pos, chunk] : new_chunks) {
-        m_cave_carcer.try_to_add_path(pos);
         chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
     for (auto& [pos, chunk] : temp_neighbor) {
         chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
     }
     m_chunk_gen_fraction = 0.2f;
     std::array<const Chunk*, 8> neighbor_chunks;

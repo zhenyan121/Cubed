@@ -38,7 +38,7 @@ private:
 
     float frequency = 0.01f;
     float height = 80;
-
+    unsigned m_seed = 0;
     void clear_dirty();
 
 public:
@@ -99,6 +99,7 @@ public:
     HeightMapArray& heightmap();
     std::vector<uint8_t>& blocks();
     World& world();
+    unsigned seed() const;
 };
 
 } // namespace Cubed

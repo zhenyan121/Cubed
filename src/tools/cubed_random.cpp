@@ -3,7 +3,7 @@
 namespace Cubed {
 
 Random::Random() {}
-
+Random::Random(unsigned seed) { init(seed); }
 bool Random::random_bool(double probability) {
     std::bernoulli_distribution dist(probability);
     return dist(m_engine);
