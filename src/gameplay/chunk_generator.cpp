@@ -9,6 +9,7 @@
 #include "Cubed/gameplay/tree.hpp"
 #include "Cubed/gameplay/world.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
+#include "Cubed/tools/math_tools.hpp"
 #include "Cubed/tools/perlin_noise.hpp"
 namespace Cubed {
 
@@ -59,7 +60,16 @@ void ChunkGenerator::assign_chunk_biome() {
                                       z * BIOME_NOISE_FREQUENCY);
     float humid = PerlinNoise3D::noise(x * BIOME_NOISE_FREQUENCY, 1.0f,
                                        z * BIOME_NOISE_FREQUENCY);
-    auto biome = get_biome_from_noise(temp, humid);
+    float center_x = static_cast<float>(SIZE_X / 2) + x * CHUNK_SIZE + 0.5f;
+    float center_z = static_cast<float>(SIZE_Z / 2) + z * CHUNK_SIZE + 0.5f;
+    float mountainous =
+        PerlinNoise2D::noise(center_x * MOUNTAINOUS_NOISE_FREQUENCY,
+                             center_z * MOUNTAINOUS_NOISE_FREQUENCY);
+    auto& conditions = m_chunk.conditions();
+    conditions.mountainous = mountainous;
+    conditions.humid = humid;
+    conditions.temp = temp;
+    auto biome = determine_biome(conditions);
     m_chunk.biome(biome);
 }
 
@@ -139,11 +149,37 @@ void ChunkGenerator::generate_heightmap() {
                 }
                 return value;
             };
+
             int octaves = 4;
             float lacunarity = 2.0f;
             float gain = 0.5f;
-            heightmap[x][z] = 64 + fbm_height(world_x, world_z, octaves,
-                                              lacunarity, gain, 40, 0.005f);
+            float base_y = 64;
+            float amplitude = 40.0f;
+            float mountainous =
+                PerlinNoise2D::noise(world_x * MOUNTAINOUS_NOISE_FREQUENCY,
+                                     world_z * MOUNTAINOUS_NOISE_FREQUENCY);
+            /*
+            float t = Math::smootherstep(0.6, 0.7, mountainous);
+            base_y = std::lerp(64, 85, t);
+            amplitude = std::lerp(10, 40, t);
+            */
+            float t;
+            if (mountainous >= 0.8f) {
+                t = Math::smootherstep(0.80f, 0.85, mountainous);
+                base_y = std::lerp(72, 88, t);
+                amplitude = std::lerp(28, 48, t);
+            } else if (mountainous >= 0.75f) {
+                t = Math::smootherstep(0.75f, 0.80f, mountainous);
+                base_y = std::lerp(68, 72, t);
+                amplitude = std::lerp(18, 28, t);
+            } else {
+                t = Math::smootherstep(0.5, 0.75, mountainous);
+                base_y = std::lerp(60, 68, t);
+                amplitude = std::lerp(8, 18, t);
+            }
+            heightmap[x][z] =
+                base_y + fbm_height(world_x, world_z, octaves, lacunarity, gain,
+                                    amplitude, 0.005f);
         }
     }
 }

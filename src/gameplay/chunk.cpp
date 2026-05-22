@@ -24,7 +24,8 @@ Chunk::Chunk(Chunk&& other) noexcept
       m_chunk_pos(std::move(other.m_chunk_pos)), m_world(other.m_world),
       m_heightmap(std::move(other.m_heightmap)),
       m_blocks(std::move(other.m_blocks)), m_vbo(other.m_vbo),
-      m_vertexs_data(std::move(other.m_vertexs_data)), m_seed(other.m_seed) {
+      m_vertexs_data(std::move(other.m_vertexs_data)), m_seed(other.m_seed),
+      m_conditions(other.m_conditions) {
     other.m_vbo = 0;
 }
 
@@ -44,6 +45,7 @@ Chunk& Chunk::operator=(Chunk&& other) noexcept {
     m_need_upload = other.m_need_upload.load();
     m_vertex_sum = other.m_vertex_sum.load();
     m_seed = other.m_seed;
+    m_conditions = other.m_conditions;
     return *this;
 }
 
@@ -349,4 +351,7 @@ unsigned Chunk::seed() const {
     }
     return m_seed;
 }
+
+BiomeConditions& Chunk::conditions() { return m_conditions; }
+
 } // namespace Cubed

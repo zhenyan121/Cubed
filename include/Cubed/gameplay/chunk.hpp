@@ -38,6 +38,9 @@ private:
     float frequency = 0.01f;
     float height = 80;
     unsigned m_seed = 0;
+
+    BiomeConditions m_conditions;
+
     void clear_dirty();
 
 public:
@@ -108,6 +111,7 @@ public:
     std::vector<BlockType>& blocks();
     World& world();
     unsigned seed() const;
+    BiomeConditions& conditions();
 };
 
 } // namespace Cubed

@@ -18,20 +18,8 @@ void MountainBuilder::build_blocks() {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             int height = static_cast<int>(m_heightmap[x][z]);
-            for (int y = 5; y < height - 5; y++) {
+            for (int y = 5; y <= height; y++) {
                 m_blocks[Chunk::index(x, y, z)] = 3;
-            }
-            for (int y = height - 5; y <= height - 1; y++) {
-                if (y > 110) {
-                    m_blocks[Chunk::index(x, y, z)] = 3;
-                } else {
-                    m_blocks[Chunk::index(x, y, z)] = 2;
-                }
-            }
-            if (height > 110) {
-                m_blocks[Chunk::index(x, height, z)] = 3;
-            } else {
-                m_blocks[Chunk::index(x, height, z)] = 1;
             }
         }
     }

@@ -7,6 +7,8 @@
 
 namespace Cubed {
 
+using enum BiomeType;
+
 static PlainParams plain{{BiomeType::PLAIN,
                           {0.0f, 0.5f},
                           {0.0f, 0.5f},
@@ -84,27 +86,7 @@ Biome get_biome_from_noise(float temp, float humid) {
     return Biome::FOREST;
 }
 */
-BiomeType get_biome_from_noise(float temp, float humid) {
-    using enum BiomeType;
-    if (plain.temp.first <= temp && temp < plain.temp.second &&
-        plain.humid.first <= humid && humid < plain.humid.second) {
-        return PLAIN;
-    }
-    if (forest.temp.first <= temp && temp < forest.temp.second &&
-        forest.humid.first <= humid && humid < forest.humid.second) {
-        return FOREST;
-    }
-    if (desert.temp.first <= temp && temp < desert.temp.second &&
-        desert.humid.first <= humid && humid < desert.humid.second) {
-        return DESERT;
-    }
-    if (mountain.temp.first <= temp && temp <= mountain.temp.second &&
-        mountain.humid.first <= humid && humid <= mountain.humid.second) {
-        return MOUNTAIN;
-    }
-    Logger::warn("Invail Temp {} or Humid {}", temp, humid);
-    return PLAIN;
-}
+
 std::array<float, 3> get_noise_frequencies_for_biome(BiomeType biome) {
     using enum BiomeType;
     switch (biome) {
@@ -201,6 +183,29 @@ int get_interpolated_height(float world_x, float world_z, float temp,
     return static_cast<int>(h);
 }
 */
+
+BiomeType determine_biome(const BiomeConditions& conditions) {
+    if (conditions.mountainous > 0.85) {
+        return MOUNTAIN;
+    }
+    auto temp = conditions.temp;
+    auto humid = conditions.humid;
+    if (plain.temp.first <= temp && temp < plain.temp.second &&
+        plain.humid.first <= humid && humid < plain.humid.second) {
+        return PLAIN;
+    }
+    if (forest.temp.first <= temp && temp < forest.temp.second &&
+        forest.humid.first <= humid && humid < forest.humid.second) {
+        return FOREST;
+    }
+    if (desert.temp.first <= temp && temp < desert.temp.second &&
+        desert.humid.first <= humid && humid < desert.humid.second) {
+        return DESERT;
+    }
+
+    return PLAIN;
+}
+
 PlainParams& plain_params() { return plain; }
 ForestParams& forest_params() { return forest; }
 DesertParams& desert_params() { return desert; }
