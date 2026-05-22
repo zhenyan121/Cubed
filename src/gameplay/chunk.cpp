@@ -255,7 +255,7 @@ void Chunk::gen_phase_two(const std::array<const Chunk*, 8>& adj_chunks) {
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
-    m_generator->resolve_biome_adjacency_conflict(adj_chunks);
+    // m_generator->resolve_biome_adjacency_conflict(adj_chunks);
 }
 
 void Chunk::gen_phase_three() {
