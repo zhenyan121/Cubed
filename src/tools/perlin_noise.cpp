@@ -1,8 +1,6 @@
 #include "Cubed/tools/perlin_noise.hpp"
 
-#include "Cubed/config.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
-#include "Cubed/tools/cubed_random.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -10,7 +8,7 @@
 
 namespace Cubed {
 
-void PerlinNoise::init(unsigned seed) {
+void PerlinNoise3D::init(unsigned seed) {
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
     Logger::info("Init Perlin Noise With Seed {}", seed);
@@ -20,7 +18,7 @@ void PerlinNoise::init(unsigned seed) {
     is_init = true;
 }
 
-float PerlinNoise::noise(float x, float y, float z) {
+float PerlinNoise3D::noise(float x, float y, float z) {
     ASSERT_MSG(is_init, "The PerlinNoise don't init!");
     int ix = static_cast<int>(std::floor(x)) & 255;
     int iy = static_cast<int>(std::floor(y)) & 255;
@@ -55,11 +53,13 @@ float PerlinNoise::noise(float x, float y, float z) {
     return (res + 1.0f) / 2.0f;
 }
 
-float PerlinNoise::fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+float PerlinNoise3D::fade(float t) {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
 
-float PerlinNoise::lerp(float t, float a, float b) { return a + t * (b - a); }
+float PerlinNoise3D::lerp(float t, float a, float b) { return a + t * (b - a); }
 
-float PerlinNoise::grad(int hash, float x, float y, float z) {
+float PerlinNoise3D::grad(int hash, float x, float y, float z) {
     int h = hash & 15;
 
     float u = h < 8 ? x : y;
@@ -68,7 +68,7 @@ float PerlinNoise::grad(int hash, float x, float y, float z) {
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 }
 
-void PerlinNoise::reload(unsigned seed) {
+void PerlinNoise3D::reload(unsigned seed) {
     is_init = false;
     p.resize(256);
     std::iota(p.begin(), p.end(), 0);
@@ -79,4 +79,59 @@ void PerlinNoise::reload(unsigned seed) {
     is_init = true;
 }
 
+void PerlinNoise2D::init(unsigned seed) {
+    p.resize(256);
+    std::iota(p.begin(), p.end(), 0);
+    Logger::info("Init Perlin Noise With Seed {}", seed);
+    std::shuffle(p.begin(), p.end(), std::mt19937(seed));
+
+    p.insert(p.end(), p.begin(), p.end()); // 扩展到 512，方便索引
+    is_init = true;
+}
+
+float PerlinNoise2D::noise(float x, float y) {
+    ASSERT_MSG(is_init, "The PerlinNoise2D don't init!");
+
+    int ix = static_cast<int>(std::floor(x)) & 255;
+    int iy = static_cast<int>(std::floor(y)) & 255;
+
+    x -= std::floor(x);
+    y -= std::floor(y);
+
+    float u = fade(x);
+    float v = fade(y);
+
+    int a = p[ix] + iy;
+    int b = p[ix + 1] + iy;
+
+    float res =
+        lerp(v, lerp(u, grad(p[a], x, y), grad(p[b], x - 1, y)),
+             lerp(u, grad(p[a + 1], x, y - 1), grad(p[b + 1], x - 1, y - 1)));
+
+    return (res + 1.0f) / 2.0f; // 映射到 [0, 1]
+}
+
+float PerlinNoise2D::fade(float t) {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+float PerlinNoise2D::lerp(float t, float a, float b) { return a + t * (b - a); }
+
+float PerlinNoise2D::grad(int hash, float x, float y) {
+    int h = hash & 3; // 使用低 2 位选择 4 个梯度方向
+    float u = (h & 1) ? -x : x;
+    float v = (h & 2) ? -y : y;
+    return u + v;
+}
+
+void PerlinNoise2D::reload(unsigned seed) {
+    is_init = false;
+    p.resize(256);
+    std::iota(p.begin(), p.end(), 0);
+    Logger::info("Reload Perlin Noise With Seed {}", seed);
+    std::shuffle(p.begin(), p.end(), std::mt19937(seed));
+
+    p.insert(p.end(), p.begin(), p.end());
+    is_init = true;
+}
 } // namespace Cubed

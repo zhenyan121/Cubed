@@ -48,12 +48,21 @@ public:
     Chunk(Chunk&&) noexcept;
     Chunk& operator=(Chunk&&) noexcept;
 
+    static std::tuple<int, int, int> world_to_block(int world_x, int world_y,
+                                                    int world_z, int chunk_x,
+                                                    int chunk_z);
+    static std::tuple<int, int, int> world_to_block(const glm::ivec3& block_pos,
+                                                    ChunkPos chunk_pos);
+    static std::tuple<int, int, int> block_to_world(int x, int y, int z,
+                                                    int chunk_x, int chunk_z);
+    static std::tuple<int, int, int> block_to_world(const glm::ivec3& block_pos,
+                                                    ChunkPos chunk_pos);
     BiomeType get_biome() const;
     ChunkPos get_chunk_pos() const;
     const std::vector<BlockType>& get_chunk_blocks() const;
     HeightMapArray get_heightmap() const;
-    static int get_index(int x, int y, int z);
-    static int get_index(const glm::vec3& pos);
+    static int index(int x, int y, int z);
+    static int index(const glm::vec3& pos);
     // Init Chunk
     // Determine biome from temperature and humidity noise
     void gen_phase_one();

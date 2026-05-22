@@ -30,7 +30,7 @@ static constexpr std::array<TreeStructNode, 62> TREE{{
 bool build_tree(Chunk& chunk, const glm::ivec3& pos) {
     auto& block = chunk.get_chunk_blocks();
 
-    if (block[Chunk::get_index(pos)] != 1) {
+    if (block[Chunk::index(pos)] != 1) {
         Logger::info("Root is not Grass Block");
         return false;
     }
@@ -43,13 +43,13 @@ bool build_tree(Chunk& chunk, const glm::ivec3& pos) {
             z >= CHUNK_SIZE) {
             return false;
         }
-        if (block[Chunk::get_index(tree_node)] != 0) {
+        if (block[Chunk::index(tree_node)] != 0) {
             return false;
         }
     }
     for (const auto& d : TREE) {
         auto tree_node = pos + d.offset;
-        chunk.set_chunk_block(Chunk::get_index(tree_node), d.id);
+        chunk.set_chunk_block(Chunk::index(tree_node), d.id);
     }
     return true;
 }

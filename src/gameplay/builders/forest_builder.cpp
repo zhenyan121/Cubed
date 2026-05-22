@@ -23,12 +23,12 @@ void ForestBuilder::build_blocks() {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             int height = static_cast<int>(m_heightmap[x][z]);
             for (int y = 5; y < height - 5; y++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 3;
+                m_blocks[Chunk::index(x, y, z)] = 3;
             }
             for (int y = height - 5; y < height; y++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 2;
+                m_blocks[Chunk::index(x, y, z)] = 2;
             }
-            m_blocks[Chunk::get_index(x, height, z)] = 1;
+            m_blocks[Chunk::index(x, height, z)] = 1;
         }
     }
 }

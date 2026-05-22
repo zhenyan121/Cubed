@@ -19,16 +19,16 @@ void RiverBuilder::build_blocks() {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             int height = static_cast<int>(m_heightmap[x][z]);
             for (int y = 5; y < height - 5; y++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 3;
+                m_blocks[Chunk::index(x, y, z)] = 3;
             }
             for (int y = height - 5; y <= height - 1; y++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 2;
+                m_blocks[Chunk::index(x, y, z)] = 2;
             }
             for (int y = height; y <= height; y++) {
                 if (y >= SEA_LEVEL - 1) {
-                    m_blocks[Chunk::get_index(x, y, z)] = 1;
+                    m_blocks[Chunk::index(x, y, z)] = 1;
                 } else {
-                    m_blocks[Chunk::get_index(x, y, z)] = 2;
+                    m_blocks[Chunk::index(x, y, z)] = 2;
                 }
             }
         }
@@ -46,7 +46,7 @@ void RiverBuilder::build_vegetation() {
                 continue;
             }
             for (int y = height + 1; y < SEA_LEVEL; y++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 7;
+                m_blocks[Chunk::index(x, y, z)] = 7;
             }
         }
     }

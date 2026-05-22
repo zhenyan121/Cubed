@@ -47,6 +47,35 @@ Chunk& Chunk::operator=(Chunk&& other) noexcept {
     return *this;
 }
 
+std::tuple<int, int, int> Chunk::world_to_block(int world_x, int world_y,
+                                                int world_z, int chunk_x,
+                                                int chunk_z) {
+    int x, y, z;
+    y = world_y;
+    x = world_x - chunk_x * CHUNK_SIZE;
+    z = world_z - chunk_z * CHUNK_SIZE;
+    return {x, y, z};
+}
+
+std::tuple<int, int, int> Chunk::world_to_block(const glm::ivec3& block_pos,
+                                                ChunkPos chunk_pos) {
+    return world_to_block(block_pos.x, block_pos.y, block_pos.z, chunk_pos.x,
+                          chunk_pos.z);
+}
+
+std::tuple<int, int, int> Chunk::block_to_world(int x, int y, int z,
+                                                int chunk_x, int chunk_z) {
+    int world_x = x + chunk_x * CHUNK_SIZE;
+    int world_z = z + chunk_z * CHUNK_SIZE;
+    int world_y = y;
+    return {world_x, world_y, world_z};
+}
+std::tuple<int, int, int> Chunk::block_to_world(const glm::ivec3& block_pos,
+                                                ChunkPos chunk_pos) {
+    return block_to_world(block_pos.x, block_pos.y, block_pos.z, chunk_pos.x,
+                          chunk_pos.z);
+}
+
 BiomeType Chunk::get_biome() const { return m_biome.load(); }
 
 ChunkPos Chunk::get_chunk_pos() const { return m_chunk_pos; }
@@ -61,7 +90,7 @@ HeightMapArray Chunk::get_heightmap() const {
     return m_heightmap;
 }
 
-int Chunk::get_index(int x, int y, int z) {
+int Chunk::index(int x, int y, int z) {
     ASSERT(!(x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
              z >= CHUNK_SIZE));
     if ((x * WORLD_SIZE_Y + y) * CHUNK_SIZE + z < 0 ||
@@ -73,8 +102,8 @@ int Chunk::get_index(int x, int y, int z) {
     return (x * WORLD_SIZE_Y + y) * CHUNK_SIZE + z;
 }
 
-int Chunk::get_index(const glm::vec3& pos) {
-    return Chunk::get_index(pos.x, pos.y, pos.z);
+int Chunk::index(const glm::vec3& pos) {
+    return Chunk::index(pos.x, pos.y, pos.z);
 }
 
 void Chunk::gen_vertex_data(
@@ -95,7 +124,7 @@ void Chunk::gen_vertex_data(
                 int world_x = x + m_chunk_pos.x * CHUNK_SIZE;
                 int world_z = z + m_chunk_pos.z * CHUNK_SIZE;
                 int world_y = y;
-                int cur_id = m_blocks[get_index(x, y, z)];
+                int cur_id = m_blocks[index(x, y, z)];
                 // air
                 if (cur_id == 0) {
                     continue;
@@ -132,7 +161,7 @@ void Chunk::gen_vertex_data(
                                     return false;
                                 }
 
-                                int idx = Chunk::get_index(x, y, z);
+                                int idx = Chunk::index(x, y, z);
                                 // not init
                                 if (static_cast<size_t>(idx) >=
                                     chunk_blocks->size()) {
@@ -164,7 +193,7 @@ void Chunk::gen_vertex_data(
                         // neighbor_cull = m_world.is_block(glm::ivec3(world_x,
                         // world_y, world_z) + DIR[face]);
                     } else {
-                        auto id = m_blocks[get_index(nx, ny, nz)];
+                        auto id = m_blocks[index(nx, ny, nz)];
                         if (!is_in_transparent_map(id)) {
                             neighbor_cull = true;
                         } else {
@@ -242,7 +271,8 @@ void Chunk::gen_phase_four(
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
-    m_generator->blend_heightmap_boundaries(neighbor_heightmap, neighbor_biome);
+    // m_generator->blend_heightmap_boundaries(neighbor_heightmap,
+    // neighbor_biome);
 }
 
 void Chunk::gen_phase_five() {

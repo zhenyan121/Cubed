@@ -10,7 +10,7 @@ void BiomeBuilder::build_bottom() {
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int y = 0; y < 5; y++) {
             for (int z = 0; z < CHUNK_SIZE; z++) {
-                m_blocks[Chunk::get_index(x, y, z)] = 3;
+                m_blocks[Chunk::index(x, y, z)] = 3;
             }
         }
     }
@@ -30,7 +30,7 @@ void BiomeBuilder::fill_water() {
                     }
                     int height = heightmap[x][z];
                     for (int y = height; y < SEA_LEVEL; y++) {
-                        m_blocks[Chunk::get_index(x, y, z)] = 7;
+                        m_blocks[Chunk::index(x, y, z)] = 7;
                     }
                 }
             }

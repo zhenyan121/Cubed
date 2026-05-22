@@ -86,6 +86,7 @@ void World::init_chunks() {
         std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
 }
+
 /*
 void World::init_chunks() {
 
@@ -331,6 +332,8 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
     }
     return {chunk_x, chunk_z};
 }
+
+#pragma region ChunkGenerate
 
 void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.0f;
@@ -597,6 +600,8 @@ void World::build_neighbor_context_for_affected_neighbors(
     }
 }
 
+#pragma endregion
+
 void World::start_gen_thread() {
     m_gen_running = true;
     Logger::info("Gen Thread Started");
@@ -667,15 +672,12 @@ int World::get_block(const glm::ivec3& block_pos) const {
     }
 
     const auto& chunk_blocks = it->second.get_chunk_blocks();
-    int x, y, z;
-    y = block_pos.y;
-    x = block_pos.x - chunk_x * CHUNK_SIZE;
-    z = block_pos.z - chunk_z * CHUNK_SIZE;
+    auto [x, y, z] = Chunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
         return 0;
     }
-    return chunk_blocks[Chunk::get_index(x, y, z)];
+    return chunk_blocks[Chunk::index(x, y, z)];
 }
 
 bool World::is_block(const glm::ivec3& block_pos) const {
@@ -687,15 +689,12 @@ bool World::is_block(const glm::ivec3& block_pos) const {
         return false;
     }
     const auto& chunk_blocks = it->second.get_chunk_blocks();
-    int x, y, z;
-    y = block_pos.y;
-    x = block_pos.x - chunk_x * CHUNK_SIZE;
-    z = block_pos.z - chunk_z * CHUNK_SIZE;
+    auto [x, y, z] = Chunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
         return false;
     }
-    auto id = chunk_blocks[Chunk::get_index(x, y, z)];
+    auto id = chunk_blocks[Chunk::index(x, y, z)];
     if (id == 0) {
         return false;
     } else {
@@ -718,16 +717,14 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
         return;
     }
 
-    int x, y, z;
-    y = world_y;
-    x = world_x - chunk_x * CHUNK_SIZE;
-    z = world_z - chunk_z * CHUNK_SIZE;
+    auto [x, y, z] =
+        Chunk::world_to_block(world_x, world_y, world_z, chunk_x, chunk_z);
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
         return;
     }
 
-    it->second.set_chunk_block(Chunk::get_index(x, y, z), id);
+    it->second.set_chunk_block(Chunk::index(x, y, z), id);
 
     static const glm::ivec3 NEIGHBOR_DIRS[] = {
         {1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}};

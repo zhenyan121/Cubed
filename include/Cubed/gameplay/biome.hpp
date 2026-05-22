@@ -6,7 +6,7 @@
 namespace Cubed {
 
 constexpr float BIOME_NOISE_FREQUENCY = 0.03f;
-
+constexpr float HEIGHTMAP_NOISE_FREQUENCY = 0.001f;
 enum class BiomeType { PLAIN = 0, FOREST, DESERT, MOUNTAIN, RIVER, NONE };
 
 struct BiomeHeightRange {

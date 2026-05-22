@@ -27,7 +27,8 @@ void ChunkGenerator::init() {
     std::random_device d;
     m_generator_seed = d();
     Logger::info("Chunk Generator Seed {}", m_generator_seed);
-    PerlinNoise::init(m_generator_seed);
+    PerlinNoise3D::init(m_generator_seed);
+    PerlinNoise2D::init(m_generator_seed);
     is_init = true;
 }
 
@@ -35,7 +36,7 @@ void ChunkGenerator::reload() {
     if (!is_seed_change) {
         return;
     }
-    PerlinNoise::reload(m_generator_seed);
+    PerlinNoise3D::reload(m_generator_seed);
     is_seed_change = false;
 }
 
@@ -54,10 +55,10 @@ void ChunkGenerator::assign_chunk_biome() {
     auto m_chunk_pos = m_chunk.chunk_pos();
     float x = static_cast<float>(m_chunk_pos.x);
     float z = static_cast<float>(m_chunk_pos.z);
-    float temp = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 0.0f,
-                                    z * BIOME_NOISE_FREQUENCY);
-    float humid = PerlinNoise::noise(x * BIOME_NOISE_FREQUENCY, 1.0f,
-                                     z * BIOME_NOISE_FREQUENCY);
+    float temp = PerlinNoise3D::noise(x * BIOME_NOISE_FREQUENCY, 0.0f,
+                                      z * BIOME_NOISE_FREQUENCY);
+    float humid = PerlinNoise3D::noise(x * BIOME_NOISE_FREQUENCY, 1.0f,
+                                       z * BIOME_NOISE_FREQUENCY);
     auto biome = get_biome_from_noise(temp, humid);
     m_chunk.biome(biome);
 }
@@ -86,6 +87,7 @@ void ChunkGenerator::resolve_biome_adjacency_conflict(
     }
 }
 
+/*
 void ChunkGenerator::generate_heightmap() {
 
     auto m_chunk_pos = m_chunk.chunk_pos();
@@ -111,6 +113,37 @@ void ChunkGenerator::generate_heightmap() {
                 return range.base_y + std::round(n * range.amplitude);
             };
             m_heightmap[x][z] = sample_height(m_biome);
+        }
+    }
+}
+*/
+
+void ChunkGenerator::generate_heightmap() {
+    auto chunk_pos = m_chunk.chunk_pos();
+    auto& heightmap = m_chunk.heightmap();
+
+    for (int x = 0; x < CHUNK_SIZE; ++x) {
+        for (int z = 0; z < CHUNK_SIZE; ++z) {
+            float world_x = static_cast<float>(x + chunk_pos.x * CHUNK_SIZE);
+            float world_z = static_cast<float>(z + chunk_pos.z * CHUNK_SIZE);
+
+            auto fbm_height = [](float x, float y, int octaves,
+                                 float lacunarity, float gain, float amplitude,
+                                 float frequency) -> float {
+                float value = 0.0f;
+                for (int i = 0; i < octaves; i++) {
+                    value += amplitude *
+                             PerlinNoise2D::noise(x * frequency, y * frequency);
+                    frequency *= lacunarity;
+                    amplitude *= gain;
+                }
+                return value;
+            };
+            int octaves = 4;
+            float lacunarity = 2.0f;
+            float gain = 0.5f;
+            heightmap[x][z] = 64 + fbm_height(world_x, world_z, octaves,
+                                              lacunarity, gain, 40, 0.005f);
         }
     }
 }
@@ -379,8 +412,8 @@ void ChunkGenerator::blend_surface_blocks_borders(
                                            int nx, int nz) -> BlockType {
         // Search from topmost y downwards for the first non-zero block
         for (int y = WORLD_HEIGHT - 1; y >= 0; --y) {
-            int idx = Chunk::get_index(
-                nx, y, nz); // linear index: y * area + z * size + x
+            int idx = Chunk::index(nx, y,
+                                   nz); // linear index: y * area + z * size + x
             if (idx >= 0 && idx < static_cast<int>(blocks.size()) &&
                 blocks[idx] != 0) {
                 return blocks[idx];
@@ -396,7 +429,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
             BlockType type_self = 0;
             int top_y = -1;
             top_y = m_heightmap[x][z];
-            type_self = m_blocks[Chunk::get_index(x, top_y, z)];
+            type_self = m_blocks[Chunk::index(x, top_y, z)];
 
             if (top_y == -1)
                 continue; // no block? skip
@@ -470,7 +503,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
                     final_type = 2;
                 }
 
-                m_blocks[Chunk::get_index(x, top_y, z)] = final_type;
+                m_blocks[Chunk::index(x, top_y, z)] = final_type;
                 // bottom block
                 unsigned fill_type = 2;
                 if (final_type == 1) {
@@ -479,7 +512,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
                     fill_type = 4;
                 }
                 for (int y = top_y - 5; y < top_y; y++) {
-                    m_blocks[Chunk::get_index(x, y, z)] = fill_type;
+                    m_blocks[Chunk::index(x, y, z)] = fill_type;
                 }
             }
         }
@@ -564,7 +597,7 @@ void ChunkGenerator::generate_cave() {
                             if (y == 0) {
                                 continue;
                             }
-                            blocks[Chunk::get_index(x, y, z)] = 0;
+                            blocks[Chunk::index(x, y, z)] = 0;
                         }
                     }
                 }
