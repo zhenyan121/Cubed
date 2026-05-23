@@ -5,7 +5,7 @@
 namespace Cubed {
 RiverWorm::RiverWorm() {}
 
-std::unordered_map<int, RiverPath>& RiverWorm::paths() { return m_paths; }
+std::unordered_map<unsigned, RiverPath>& RiverWorm::paths() { return m_paths; }
 
 void RiverWorm::init(unsigned world_seed) {
     m_seed = world_seed;
@@ -19,13 +19,17 @@ void RiverWorm::reload(unsigned world_seed) {
     init(world_seed);
 }
 
-void RiverWorm::add_path(const glm::vec3& pos) {
-    m_paths.emplace(m_sum, RiverPath{m_seed, m_sum, pos});
+void RiverWorm::add_path(const glm::vec3& pos, unsigned chunk_seed) {
+    m_paths.emplace(chunk_seed, RiverPath{m_seed, m_sum, pos});
     m_sum++;
 }
 
 void RiverWorm::try_to_add_path(const ChunkPos& chunk_pos,
                                 unsigned chunk_seed) {
+    auto it = m_paths.find(chunk_seed);
+    if (it != m_paths.end()) {
+        return;
+    }
     Random random{chunk_seed};
     if (random.random_bool(static_cast<double>(m_probability))) {
         const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
@@ -35,7 +39,7 @@ void RiverWorm::try_to_add_path(const ChunkPos& chunk_pos,
         int x = random.random_int(CHUNK_MIN_X, CHUNK_MAX_X);
         int y = SEA_LEVEL + 2;
         int z = random.random_int(CHUNK_MIN_Z, CHUNK_MAX_Z);
-        add_path(glm::vec3{x, y, z});
+        add_path(glm::vec3{x, y, z}, chunk_seed);
     }
 }
 

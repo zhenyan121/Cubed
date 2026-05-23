@@ -10,10 +10,10 @@ namespace Cubed {
 class RiverWorm {
 public:
     RiverWorm();
-    std::unordered_map<int, RiverPath>& paths();
+    std::unordered_map<unsigned, RiverPath>& paths();
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
-    void add_path(const glm::vec3& pos);
+    void add_path(const glm::vec3& pos, unsigned chunk_seed);
     void try_to_add_path(const ChunkPos& pos, unsigned chunk_seed);
     void cleanup_finished_rivers();
 
@@ -21,7 +21,7 @@ public:
     float& river_probability();
 
 private:
-    std::unordered_map<int, RiverPath> m_paths;
+    std::unordered_map<unsigned, RiverPath> m_paths;
     unsigned m_seed = 0;
     int m_sum = 0;
     Random m_random;

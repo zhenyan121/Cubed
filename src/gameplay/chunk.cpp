@@ -151,7 +151,7 @@ void Chunk::gen_vertex_data(
                         auto is_cull =
                             [&](const std::vector<BlockType>* chunk_blocks) {
                                 if (chunk_blocks == nullptr) {
-                                    return false;
+                                    return true;
                                 }
                                 int x, y, z;
                                 y = world_ny;

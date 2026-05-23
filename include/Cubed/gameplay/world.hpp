@@ -62,14 +62,14 @@ private:
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
-    void compute_required_chunks(ChunkPosSet& required_chunks);
+    void compute_required_chunks(ChunkPosSet& required_chunks,
+                                 ChunkHashMap& temp_neighbor);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
                                           ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkUpdateList& new_chunks,
-                                          ChunkHashMap& temp_neighbor);
+                                          const ChunkUpdateList& new_chunks);
     void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
                                                        ConstChunkMap&);
 
