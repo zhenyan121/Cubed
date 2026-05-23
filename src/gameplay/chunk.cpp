@@ -151,7 +151,7 @@ void Chunk::gen_vertex_data(
                         auto is_cull =
                             [&](const std::vector<BlockType>* chunk_blocks) {
                                 if (chunk_blocks == nullptr) {
-                                    return false;
+                                    return true;
                                 }
                                 int x, y, z;
                                 y = world_ny;
@@ -294,6 +294,7 @@ void Chunk::gen_phase_six(
     }
     m_generator->blend_surface_blocks_borders(neighbor_block);
     m_generator->generate_cave();
+    m_generator->generate_river();
 }
 
 void Chunk::gen_phase_seven() {

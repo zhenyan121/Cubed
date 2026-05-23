@@ -52,7 +52,6 @@ void ForestBuilder::build_vegetation() {
             }
         }
     }
-    fill_water();
 }
 
 ChunkGenerator& ForestBuilder::get_chunk_generator() {

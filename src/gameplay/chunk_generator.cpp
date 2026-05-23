@@ -539,11 +539,17 @@ void ChunkGenerator::blend_surface_blocks_borders(
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
-                if (m_chunk.biome() == BiomeType::RIVER && final_type == 1) {
-                    final_type = 2;
+                if (final_type == 7 && top_y > SEA_LEVEL) {
+                    if (type_self == 7) {
+                        m_blocks[Chunk::index(x, top_y, z)] = 0;
+                    } else {
+                        m_blocks[Chunk::index(x, top_y, z)] = type_self;
+                    }
+
+                } else {
+                    m_blocks[Chunk::index(x, top_y, z)] = final_type;
                 }
 
-                m_blocks[Chunk::index(x, top_y, z)] = final_type;
                 // bottom block
                 unsigned fill_type = 2;
                 if (final_type == 1) {
@@ -552,7 +558,11 @@ void ChunkGenerator::blend_surface_blocks_borders(
                     fill_type = 4;
                 }
                 for (int y = top_y - 5; y < top_y; y++) {
-                    m_blocks[Chunk::index(x, y, z)] = fill_type;
+                    if (fill_type == 7 && y > SEA_LEVEL) {
+                        m_blocks[Chunk::index(x, y, z)] = 0;
+                    } else {
+                        m_blocks[Chunk::index(x, y, z)] = fill_type;
+                    }
                 }
             }
         }
@@ -647,6 +657,76 @@ void ChunkGenerator::generate_cave() {
             }
         }
         path.clear_chunk(chunk_pos);
+    }
+}
+
+void ChunkGenerator::generate_river() {
+
+    auto& river_worm = m_chunk.world().river_worm();
+    auto& paths = river_worm.paths();
+    const auto& chunk_pos = m_chunk.chunk_pos();
+    auto& blocks = m_chunk.blocks();
+    const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
+    const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
+    const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
+    const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
+    const int CHUNK_MIN_Y = 0;
+    const int CHUNK_MAX_Y = SIZE_Y - 1;
+
+    bool is_river = false;
+
+    for (auto& [id, path] : paths) {
+        for (const auto& point : path.points()) {
+            if (m_chunk.biome() == BiomeType::DESERT) {
+                path.clear_chunk(chunk_pos);
+                continue;
+            }
+            const glm::vec3& center = point.pos;
+            float rad_xz = point.rad_xz;
+            float rad_y = point.rad_y;
+
+            int min_x = static_cast<int>(std::floor(center.x - rad_xz));
+            int max_x = static_cast<int>(std::floor(center.x + rad_xz));
+            int min_z = static_cast<int>(std::floor(center.z - rad_xz));
+            int max_z = static_cast<int>(std::floor(center.z + rad_xz));
+            int min_y = static_cast<int>(std::floor(center.y - rad_y));
+            int max_y = static_cast<int>(std::floor(center.y + rad_y));
+
+            min_x = std::max(min_x, CHUNK_MIN_X);
+            max_x = std::min(max_x, CHUNK_MAX_X);
+            min_z = std::max(min_z, CHUNK_MIN_Z);
+            max_z = std::min(max_z, CHUNK_MAX_Z);
+            min_y = std::max(min_y, CHUNK_MIN_Y);
+            max_y = std::min(max_y, CHUNK_MAX_Y);
+
+            for (int wx = min_x; wx <= max_x; ++wx) {
+                int x = wx - CHUNK_MIN_X;
+                for (int wz = min_z; wz <= max_z; ++wz) {
+                    int z = wz - CHUNK_MIN_Z;
+                    for (int wy = min_y; wy <= max_y; ++wy) {
+                        int y = wy;
+                        glm::vec3 pos(static_cast<float>(wx),
+                                      static_cast<float>(wy),
+                                      static_cast<float>(wz));
+                        if (point.contains(pos)) {
+                            if (y > SEA_LEVEL) {
+                                blocks[Chunk::index(x, y, z)] = 0;
+                                continue;
+                            }
+                            is_river = true;
+                            if (blocks[Chunk::index(x, y, z)] == 0) {
+                                continue;
+                            }
+                            blocks[Chunk::index(x, y, z)] = 7;
+                        }
+                    }
+                }
+            }
+        }
+        path.clear_chunk(chunk_pos);
+    }
+    if (is_river) {
+        m_chunk.biome(RIVER);
     }
 }
 

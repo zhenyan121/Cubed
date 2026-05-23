@@ -46,6 +46,7 @@ public:
     Random& random();
     const std::array<BiomeType, 8>& neighbor_biome() const;
     void generate_cave();
+    void generate_river();
 
 private:
     static inline std::atomic<bool> is_init{false};

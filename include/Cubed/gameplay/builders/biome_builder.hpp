@@ -12,6 +12,5 @@ public:
 
 protected:
     void build_bottom();
-    void fill_water();
 };
 } // namespace Cubed

@@ -64,6 +64,7 @@ Player& World::get_player(const std::string& name) {
 
 void World::init_world() {
     m_cave_carcer.init(ChunkGenerator::seed());
+    m_river_worm.init(ChunkGenerator::seed());
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     auto t1 = std::chrono::system_clock::now();
 
@@ -339,15 +340,17 @@ void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.0f;
     m_chunk_gen_finished = false;
     ChunkPosSet required_chunks;
-    compute_required_chunks(required_chunks);
+    ChunkHashMap temp_neighbor;
+    compute_required_chunks(required_chunks, temp_neighbor);
 
     ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
 
     std::vector<ChunkPos> need_gen_chunks_pos;
+
     sync_and_collect_missing_chunks(need_gen_chunks_pos, required_chunks);
 
     Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
-
+    Logger::info("Temp Chunks sum {}", temp_neighbor.size());
     if (need_gen_chunks_pos.empty()) {
         m_could_gen = true;
         m_chunk_gen_fraction = 1.0f;
@@ -364,26 +367,27 @@ void World::gen_chunks_internal() {
     ConstChunkMap new_chunks_neighbor;
     //  affected neighbor
     ChunkPtrUpdateList affected_neighbor;
-    ChunkHashMap temp_neighbor;
 
-    build_neighbor_context_for_new_chunks(
-        new_chunks_neighbor, affected_neighbor, new_chunks, temp_neighbor);
+    build_neighbor_context_for_new_chunks(new_chunks_neighbor,
+                                          affected_neighbor, new_chunks);
 
-    // Logger::info("Temp neighbor sum {}", temp_neighbor.size());
     //  build new chunk, but the neighbor in m_chunks also need to re-build
 
     for (auto& [pos, chunk] : new_chunks) {
         chunk.gen_phase_one();
         m_cave_carcer.try_to_add_path(pos, chunk.seed());
+        m_river_worm.try_to_add_path(pos, chunk.seed());
     }
-
-    // for (auto& [pos, chunk] : temp_neighbor) {
-    //     chunk.gen_phase_one();
-    //     m_cave_carcer.try_to_add_path(pos, chunk.seed());
-    // }
+    // precompute path to ensure the continuity of the path
+    for (auto& [pos, chunk] : temp_neighbor) {
+        chunk.gen_phase_one();
+        m_cave_carcer.try_to_add_path(pos, chunk.seed());
+        m_river_worm.try_to_add_path(pos, chunk.seed());
+    }
 
     m_chunk_gen_fraction = 0.2f;
 
+    /*
     std::array<const Chunk*, 8> neighbor_chunks;
     for (auto& [pos, chunks] : new_chunks) {
         for (int i = 0; i < 8; i++) {
@@ -391,13 +395,14 @@ void World::gen_chunks_internal() {
             auto it = new_chunks_neighbor.find(neighbor_pos);
             if (it == new_chunks_neighbor.end()) {
                 neighbor_chunks[i] = nullptr;
-                ASSERT_MSG(false, "Cant Find Neighbot");
+                // ASSERT_MSG(false, "Cant Find Neighbot");
                 continue;
             }
             neighbor_chunks[i] = it->second;
         }
         chunks.gen_phase_two(neighbor_chunks);
     }
+    */
 
     /*
     for (auto& [pos, chunks] : temp_neighbor) {
@@ -545,6 +550,7 @@ void World::gen_chunks_internal() {
         }
     }
     m_cave_carcer.cleanup_finished_caves();
+    m_river_worm.cleanup_finished_rivers();
     m_chunk_gen_fraction = 1.0f;
     m_chunk_gen_finished = true;
 }
@@ -554,7 +560,8 @@ void World::sync_player_pos(glm::vec3& player_pos) {
     player_pos = m_gen_player_pos;
 }
 
-void World::compute_required_chunks(ChunkPosSet& required_chunks) {
+void World::compute_required_chunks(ChunkPosSet& required_chunks,
+                                    ChunkHashMap& temp_neighbor) {
     glm::vec3 player_pos;
     sync_player_pos(player_pos);
 
@@ -567,6 +574,18 @@ void World::compute_required_chunks(ChunkPosSet& required_chunks) {
     for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
         for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
             required_chunks.emplace(u, v);
+        }
+    }
+    int max_path_len = std::max(CavePath::step_max(), RiverPath::step_max());
+    half = std::ceil(static_cast<float>(max_path_len) / CHUNK_SIZE) * 2;
+    for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
+        for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
+            ChunkPos pos{u, v};
+            auto it = required_chunks.find(pos);
+            if (it != required_chunks.end()) {
+                continue;
+            }
+            temp_neighbor.emplace(pos, Chunk(*this, pos));
         }
     }
 }
@@ -593,7 +612,7 @@ void World::sync_and_collect_missing_chunks(
 
 void World::build_neighbor_context_for_new_chunks(
     ConstChunkMap& new_chunks_neighbor, ChunkPtrUpdateList& affected_neighbor,
-    const ChunkUpdateList& new_chunks, ChunkHashMap& temp_neighbor) {
+    const ChunkUpdateList& new_chunks) {
     {
         std::lock_guard lk(m_chunks_mutex);
         for (auto& [pos, chunk] : new_chunks) {
@@ -602,16 +621,11 @@ void World::build_neighbor_context_for_new_chunks(
                 if (it != m_chunks.end()) {
                     new_chunks_neighbor.insert({it->first, &(it->second)});
                     affected_neighbor.push_back({it->first, &(it->second)});
-                } else {
-                    temp_neighbor.emplace(pos + dir, Chunk(*this, pos + dir));
                 }
             }
         }
     }
     for (auto& [pos, chunk] : new_chunks) {
-        new_chunks_neighbor.insert({pos, &chunk});
-    }
-    for (auto& [pos, chunk] : temp_neighbor) {
         new_chunks_neighbor.insert({pos, &chunk});
     }
 }
@@ -860,6 +874,7 @@ void World::rebuild_world() {
     m_is_rebuilding = true;
     stop_gen_thread();
     m_cave_carcer.reload(ChunkGenerator::seed());
+    m_river_worm.reload(ChunkGenerator::seed());
     {
         std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
         m_chunks.clear();
@@ -882,5 +897,5 @@ void World::rendering_distance(int rendering_distance) {
 }
 
 CaveCarver& World::cave_carcer() { return m_cave_carcer; }
-
+RiverWorm& World::river_worm() { return m_river_worm; }
 } // namespace Cubed

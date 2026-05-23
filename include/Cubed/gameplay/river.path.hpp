@@ -6,11 +6,12 @@
 
 #include <glm/glm.hpp>
 #include <unordered_set>
-namespace Cubed {
 
-class CavePath {
+namespace Cubed {
+class RiverPath {
+
 public:
-    CavePath(unsigned int world_seed, int path_id, const glm::vec3& start_pos);
+    RiverPath(unsigned int world_seed, int path_id, const glm::vec3& start_pos);
     const std::vector<PathPoint>& points() const;
     void clear_chunk(const ChunkPos& pos);
     bool is_finished() const;
@@ -26,12 +27,12 @@ public:
 
 private:
     static inline float m_radius_xz_min = 5.0f;
-    static inline float m_radius_xz_max = 15.0f;
+    static inline float m_radius_xz_max = 10.0f;
     static inline float m_radius_y_min = 4.0f;
-    static inline float m_radius_y_max = 10.0f;
-    static inline float m_delta_angle_min = -5.0f;
-    static inline float m_delta_angle_max = 5.0f;
-    static inline int m_step_min = 10;
+    static inline float m_radius_y_max = 8.0f;
+    static inline float m_delta_angle_min = -3.0f;
+    static inline float m_delta_angle_max = 3.0f;
+    static inline int m_step_min = 150;
     static inline int m_step_max = 400;
 
     int m_path_id = 0;

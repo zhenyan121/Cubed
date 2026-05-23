@@ -34,16 +34,16 @@ constexpr int AMPLITUDE_MAX = 80;
 constexpr float TREE_FREQ_MIM = 0.001f;
 constexpr float TREE_FREQ_MAX = 0.3f;
 
-constexpr float CAVE_PROBABILITY_MIN = 0.005f;
-constexpr float CAVE_PROBABILITY_MAX = 0.1f;
+constexpr float PATH_PROBABILITY_MIN = 0.005f;
+constexpr float PATH_PROBABILITY_MAX = 0.1f;
 constexpr float RADIUS_XZ_MIN = 1.0f;
 constexpr float RADIUS_XZ_MAX = 50.0f;
 constexpr float RADIUS_Y_MIN = 1.0f;
 constexpr float RADIUS_Y_MAX = 50.0f;
 constexpr float DELTA_ANGLE_MIN = -30.0f;
 constexpr float DELTA_ANGLE_MAX = 30.0f;
-constexpr int CAVE_STEP_MIN = 1;
-constexpr int CAVE_STEP_MAX = 1000;
+constexpr int PATH_STEP_MIN = 1;
+constexpr int PATH_STEP_MAX = 1000;
 
 static int filter_unsigned(ImGuiInputTextCallbackData* data) {
     if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter) {
@@ -269,7 +269,7 @@ void DevPanel::show_cave_table_bar() {
 
     ImGui::Text("Total Cave Sum %d", cave_carcer.cave_sum());
     ImGui::SliderFloat("Cave Probability", &cave_carcer.cave_probability(),
-                       CAVE_PROBABILITY_MIN, CAVE_PROBABILITY_MAX);
+                       PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
     ImGui::SliderFloat("Radius XZ Min", &CavePath::radius_xz_min(),
                        RADIUS_XZ_MIN, RADIUS_XZ_MAX);
     ImGui::SliderFloat("Radius XZ Max", &CavePath::radius_xz_max(),
@@ -282,10 +282,34 @@ void DevPanel::show_cave_table_bar() {
                        DELTA_ANGLE_MIN, 0.0f);
     ImGui::SliderFloat("Delta Angle Max", &CavePath::delta_angle_max(), 0.0f,
                        DELTA_ANGLE_MAX);
-    ImGui::SliderInt("Step Min", &CavePath::step_min(), CAVE_STEP_MIN,
-                     CAVE_STEP_MAX);
-    ImGui::SliderInt("Step Max", &CavePath::step_max(), CAVE_STEP_MIN,
-                     CAVE_STEP_MAX);
+    ImGui::SliderInt("Step Min", &CavePath::step_min(), PATH_STEP_MIN,
+                     PATH_STEP_MAX);
+    ImGui::SliderInt("Step Max", &CavePath::step_max(), PATH_STEP_MIN,
+                     PATH_STEP_MAX);
+}
+
+void DevPanel::show_river_table_bar() {
+    auto& river_wrom = m_app.world().river_worm();
+
+    ImGui::Text("Total River Sum %d", river_wrom.river_sum());
+    ImGui::SliderFloat("River Probability", &river_wrom.river_probability(),
+                       PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
+    ImGui::SliderFloat("Radius XZ Min##river", &RiverPath::radius_xz_min(),
+                       RADIUS_XZ_MIN, RADIUS_XZ_MAX);
+    ImGui::SliderFloat("Radius XZ Max##river", &RiverPath::radius_xz_max(),
+                       RADIUS_XZ_MIN, RADIUS_XZ_MAX);
+    ImGui::SliderFloat("Radius Y Min##river", &RiverPath::radius_y_min(),
+                       RADIUS_Y_MIN, RADIUS_Y_MAX);
+    ImGui::SliderFloat("Radius Y Max##river", &RiverPath::radius_y_max(),
+                       RADIUS_Y_MIN, RADIUS_Y_MAX);
+    ImGui::SliderFloat("Delta Angle Min##river", &RiverPath::delta_angle_min(),
+                       DELTA_ANGLE_MIN, 0.0f);
+    ImGui::SliderFloat("Delta Angle Max##river", &RiverPath::delta_angle_max(),
+                       0.0f, DELTA_ANGLE_MAX);
+    ImGui::SliderInt("Step Min##river", &RiverPath::step_min(), PATH_STEP_MIN,
+                     PATH_STEP_MAX);
+    ImGui::SliderInt("Step Max##river", &RiverPath::step_max(), PATH_STEP_MIN,
+                     PATH_STEP_MAX);
 }
 
 void DevPanel::show_settings_tab_item() {
@@ -436,6 +460,10 @@ void DevPanel::show_world_tab_item() {
         if (ImGui::BeginTabBar("World Settings")) {
             if (ImGui::BeginTabItem("Cave")) {
                 show_cave_table_bar();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("River")) {
+                show_river_table_bar();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Biome")) {

@@ -25,7 +25,7 @@ void MountainBuilder::build_blocks() {
     }
 }
 
-void MountainBuilder::build_vegetation() { fill_water(); }
+void MountainBuilder::build_vegetation() {}
 
 ChunkGenerator& MountainBuilder::get_chunk_generator() {
     return m_chunk_generator;

@@ -1,6 +1,5 @@
 #include "Cubed/gameplay/builders/river_builder.hpp"
 
-#include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/chunk_generator.hpp"
 namespace Cubed {
 RiverBuilder::RiverBuilder(ChunkGenerator& chunk_generator)
@@ -12,6 +11,7 @@ void RiverBuilder::build_biome() {
 };
 
 void RiverBuilder::build_blocks() {
+    /*
     auto& m_chunk = m_chunk_generator.chunk();
     auto& m_blocks = m_chunk.blocks();
     auto& m_heightmap = m_chunk.heightmap();
@@ -33,9 +33,11 @@ void RiverBuilder::build_blocks() {
             }
         }
     }
+        */
 }
 
 void RiverBuilder::build_vegetation() {
+    /*
     auto& m_chunk = m_chunk_generator.chunk();
     auto& m_blocks = m_chunk.blocks();
     auto& m_heightmap = m_chunk.heightmap();
@@ -50,6 +52,7 @@ void RiverBuilder::build_vegetation() {
             }
         }
     }
+        */
 }
 
 ChunkGenerator& RiverBuilder::get_chunk_generator() {

@@ -29,7 +29,7 @@ void PlainBuilder::build_blocks() {
     }
 }
 
-void PlainBuilder::build_vegetation() { fill_water(); }
+void PlainBuilder::build_vegetation() {}
 
 ChunkGenerator& PlainBuilder::get_chunk_generator() {
     return m_chunk_generator;

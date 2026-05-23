@@ -29,7 +29,7 @@ void DesertBuilder::build_blocks() {
     }
 }
 
-void DesertBuilder::build_vegetation() { fill_water(); }
+void DesertBuilder::build_vegetation() {}
 
 ChunkGenerator& DesertBuilder::get_chunk_generator() {
     return m_chunk_generator;

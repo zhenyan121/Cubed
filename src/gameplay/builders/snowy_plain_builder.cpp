@@ -29,7 +29,7 @@ void SnowyPlainBuilder::build_blocks() {
     }
 }
 
-void SnowyPlainBuilder::build_vegetation() { fill_water(); }
+void SnowyPlainBuilder::build_vegetation() {}
 
 ChunkGenerator& SnowyPlainBuilder::get_chunk_generator() {
     return m_chunk_generator;

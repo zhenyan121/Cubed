@@ -2,6 +2,7 @@
 #include "Cubed/AABB.hpp"
 #include "Cubed/gameplay/cave_carver.hpp"
 #include "Cubed/gameplay/chunk.hpp"
+#include "Cubed/gameplay/river_worm.hpp"
 
 #include <atomic>
 #include <condition_variable>
@@ -56,19 +57,19 @@ private:
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
 
     CaveCarver m_cave_carcer;
-
+    RiverWorm m_river_worm;
     void init_chunks();
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
-    void compute_required_chunks(ChunkPosSet& required_chunks);
+    void compute_required_chunks(ChunkPosSet& required_chunks,
+                                 ChunkHashMap& temp_neighbor);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
                                           ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkUpdateList& new_chunks,
-                                          ChunkHashMap& temp_neighbor);
+                                          const ChunkUpdateList& new_chunks);
     void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
                                                        ConstChunkMap&);
 
@@ -112,6 +113,7 @@ public:
     void stop_gen_thread();
 
     CaveCarver& cave_carcer();
+    RiverWorm& river_worm();
 };
 
 } // namespace Cubed
