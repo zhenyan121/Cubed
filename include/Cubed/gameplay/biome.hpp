@@ -5,10 +5,18 @@
 
 namespace Cubed {
 
-constexpr float BIOME_NOISE_FREQUENCY = 0.03f;
+constexpr float BIOME_NOISE_FREQUENCY = 0.06f;
 constexpr float HEIGHTMAP_NOISE_FREQUENCY = 0.001f;
 constexpr float MOUNTAINOUS_NOISE_FREQUENCY = 0.003f;
-enum class BiomeType { PLAIN = 0, FOREST, DESERT, MOUNTAIN, RIVER, NONE };
+enum class BiomeType {
+    PLAIN = 0,
+    FOREST,
+    DESERT,
+    MOUNTAIN,
+    RIVER,
+    SNOWY_PLAIN,
+    NONE
+};
 
 struct BiomeConditions {
     float temp = 0.0f;
@@ -54,8 +62,8 @@ struct MountainParams : public BaseBiomeParams {};
 struct RiverParams : public BaseBiomeParams {};
 
 std::string get_biome_str(BiomeType biome);
-std::array<float, 3> get_noise_frequencies_for_biome(BiomeType biome);
-BiomeHeightRange get_biome_height_range(BiomeType biome);
+// std::array<float, 3> get_noise_frequencies_for_biome(BiomeType biome);
+// BiomeHeightRange get_biome_height_range(BiomeType biome);
 BiomeType safe_int_to_biome(int x);
 int get_interpolated_height(float world_x, float world_z, float temp,
                             float humid);

@@ -41,10 +41,11 @@ struct LookBlock {
 };
 
 constexpr std::array<std::string_view, MAX_BLOCK_NUM> BLOCK_REISTER{
-    "air", "grass_block", "dirt", "stone", "sand", "log", "leaf", "water"};
+    "air",   "grass_block",      "dirt", "stone", "sand", "log", "leaf",
+    "water", "snowy_grass_block"};
 
 const std::array<bool, MAX_BLOCK_NUM> TRANSPARENT_MAP{
-    true, false, false, false, false, false, true};
+    true, false, false, false, false, false, true, false, false};
 
 inline bool is_in_transparent_map(unsigned id) {
     ASSERT_MSG(id < MAX_BLOCK_NUM, "ID is invaild");

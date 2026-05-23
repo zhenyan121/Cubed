@@ -5,6 +5,7 @@
 #include "Cubed/gameplay/builders/mountain_builder.hpp"
 #include "Cubed/gameplay/builders/plain_builder.hpp"
 #include "Cubed/gameplay/builders/river_builder.hpp"
+#include "Cubed/gameplay/builders/snowy_plain_builder.hpp"
 #include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/tree.hpp"
 #include "Cubed/gameplay/world.hpp"
@@ -580,6 +581,9 @@ void ChunkGenerator::make_biome_builder() {
         break;
     case RIVER:
         m_biome_builder = std::make_unique<RiverBuilder>(*this);
+        break;
+    case SNOWY_PLAIN:
+        m_biome_builder = std::make_unique<SnowyPlainBuilder>(*this);
         break;
     case NONE:
         m_biome_builder = nullptr;
