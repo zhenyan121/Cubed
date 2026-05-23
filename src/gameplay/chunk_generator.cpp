@@ -539,11 +539,17 @@ void ChunkGenerator::blend_surface_blocks_borders(
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
-                if (m_chunk.biome() == BiomeType::RIVER && final_type == 1) {
-                    final_type = 2;
+                if (final_type == 7 && top_y > SEA_LEVEL) {
+                    if (type_self == 7) {
+                        m_blocks[Chunk::index(x, top_y, z)] = 0;
+                    } else {
+                        m_blocks[Chunk::index(x, top_y, z)] = type_self;
+                    }
+
+                } else {
+                    m_blocks[Chunk::index(x, top_y, z)] = final_type;
                 }
 
-                m_blocks[Chunk::index(x, top_y, z)] = final_type;
                 // bottom block
                 unsigned fill_type = 2;
                 if (final_type == 1) {
@@ -552,7 +558,11 @@ void ChunkGenerator::blend_surface_blocks_borders(
                     fill_type = 4;
                 }
                 for (int y = top_y - 5; y < top_y; y++) {
-                    m_blocks[Chunk::index(x, y, z)] = fill_type;
+                    if (fill_type == 7 && y > SEA_LEVEL) {
+                        m_blocks[Chunk::index(x, y, z)] = 0;
+                    } else {
+                        m_blocks[Chunk::index(x, y, z)] = fill_type;
+                    }
                 }
             }
         }
