@@ -167,8 +167,8 @@ void Chunk::gen_vertex_data(
                                 // not init
                                 if (static_cast<size_t>(idx) >=
                                     chunk_blocks->size()) {
-                                    Logger::warn("not init");
-                                    return false;
+                                    // Logger::warn("not init");
+                                    return true;
                                 }
                                 auto id = (*chunk_blocks)[idx];
                                 if (is_in_transparent_map(id)) {

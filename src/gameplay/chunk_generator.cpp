@@ -532,6 +532,10 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 }
             }
 
+            if (final_type == 0) {
+                return;
+            }
+
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
