@@ -1,0 +1,5 @@
+name = "snowy_grass_block"
+id = 8
+is_liquid = false
+is_passable = false
+is_cross_plane = false

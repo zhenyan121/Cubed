@@ -1,0 +1,5 @@
+name = "template"
+id = 0
+is_liquid = false
+is_passable = false
+is_cross_plane = false

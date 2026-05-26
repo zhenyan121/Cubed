@@ -1,0 +1,5 @@
+name = "air"
+id = 0
+is_liquid = false
+is_passable = true
+is_cross_plane = false

@@ -1,0 +1,5 @@
+name = "grass"
+id = 9
+is_liquid = false
+is_passable = true
+is_cross_plane = true

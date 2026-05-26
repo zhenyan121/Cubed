@@ -1,0 +1,5 @@
+name = "grass_block"
+id = 1
+is_liquid = false
+is_passable = false
+is_cross_plane = false

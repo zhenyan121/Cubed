@@ -1,0 +1,5 @@
+name = "sand"
+id = 4
+is_liquid = false
+is_passable = false
+is_cross_plane = false
