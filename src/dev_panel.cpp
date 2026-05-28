@@ -3,7 +3,6 @@
 #include "Cubed/app.hpp"
 #include "Cubed/config.hpp"
 #include "Cubed/gameplay/player.hpp"
-#include "Cubed/map_table.hpp"
 #include "Cubed/tools/log.hpp"
 
 #include <imgui.h>
@@ -551,7 +550,7 @@ void DevPanel::show_player_tab_item() {
 
 void DevPanel::show_items_tab_item() {
     auto& textures = m_app.texture_manager().item_textures();
-    auto& names = MapTable::item_map();
+    // auto& names = MapTable::item_map();
     if (ImGui::BeginTabItem("item")) {
         ImGui::Text("Place Block ");
         ImGui::SameLine();
@@ -567,7 +566,7 @@ void DevPanel::show_items_tab_item() {
             }
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                ImGui::Text("%s", names[i].c_str());
+                ImGui::Text("%s", BlockManager::name_form_id(i).c_str());
                 ImGui::EndTooltip();
             }
             if (i % 10 != 0) {

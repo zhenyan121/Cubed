@@ -15,9 +15,11 @@ private:
     int m_aniso = 1;
 
     std::vector<GLuint> m_item_textures;
+
     void load_block_status(unsigned status_id);
     void load_block_texture(unsigned block_id);
-    void load_item_texture(const std::string& name);
+    void load_block_item_texture(unsigned id);
+    void load_cross_plane_texture(unsigned id);
     void load_ui_texture(unsigned id);
     void init_item();
     void init_block();

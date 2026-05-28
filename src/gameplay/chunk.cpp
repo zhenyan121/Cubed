@@ -136,7 +136,7 @@ void Chunk::gen_vertex_data(
                     int nx = x + DIR[face].x;
                     int ny = y + DIR[face].y;
                     int nz = z + DIR[face].z;
-                    bool neighbor_cull = false;
+                    bool neighbor_culled = false;
 
                     if (nx < 0 || nx >= SIZE_X || ny < 0 || ny >= SIZE_Y ||
                         nz < 0 || nz >= SIZE_Z) {
@@ -148,7 +148,7 @@ void Chunk::gen_vertex_data(
                         auto [neighbor_x, neighbor_z] =
                             World::chunk_pos(world_nx, world_nz);
 
-                        auto is_cull =
+                        auto is_culled =
                             [&](const std::vector<BlockType>* chunk_blocks) {
                                 if (chunk_blocks == nullptr) {
                                     return true;
@@ -171,7 +171,8 @@ void Chunk::gen_vertex_data(
                                     return true;
                                 }
                                 auto id = (*chunk_blocks)[idx];
-                                if (is_in_transparent_map(id)) {
+                                // leaf and this is half transparent
+                                if (id == 6 || id == 0) {
                                     if (id == cur_id) {
                                         return true;
                                     } else {
@@ -184,30 +185,31 @@ void Chunk::gen_vertex_data(
                             };
 
                         if (m_chunk_pos.x + 1 == neighbor_x) {
-                            neighbor_cull = is_cull(neighbor_block[0]);
+                            neighbor_culled = is_culled(neighbor_block[0]);
                         } else if (m_chunk_pos.x - 1 == neighbor_x) {
-                            neighbor_cull = is_cull(neighbor_block[1]);
+                            neighbor_culled = is_culled(neighbor_block[1]);
                         } else if (m_chunk_pos.z + 1 == neighbor_z) {
-                            neighbor_cull = is_cull(neighbor_block[2]);
+                            neighbor_culled = is_culled(neighbor_block[2]);
                         } else if (m_chunk_pos.z - 1 == neighbor_z) {
-                            neighbor_cull = is_cull(neighbor_block[3]);
+                            neighbor_culled = is_culled(neighbor_block[3]);
                         }
                         // neighbor_cull = m_world.is_block(glm::ivec3(world_x,
                         // world_y, world_z) + DIR[face]);
                     } else {
-                        auto id = m_blocks[index(nx, ny, nz)];
-                        if (!is_in_transparent_map(id)) {
-                            neighbor_cull = true;
+                        auto neighbor_id = m_blocks[index(nx, ny, nz)];
+                        // leaf and this is half transparent
+                        if (neighbor_id != 6 && neighbor_id != 0) {
+                            neighbor_culled = true;
                         } else {
-                            if (id == cur_id) {
-                                neighbor_cull = true;
+                            if (neighbor_id == cur_id) {
+                                neighbor_culled = true;
                             } else {
-                                neighbor_cull = false;
+                                neighbor_culled = false;
                             }
                         }
                     }
 
-                    if (neighbor_cull) {
+                    if (neighbor_culled) {
                         continue;
                     }
                     for (int i = 0; i < 6; i++) {

@@ -4,6 +4,7 @@
 #include "Cubed/gameplay/chunk_generator.hpp"
 #include "Cubed/gameplay/tree.hpp"
 
+#include <algorithm>
 #include <numeric>
 
 namespace Cubed {

@@ -7,7 +7,7 @@
 #include "Cubed/primitive_data.hpp"
 
 #include <atomic>
-
+#include <mutex>
 namespace Cubed {
 
 class World;

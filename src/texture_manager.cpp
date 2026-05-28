@@ -47,12 +47,18 @@ void TextureManager::load_block_status(unsigned id) {
 }
 
 void TextureManager::load_block_texture(unsigned id) {
-    ASSERT_MSG(id < MAX_BLOCK_NUM, "Exceed the max block sum limit");
-    std::string name{MapTable::get_name_from_id(id)};
+    ASSERT_MSG(id < BlockManager::sums(), "Exceed the max block sum limit");
+    std::string name{BlockManager::name_form_id(id)};
     // air don`t need texture
     if (id == 0) {
         return;
     }
+
+    if (BlockManager::is_cross_plane(id)) {
+        load_cross_plane_texture(id);
+        return;
+    }
+
     unsigned char* image_data[6];
 
     std::string block_texture_path = "texture/block/" + name;
@@ -73,7 +79,11 @@ void TextureManager::load_block_texture(unsigned id) {
     }
 }
 
-void TextureManager::load_item_texture(const std::string& name) {
+void TextureManager::load_block_item_texture(unsigned id) {
+
+    ASSERT_MSG(id < BlockManager::sums(), "Exceed the max block sum limit");
+    std::string name{BlockManager::name_form_id(id)};
+
     std::string path = "texture/item/block/" + name + ".png";
     unsigned char* data = nullptr;
     data = Tools::load_image_data(path);
@@ -95,6 +105,8 @@ void TextureManager::load_item_texture(const std::string& name) {
     Tools::delete_image_data(data);
 }
 
+void TextureManager::load_cross_plane_texture(unsigned id) {}
+
 void TextureManager::load_ui_texture(unsigned id) {
     ASSERT_MSG(id < MAX_UI_NUM, "Exceed the max ui sum limit");
 
@@ -107,19 +119,15 @@ void TextureManager::load_ui_texture(unsigned id) {
     Tools::delete_image_data(image_data);
 }
 
-void TextureManager::init_item() {
-    auto& map = MapTable::item_map();
-    for (const auto& name : map) {
-        load_item_texture(name);
-    }
-}
 void TextureManager::init_block() {
     glGenTextures(1, &m_texture_array);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, MAX_BLOCK_NUM * 6, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    for (int i = 0; i < MAX_BLOCK_NUM; i++) {
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16,
+                 BlockManager::sums() * 6, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 nullptr);
+    for (unsigned i = 0; i < BlockManager::sums(); i++) {
         load_block_texture(i);
+        load_block_item_texture(i);
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_array);
@@ -181,7 +189,6 @@ void TextureManager::init_texture() {
     init_block();
     init_block_status();
     init_ui();
-    init_item();
 }
 
 void TextureManager::update() {

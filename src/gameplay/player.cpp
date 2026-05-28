@@ -526,13 +526,13 @@ void Player::update_scroll(double yoffset) {
     if (m_game_mode == CREATIVE) {
         if (yoffset < 0) {
             m_place_block += 1;
-            if (m_place_block >= MAX_BLOCK_NUM) {
+            if (m_place_block >= BlockManager::sums()) {
                 m_place_block = 1;
             }
         } else {
             m_place_block -= 1;
             if (m_place_block <= 0) {
-                m_place_block = MAX_BLOCK_NUM - 1;
+                m_place_block = BlockManager::sums() - 1;
             }
         }
     }

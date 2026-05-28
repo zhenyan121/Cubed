@@ -1,8 +1,5 @@
 #pragma once
-#include "Cubed/constants.hpp"
-#include "Cubed/tools/cubed_assert.hpp"
 
-#include <array>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <string>
@@ -40,16 +37,34 @@ struct LookBlock {
     glm::ivec3 normal;
 };
 
-constexpr std::array<std::string_view, MAX_BLOCK_NUM> BLOCK_REISTER{
-    "air",   "grass_block",      "dirt", "stone", "sand", "log", "leaf",
-    "water", "snowy_grass_block"};
+struct BlockData {
+    std::string name;
+    BlockType id = 0;
 
-const std::array<bool, MAX_BLOCK_NUM> TRANSPARENT_MAP{
-    true, false, false, false, false, false, true, false, false};
+    bool is_liquid = false;
 
-inline bool is_in_transparent_map(unsigned id) {
-    ASSERT_MSG(id < MAX_BLOCK_NUM, "ID is invaild");
-    return TRANSPARENT_MAP[id];
+    bool is_passable = false;
+    bool is_cross_plane = false;
+
+    BlockData(BlockType b_id, std::string_view b_name, bool liquid,
+              bool passable, bool cross_plane)
+        : name(b_name), id(b_id), is_liquid(liquid), is_passable(passable),
+          is_cross_plane(cross_plane) {}
+};
+
+class BlockManager {
+
+public:
+    static const std::vector<BlockData>& datas();
+    static void init();
+    static unsigned sums();
+    static const std::string& name_form_id(unsigned id);
+
+    static bool is_cross_plane(unsigned id);
+
+private:
+    static inline std::vector<BlockData> m_datas;
+    static inline bool is_init = false;
 };
 
 } // namespace Cubed

@@ -51,7 +51,7 @@ void App::init() {
                                cursor_enter_callback);
     glfwSetCharCallback(m_window.get_glfw_window(), char_callback);
     ChunkGenerator::init();
-
+    BlockManager::init();
     m_renderer.init();
     Logger::info("Renderer Init Success");
     m_window.update_viewport();

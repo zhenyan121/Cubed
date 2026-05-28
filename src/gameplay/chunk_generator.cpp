@@ -9,6 +9,7 @@
 #include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/tree.hpp"
 #include "Cubed/gameplay/world.hpp"
+#include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/math_tools.hpp"
 #include "Cubed/tools/perlin_noise.hpp"

@@ -1,11 +1,7 @@
 #include "Cubed/map_table.hpp"
 
-#include "Cubed/gameplay/block.hpp"
-#include "Cubed/tools/cubed_assert.hpp"
-#include "Cubed/tools/cubed_hash.hpp"
-
 namespace Cubed {
-
+/*
 std::string_view MapTable::get_name_from_id(unsigned id) {
     auto it = id_to_name_map.find(id);
     ASSERT_MSG(it != id_to_name_map.end(),
@@ -25,8 +21,9 @@ std::string_view MapTable::item_name(unsigned id) {
 }
 
 const std::vector<std::string>& MapTable::item_map() { return item_id_to_name; }
-
+ */
 void MapTable::init_map() {
+    /*
     id_to_name_map.reserve(MAX_BLOCK_NUM);
     name_to_id_map.reserve(MAX_BLOCK_NUM);
 
@@ -37,6 +34,7 @@ void MapTable::init_map() {
     for (auto s : BLOCK_REISTER) {
         item_id_to_name.emplace_back(s);
     }
+        */
 }
 
 } // namespace Cubed
