@@ -87,10 +87,10 @@ void BlockManager::init() {
         }
         toml::table block;
         try {
-            block = toml::parse_file(entry.path().c_str());
+            block = toml::parse_file(entry.path().string());
         } catch (const toml::parse_error& err) {
             Logger::error("Load Block Data {} Fail, Parser Error {}",
-                          entry.path().c_str(), err.what());
+                          entry.path().string(), err.what());
             ASSERT(false);
         }
         auto id = block["id"].value<int>();
