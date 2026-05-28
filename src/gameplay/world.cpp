@@ -295,6 +295,8 @@ void World::render(const glm::mat4& mvp_matrix,
                    const TextureManager& texture_manager) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
     int rendered_sum = 0;
+    auto player_pos = get_player("TestPlayer").get_player_pos();
+    glm::vec2 player_pos_xz{player_pos.x, player_pos.z};
     for (const auto& snapshot : m_render_snapshots) {
 
         if (is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
@@ -315,22 +317,32 @@ void World::render(const glm::mat4& mvp_matrix,
             glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             if (snapshot.cross_vertices_count != 0) {
-                glBindTexture(GL_TEXTURE_2D_ARRAY,
-                              texture_manager.get_cross_plane_array());
-                glBindBuffer(GL_ARRAY_BUFFER, snapshot.cross_vbo);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                      (void*)0);
-                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                      (void*)offsetof(Vertex, s));
-                glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                      (void*)offsetof(Vertex, layer));
+                glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
+                float dist = glm::distance(player_pos_xz, center_xz);
+                if (dist <= CROSS_PLANE_DISTANCE * 16) {
 
-                glEnableVertexAttribArray(0);
-                glEnableVertexAttribArray(1);
-                glEnableVertexAttribArray(2);
+                    glDepthMask(GL_FALSE);
+                    glBindTexture(GL_TEXTURE_2D_ARRAY,
+                                  texture_manager.get_cross_plane_array());
+                    glBindBuffer(GL_ARRAY_BUFFER, snapshot.cross_vbo);
+                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                                          sizeof(Vertex), (void*)0);
+                    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+                                          sizeof(Vertex),
+                                          (void*)offsetof(Vertex, s));
+                    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE,
+                                          sizeof(Vertex),
+                                          (void*)offsetof(Vertex, layer));
 
-                glDrawArrays(GL_TRIANGLES, 0, snapshot.cross_vertices_count);
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    glEnableVertexAttribArray(0);
+                    glEnableVertexAttribArray(1);
+                    glEnableVertexAttribArray(2);
+
+                    glDrawArrays(GL_TRIANGLES, 0,
+                                 snapshot.cross_vertices_count);
+                    glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    glDepthMask(GL_TRUE);
+                }
             }
 
             rendered_sum++;

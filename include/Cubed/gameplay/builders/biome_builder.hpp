@@ -12,5 +12,6 @@ public:
 
 protected:
     void build_bottom();
+    void place_grass();
 };
 } // namespace Cubed

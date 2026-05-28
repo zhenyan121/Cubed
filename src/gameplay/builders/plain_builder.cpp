@@ -29,7 +29,7 @@ void PlainBuilder::build_blocks() {
     }
 }
 
-void PlainBuilder::build_vegetation() {}
+void PlainBuilder::build_vegetation() { place_grass(); }
 
 ChunkGenerator& PlainBuilder::get_chunk_generator() {
     return m_chunk_generator;

@@ -53,6 +53,7 @@ void ForestBuilder::build_vegetation() {
             }
         }
     }
+    place_grass();
 }
 
 ChunkGenerator& ForestBuilder::get_chunk_generator() {
