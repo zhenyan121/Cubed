@@ -15,7 +15,7 @@ class World;
 class DevPanel;
 class Renderer {
 public:
-    constexpr static int NUM_VAO = 5;
+    constexpr static int NUM_VAO = 6;
 
     Renderer(const Camera& camera, World& world,
              const TextureManager& texture_manager, DevPanel& dev_panel);
@@ -24,8 +24,10 @@ public:
     void init();
     const Shader& get_shader(const std::string& name) const;
     void render();
+    void update(float delta_time);
     void update_fov(float fov);
     void update_proj_matrix(float aspect, float width, float height);
+    void updata_framebuffer(int width, int height);
 
 private:
     const Camera& m_camera;
@@ -35,16 +37,25 @@ private:
 
     float m_aspect = 0.0f;
     float m_fov = DEFAULT_FOV;
+
+    float m_delta_time = 0.0f;
+
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat;
 
-    GLuint m_mv_loc;
-    GLuint m_proj_loc;
+    GLuint m_mv_loc = 0;
+    GLuint m_proj_loc = 0;
 
-    GLuint m_sky_vbo;
-    GLuint m_text_vbo;
-    GLuint m_outline_indices_vbo;
-    GLuint m_outline_vbo;
-    GLuint m_ui_vbo;
+    GLuint m_sky_vbo = 0;
+    GLuint m_text_vbo = 0;
+    GLuint m_outline_indices_vbo = 0;
+    GLuint m_outline_vbo = 0;
+    GLuint m_ui_vbo = 0;
+
+    GLuint m_fbo = 0;
+    GLuint m_screen_texture = 0;
+    GLuint m_depth_render_buffer = 0;
+
+    GLuint m_quad_vbo = 0;
 
     glm::mat4 m_ui_proj;
     glm::mat4 m_ui_m_matrix;
@@ -52,6 +63,7 @@ private:
     std::vector<GLuint> m_vao;
     std::vector<Vertex2D> m_ui;
 
+    void init_underwater();
     void init_text();
 
     void render_outline();
@@ -59,6 +71,7 @@ private:
     void render_text();
     void render_ui();
     void render_world();
+    void render_underwater();
     void render_dev_panel();
 };
 

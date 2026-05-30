@@ -23,6 +23,7 @@ private:
     std::atomic<bool> m_is_on_gen_vertex_data{false};
     std::atomic<size_t> m_normal_vertices_sum = 0;
     std::atomic<size_t> m_cross_vertices_sum = 0;
+    std::atomic<size_t> m_transparent_vertices_sum = 0;
     std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
 
@@ -35,8 +36,10 @@ private:
     std::vector<BlockType> m_blocks;
     GLuint m_normal_vbo = 0;
     GLuint m_cross_plane_vbo = 0;
+    GLuint m_transparent_normal_vbo = 0;
     std::vector<Vertex> m_normal_vertices;
     std::vector<Vertex> m_cross_plane_vertices;
+    std::vector<Vertex> m_transparent_normal_vertices;
     float frequency = 0.01f;
     float height = 80;
     unsigned m_seed = 0;
@@ -100,8 +103,12 @@ public:
 
     GLuint get_normal_vbo() const;
     size_t get_normal_vertices_sum() const;
+
     GLuint get_cross_vbo() const;
     size_t get_cross_vertices_sum() const;
+
+    GLuint get_transparent_vbo() const;
+    size_t get_transparent_vertices_sum() const;
 
     bool is_dirty() const;
     void mark_dirty();

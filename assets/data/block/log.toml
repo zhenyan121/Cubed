@@ -1,5 +1,6 @@
 id = 5
 is_cross_plane = false
+is_gas = false
 is_liquid = false
 is_passable = false
 is_transparent = false

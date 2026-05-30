@@ -16,6 +16,7 @@ private:
     Player* m_player;
     float m_last_mouse_x, m_last_mouse_y;
     glm::vec3 m_camera_pos;
+    bool m_under_water = false;
 
 public:
     Camera();
@@ -29,6 +30,8 @@ public:
 
     const glm::mat4 get_camera_lookat() const;
     const glm::vec3& get_camera_pos() const;
+
+    bool is_under_water() const;
 };
 
 } // namespace Cubed

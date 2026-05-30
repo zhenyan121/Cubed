@@ -52,6 +52,21 @@ const std::string& BlockManager::name_form_id(BlockType id) {
     return m_datas[id].name;
 }
 
+bool BlockManager::is_gas(BlockType id) {
+    if (id >= sums()) {
+        Logger::error("Id {}, is Over The Max Id", id, sums() - 1);
+        return m_datas[0].is_gas;
+    }
+    return m_datas[id].is_gas;
+}
+bool BlockManager::is_liquid(BlockType id) {
+    if (id >= sums()) {
+        Logger::error("Id {}, is Over The Max Id", id, sums() - 1);
+        return m_datas[0].is_liquid;
+    }
+    return m_datas[id].is_liquid;
+}
+
 bool BlockManager::is_cross_plane(BlockType id) {
     if (id >= sums()) {
         Logger::error("Id {}, is Over The Max Id", id, sums() - 1);
@@ -109,8 +124,9 @@ void BlockManager::init() {
         auto is_passable = safe_get_value(block, "is_passable", false);
         auto is_cross_plane = safe_get_value(block, "is_cross_plane", false);
         auto is_transparent = safe_get_value(block, "is_transparent", false);
+        auto is_gas = safe_get_value(block, "is_gas", false);
         m_datas.emplace_back(*id, *name, *is_liquid, *is_passable,
-                             *is_cross_plane, *is_transparent);
+                             *is_cross_plane, *is_transparent, *is_gas);
     }
     std::sort(
         m_datas.begin(), m_datas.end(),

@@ -19,6 +19,8 @@ struct ChunkRenderSnapshot {
     size_t normal_vertices_count;
     GLuint cross_vbo;
     size_t cross_vertices_count;
+    GLuint transparent_vbo;
+    size_t transparent_vertices_count;
     glm::vec3 center;
     glm::vec3 half_extents;
 };
@@ -92,14 +94,15 @@ public:
                             const glm::vec3& half_extents);
 
     int get_block(const glm::ivec3& block_pos) const;
-    bool is_block(const glm::ivec3& block_pos) const;
+    bool is_solid(const glm::ivec3& block_pos) const;
     bool can_pass_block(const glm::ivec3& block_pos) const;
-
+    BlockType get_block_tpye(const glm::ivec3& block_pos) const;
     static ChunkPos chunk_pos(int world_x, int world_z);
 
     void need_gen();
     void render(const glm::mat4& mvp_matrix,
-                const TextureManager& texture_manager);
+                const TextureManager& texture_manager,
+                const glm::vec3& camera_pos);
 
     void set_block(const glm::ivec3& pos, unsigned id);
     void update(float delta_time);

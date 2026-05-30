@@ -40,7 +40,7 @@ GLuint create_shader_program(const std::string& v_shader_path,
     Tools::check_opengl_error();
     glGetShaderiv(f_shader, GL_COMPILE_STATUS, &fc);
     if (fc != 1) {
-        Logger::error("vertex compilation failed");
+        Logger::error("fragment compilation failed");
         Tools::print_shader_log(f_shader);
         ASSERT(0);
     }

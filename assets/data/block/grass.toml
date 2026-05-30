@@ -1,5 +1,6 @@
 id = 9
 is_cross_plane = true
+is_gas = false
 is_liquid = false
 is_passable = true
 is_transparent = true

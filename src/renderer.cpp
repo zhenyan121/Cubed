@@ -33,6 +33,9 @@ Renderer::~Renderer() {
     glDeleteBuffers(1, &m_text_vbo);
     glBindVertexArray(0);
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
+    glDeleteFramebuffers(1, &m_fbo);
+    glDeleteTextures(1, &m_screen_texture);
+    glDeleteRenderbuffers(1, &m_depth_render_buffer);
 }
 
 void Renderer::hot_reload() {
@@ -59,12 +62,17 @@ void Renderer::init() {
                      "shaders/ui_f_shader.glsl"};
     Shader text_shdaer{"text", "shaders/text_v_shader.glsl",
                        "shaders/text_f_shader.glsl"};
+    Shader under_water_shader{"under_water",
+                              "shaders/under_water_v_shader.glsl",
+                              "shaders/under_water_f_shader.glsl"};
 
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
     m_shaders.insert({ui_shdaer.hash(), std::move(ui_shdaer)});
     m_shaders.insert({text_shdaer.hash(), std::move(text_shdaer)});
+    m_shaders.insert(
+        {under_water_shader.hash(), std::move(under_water_shader)});
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -116,7 +124,7 @@ void Renderer::init() {
     glBindBuffer(GL_ARRAY_BUFFER, m_text_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    init_underwater();
     init_text();
     hot_reload();
 }
@@ -127,6 +135,14 @@ const Shader& Renderer::get_shader(const std::string& name) const {
     return it->second;
 }
 
+void Renderer::init_underwater() {
+    glGenBuffers(1, &m_quad_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_quad_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(QUAD_VERTICES), QUAD_VERTICES,
+                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void Renderer::init_text() {
     const auto& shader = get_shader("text");
     Text::set_loc(shader);
@@ -134,9 +150,9 @@ void Renderer::init_text() {
 }
 
 void Renderer::render() {
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glBindVertexArray(m_vao[0]);
     render_sky();
@@ -144,9 +160,19 @@ void Renderer::render() {
     render_world();
     glBindVertexArray(m_vao[2]);
     render_outline();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glBindVertexArray(m_vao[3]);
-    render_ui();
+    render_underwater();
+    glEnable(GL_DEPTH_TEST);
+
     glBindVertexArray(m_vao[4]);
+    render_ui();
+    glBindVertexArray(m_vao[5]);
     render_text();
     glBindVertexArray(0);
     render_dev_panel();
@@ -256,6 +282,32 @@ void Renderer::render_ui() {
     glEnable(GL_DEPTH_TEST);
 }
 
+void Renderer::render_underwater() {
+    const auto& shader = get_shader("under_water");
+    shader.use();
+    glBindBuffer(GL_ARRAY_BUFFER, m_quad_vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void*)(2 * sizeof(float)));
+
+    glUniform1i(shader.loc("u_sceneTexture"), 0);
+    glUniform1f(shader.loc("u_time"), glfwGetTime());
+    glUniform1i(shader.loc("u_underwater"), m_camera.is_under_water());
+    glUniform3f(shader.loc("u_waterColor"), 0.1f, 0.25f, 0.35f);
+    glUniform1f(shader.loc("u_fogDensity"), 0.08f);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_screen_texture);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void Renderer::update(float delta_time) { m_delta_time = delta_time; }
+
 void Renderer::update_fov(float fov) {
     m_fov = fov;
     m_p_mat = glm::perspective(glm::radians(fov), m_aspect, 0.1f, 1000.0f);
@@ -272,6 +324,41 @@ void Renderer::update_proj_matrix(float aspect, float width, float height) {
         glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 1.0f));
 }
 
+void Renderer::updata_framebuffer(int width, int height) {
+    if (width <= 0 || height <= 0)
+        return;
+    if (m_fbo == 0) {
+        glGenFramebuffers(1, &m_fbo);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+
+    glDeleteTextures(1, &m_screen_texture);
+    glDeleteRenderbuffers(1, &m_depth_render_buffer);
+
+    glGenTextures(1, &m_screen_texture);
+    glBindTexture(GL_TEXTURE_2D, m_screen_texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           m_screen_texture, 0);
+
+    glGenRenderbuffers(1, &m_depth_render_buffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_depth_render_buffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER, m_depth_render_buffer);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        Logger::error("FBO incomplete after resize!");
+    } else {
+        Logger::info("Frame Buffer Complete!");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Renderer::render_world() {
     const auto& shader = get_shader("world");
     shader.use();
@@ -286,7 +373,7 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
     m_mvp_mat = m_p_mat * m_mv_mat;
-    m_world.render(m_mvp_mat, m_texture_manager);
+    m_world.render(m_mvp_mat, m_texture_manager, m_camera.get_camera_pos());
 }
 
 void Renderer::render_dev_panel() {

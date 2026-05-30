@@ -42,8 +42,8 @@ void Window::update_viewport() {
     m_aspect = (float)m_width / (float)m_height;
     glViewport(0, 0, m_width, m_height);
     m_renderer.update_proj_matrix(m_aspect, m_width, m_height);
+    m_renderer.updata_framebuffer(m_width, m_height);
     auto& config = Config::get();
-
     config.set("window.width", windowed_width);
     config.set("window.height", windowed_height);
 }
