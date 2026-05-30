@@ -101,7 +101,8 @@ public:
 
     void need_gen();
     void render(const glm::mat4& mvp_matrix,
-                const TextureManager& texture_manager);
+                const TextureManager& texture_manager,
+                const glm::vec3& camera_pos);
 
     void set_block(const glm::ivec3& pos, unsigned id);
     void update(float delta_time);

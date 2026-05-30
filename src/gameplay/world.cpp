@@ -292,11 +292,10 @@ void World::init_chunks() {
 }
 */
 void World::render(const glm::mat4& mvp_matrix,
-                   const TextureManager& texture_manager) {
+                   const TextureManager& texture_manager,
+                   const glm::vec3& camera_pos) {
     Math::extract_frustum_planes(mvp_matrix, m_planes);
     int rendered_sum = 0;
-    auto player_pos = get_player("TestPlayer").get_player_pos();
-    glm::vec2 player_pos_xz{player_pos.x, player_pos.z};
     for (const auto& snapshot : m_render_snapshots) {
 
         if (is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
@@ -336,10 +335,11 @@ void World::render(const glm::mat4& mvp_matrix,
             continue;
         }
 
-        float dist = glm::distance(player_pos, snapshot.center);
+        float dist = glm::distance(camera_pos, snapshot.center);
+        glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
         if (snapshot.cross_vertices_count != 0) {
             glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
-            float dist2d = glm::distance(player_pos_xz, center_xz);
+            float dist2d = glm::distance(camera_pos_xz, center_xz);
             if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
                 cross_list.push_back({&snapshot, dist});
             }

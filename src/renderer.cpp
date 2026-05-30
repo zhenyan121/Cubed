@@ -286,7 +286,7 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
     m_mvp_mat = m_p_mat * m_mv_mat;
-    m_world.render(m_mvp_mat, m_texture_manager);
+    m_world.render(m_mvp_mat, m_texture_manager, m_camera.get_camera_pos());
 }
 
 void Renderer::render_dev_panel() {
