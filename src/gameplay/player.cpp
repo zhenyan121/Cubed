@@ -421,7 +421,7 @@ void Player::update_x_move() {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::vec3{x, y, z})) {
+                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
                     AABB block_box = {glm::vec3{static_cast<float>(x),
                                                 static_cast<float>(y),
                                                 static_cast<float>(z)},
@@ -455,7 +455,7 @@ void Player::update_y_move() {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::vec3{x, y, z})) {
+                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
                     AABB block_box = {glm::vec3{static_cast<float>(x),
                                                 static_cast<float>(y),
                                                 static_cast<float>(z)},
@@ -493,7 +493,7 @@ void Player::update_z_move() {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::vec3{x, y, z})) {
+                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
                     AABB block_box = {glm::vec3{static_cast<float>(x),
                                                 static_cast<float>(y),
                                                 static_cast<float>(z)},
