@@ -1,6 +1,7 @@
 #include "Cubed/camera.hpp"
 
 #include "Cubed/gameplay/player.hpp"
+#include "Cubed/gameplay/world.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
 
 namespace Cubed {
@@ -12,6 +13,13 @@ void Camera::update_move_camera() {
     auto pos = m_player->get_player_pos();
     // pos.y need to add 1.6f to center
     m_camera_pos = glm::vec3(pos.x, pos.y + 1.6f, pos.z);
+    glm::ivec3 block_pos = glm::floor(m_camera_pos);
+    auto& world = m_player->get_world();
+    if (world.get_block_tpye(block_pos) == 7) {
+        m_under_water = true;
+    } else {
+        m_under_water = false;
+    }
 }
 
 void Camera::camera_init(Player* player) {
@@ -49,5 +57,7 @@ const glm::mat4 Camera::get_camera_lookat() const {
 }
 
 const glm::vec3& Camera::get_camera_pos() const { return m_camera_pos; }
+
+bool Camera::is_under_water() const { return m_under_water; }
 
 } // namespace Cubed

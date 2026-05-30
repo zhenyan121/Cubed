@@ -847,6 +847,27 @@ bool World::can_pass_block(const glm::ivec3& block_pos) const {
     return BlockManager::is_passable(id);
 }
 
+BlockType World::get_block_tpye(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    std::lock_guard lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+                      block_pos.z);
+        return 0;
+    }
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    auto [x, y, z] = Chunk::world_to_block(block_pos, {chunk_x, chunk_z});
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+                      block_pos.z);
+        return 0;
+    }
+    return chunk_blocks[Chunk::index(x, y, z)];
+}
+
 void World::set_block(const glm::ivec3& block_pos, unsigned id) {
 
     int world_x, world_y, world_z;

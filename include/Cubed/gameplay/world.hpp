@@ -96,7 +96,7 @@ public:
     int get_block(const glm::ivec3& block_pos) const;
     bool is_block(const glm::ivec3& block_pos) const;
     bool can_pass_block(const glm::ivec3& block_pos) const;
-
+    BlockType get_block_tpye(const glm::ivec3& block_pos) const;
     static ChunkPos chunk_pos(int world_x, int world_z);
 
     void need_gen();

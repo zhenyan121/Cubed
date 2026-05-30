@@ -104,6 +104,7 @@ public:
 
     Gait& gait();
     GameMode& game_mode();
+    const World& get_world() const;
 };
 
 } // namespace Cubed

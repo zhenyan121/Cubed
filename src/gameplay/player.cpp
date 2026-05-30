@@ -547,5 +547,5 @@ float& Player::g() { return m_g; }
 unsigned Player::place_block() const { return m_place_block; };
 Gait& Player::gait() { return m_gait; }
 GameMode& Player::game_mode() { return m_game_mode; }
-
+const World& Player::get_world() const { return m_world; }
 } // namespace Cubed
