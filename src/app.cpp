@@ -257,6 +257,7 @@ void App::update() {
             m_renderer.update_fov(fov + 5.0f);
         }
     }
+    m_renderer.update(delta_time);
 }
 
 int App::start_cubed_application(int argc, char** argv) {

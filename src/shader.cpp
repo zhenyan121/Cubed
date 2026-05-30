@@ -18,7 +18,8 @@ Shader::Shader(const std::string& name, const std::string& v_shader_path,
 
 Shader::Shader(Shader&& shader) noexcept
     : m_program(shader.m_program), m_hash(shader.m_hash),
-      m_name(std::move(shader.m_name)) {
+      m_name(std::move(shader.m_name)),
+      m_uniform_cache(std::move(shader.m_uniform_cache)) {
     shader.m_hash = 0;
     shader.m_program = 0;
 }
@@ -33,6 +34,7 @@ Shader& Shader::operator=(Shader&& shader) noexcept {
     m_hash = shader.m_hash;
     m_name = std::move(shader.m_name);
     m_program = shader.m_program;
+    m_uniform_cache = std::move(shader.m_uniform_cache);
     shader.m_hash = 0;
     shader.m_program = 0;
     return *this;
@@ -59,11 +61,18 @@ std::size_t Shader::hash() const {
 
 GLuint Shader::loc(const std::string& loc) const {
     ASSERT_MSG(m_program != 0, "Shader program not created");
+
+    auto it = m_uniform_cache.find(loc);
+    if (it != m_uniform_cache.end()) {
+        return it->second;
+    }
+
     GLint pos = glGetUniformLocation(m_program, loc.c_str());
     if (pos == -1) {
-        Logger::info("Shader name {}, loc name {}, pos {}", m_name, loc, pos);
+        Logger::error("Shader name {}, loc name {}, pos {}", m_name, loc, pos);
         ASSERT_MSG(pos == -1, "Can't find UniformLocation");
     }
+    m_uniform_cache[loc] = pos;
     return static_cast<GLuint>(pos);
 }
 

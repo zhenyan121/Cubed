@@ -149,6 +149,13 @@ constexpr float CROSS_TEX_COORDS[2][6][2] = {
      {0.0f, 1.0f}}, // bottom left
 };
 #pragma endregion
+
+constexpr float QUAD_VERTICES[] = {
+    // postion        // texcoorlds
+    -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+
+    -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f};
+
 struct Vertex {
     float x = 0.0f, y = 0.0f, z = 0.0f;
     float s = 0.0f, t = 0.0f;

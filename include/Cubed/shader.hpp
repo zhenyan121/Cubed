@@ -1,7 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include <string>
-
+#include <unordered_map>
 namespace Cubed {
 
 class Shader {
@@ -26,6 +26,7 @@ private:
     GLuint m_program = 0;
     std::size_t m_hash = 0;
     std::string m_name = "-1";
+    mutable std::unordered_map<std::string, GLint> m_uniform_cache;
 };
 
 } // namespace Cubed
