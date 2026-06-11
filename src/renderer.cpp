@@ -207,7 +207,6 @@ void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     render_underwater();
-    glEnable(GL_DEPTH_TEST);
 
     render_ui();
     render_text();
@@ -431,9 +430,10 @@ void Renderer::updata_framebuffer(int width, int height) {
 void Renderer::render_world() {
     const auto& normal_block_shader = get_shader("normal_block");
     normal_block_shader.use();
-    glBindVertexArray(m_vao[5]);
+
     m_mv_loc = normal_block_shader.loc("mv_matrix");
     m_proj_loc = normal_block_shader.loc("proj_matrix");
+
     glActiveTexture(GL_TEXTURE0);
 
     m_m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -450,7 +450,7 @@ void Renderer::render_world() {
     Math::extract_frustum_planes(m_mvp_mat, m_planes);
 
     int rendered_sum = 0;
-
+    glEnable(GL_DEPTH_TEST);
     for (const auto& snapshot : m_render_snapshots) {
 
         if (Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
@@ -506,11 +506,15 @@ void Renderer::render_world() {
     // pass one accumulate
     auto& accum_shader = get_shader("accum");
     accum_shader.use();
+
     GLint mv_loc = accum_shader.loc("mv_matrix");
     GLint proj_loc = accum_shader.loc("proj_matrix");
+
     glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+
     glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
+
     glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
     float one = 1.0f;
     glClearBufferfv(GL_COLOR, 1, &one);
