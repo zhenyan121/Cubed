@@ -4,7 +4,7 @@
 #include "Cubed/gameplay/block.hpp"
 #include "Cubed/gameplay/chunk_generator.hpp"
 #include "Cubed/gameplay/chunk_pos.hpp"
-#include "Cubed/primitive_data.hpp"
+#include "Cubed/gameplay/vertex_data.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -17,13 +17,10 @@ private:
     static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUNK_SIZE;
-
+    static constexpr int VERTEX_DATA_SUM = 4;
     std::atomic<bool> m_dirty{false};
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data{false};
-    std::atomic<size_t> m_normal_vertices_sum = 0;
-    std::atomic<size_t> m_cross_vertices_sum = 0;
-    std::atomic<size_t> m_transparent_vertices_sum = 0;
     std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
 
@@ -34,12 +31,14 @@ private:
     HeightMapArray m_heightmap;
     // the index is a array of block id
     std::vector<BlockType> m_blocks;
-    GLuint m_normal_vbo = 0;
-    GLuint m_cross_plane_vbo = 0;
-    GLuint m_transparent_normal_vbo = 0;
-    std::vector<Vertex> m_normal_vertices;
-    std::vector<Vertex> m_cross_plane_vertices;
-    std::vector<Vertex> m_transparent_normal_vertices;
+
+    /*
+    0 - normal
+    1 - cross_plane
+    2 - normal_discard
+    3 - transparent and blend
+    */
+    std::vector<VertexData> m_vertex_data;
     float frequency = 0.01f;
     float height = 80;
     unsigned m_seed = 0;
@@ -47,9 +46,10 @@ private:
     BiomeConditions m_conditions;
 
     void clear_dirty();
-    void gen_normal_vertices(
+    void gen_vertices(
         const std::array<const std::vector<BlockType>*, 4>& neighbor_block);
-    void gen_cross_plane_vertices();
+    void gen_cross_plane_vertices(int world_x, int world_y, int world_z,
+                                  BlockType id);
 
 public:
     Chunk(World& world, ChunkPos chunk_pos);
@@ -107,8 +107,11 @@ public:
     GLuint get_cross_vbo() const;
     size_t get_cross_vertices_sum() const;
 
-    GLuint get_transparent_vbo() const;
-    size_t get_transparent_vertices_sum() const;
+    GLuint get_normal_discard_vbo() const;
+    size_t get_normal_discard_vertices_sum() const;
+
+    GLuint get_normal_blend_vbo() const;
+    size_t get_normal_blend_vertices_sum() const;
 
     bool is_dirty() const;
     void mark_dirty();

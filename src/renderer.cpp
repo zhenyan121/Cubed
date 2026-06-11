@@ -12,6 +12,7 @@
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/font.hpp"
 #include "Cubed/tools/log.hpp"
+#include "Cubed/tools/math_tools.hpp"
 #include "Cubed/tools/shader_tools.hpp"
 
 #include <GLFW/glfw3.h>
@@ -36,6 +37,11 @@ Renderer::~Renderer() {
     glDeleteFramebuffers(1, &m_fbo);
     glDeleteTextures(1, &m_screen_texture);
     glDeleteRenderbuffers(1, &m_depth_render_buffer);
+
+    glDeleteFramebuffers(1, &m_oit_fbo);
+    glDeleteTextures(1, &m_accum_texture);
+    glDeleteTextures(1, &m_reveal_texture);
+    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
 }
 
 void Renderer::hot_reload() {
@@ -52,7 +58,7 @@ void Renderer::init() {
     Logger::info("Renderer: {}",
                  reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 
-    Shader world_shader{"world", "shaders/block_v_shader.glsl",
+    Shader world_shader{"normal_block", "shaders/block_v_shader.glsl",
                         "shaders/block_f_shader.glsl"};
     Shader outline_shader{"outline", "shaders/outline_v_shader.glsl",
                           "shaders/outline_f_shader.glsl"};
@@ -65,7 +71,11 @@ void Renderer::init() {
     Shader under_water_shader{"under_water",
                               "shaders/under_water_v_shader.glsl",
                               "shaders/under_water_f_shader.glsl"};
-
+    Shader accum_shader{"accum", "shaders/block_accumulation_v_shader.glsl",
+                        "shaders/block_accumulation_f_shader.glsl"};
+    Shader composite_block_shader{"composite",
+                                  "shaders/block_composite_v_shader.glsl",
+                                  "shaders/block_composite_f_shader.glsl"};
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -73,7 +83,9 @@ void Renderer::init() {
     m_shaders.insert({text_shdaer.hash(), std::move(text_shdaer)});
     m_shaders.insert(
         {under_water_shader.hash(), std::move(under_water_shader)});
-
+    m_shaders.insert({accum_shader.hash(), std::move(accum_shader)});
+    m_shaders.insert(
+        {composite_block_shader.hash(), std::move(composite_block_shader)});
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -182,15 +194,19 @@ void Renderer::render_outline() {
     const auto& shader = get_shader("outline");
     shader.use();
 
-    m_mv_loc = shader.loc("mv_matrix");
-    m_proj_loc = shader.loc("proj_matrix");
-
     const auto& block_pos = m_world.get_look_block_pos("TestPlayer");
 
     if (block_pos != std::nullopt) {
+
+        m_mv_loc = shader.loc("mv_matrix");
+        m_proj_loc = shader.loc("proj_matrix");
+
         m_m_mat =
             glm::translate(glm::mat4(1.0f), glm::vec3(block_pos.value().pos));
+
+        m_v_mat = m_camera.get_camera_lookat();
         m_mv_mat = m_v_mat * m_m_mat;
+
         glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
         glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
 
@@ -235,7 +251,8 @@ void Renderer::render_sky() {
 void Renderer::render_text() {
     const auto& shader = get_shader("text");
     shader.use();
-
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     m_proj_loc = shader.loc("projection");
 
@@ -254,7 +271,8 @@ void Renderer::render_ui() {
     shader.use();
 
     glDisable(GL_DEPTH_TEST);
-
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_mv_loc = shader.loc("m_matrix");
     m_proj_loc = shader.loc("proj_matrix");
 
@@ -330,6 +348,9 @@ void Renderer::updata_framebuffer(int width, int height) {
     if (m_fbo == 0) {
         glGenFramebuffers(1, &m_fbo);
     }
+    if (m_oit_fbo == 0) {
+        glGenFramebuffers(1, &m_oit_fbo);
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
     glDeleteTextures(1, &m_screen_texture);
@@ -357,14 +378,51 @@ void Renderer::updata_framebuffer(int width, int height) {
         Logger::info("Frame Buffer Complete!");
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
+    glDeleteTextures(1, &m_accum_texture);
+    glDeleteTextures(1, &m_reveal_texture);
+    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+    glGenTextures(1, &m_accum_texture);
+    glBindTexture(GL_TEXTURE_2D, m_accum_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA,
+                 GL_HALF_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           m_accum_texture, 0);
+    glGenTextures(1, &m_reveal_texture);
+    glBindTexture(GL_TEXTURE_2D, m_reveal_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, width, height, 0, GL_RED,
+                 GL_HALF_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                           m_reveal_texture, 0);
+    glGenRenderbuffers(1, &m_oit_depth_render_buffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_oit_depth_render_buffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER, m_oit_depth_render_buffer);
+    GLenum draw_buffer[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, draw_buffer);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        Logger::error("FBO incomplete after resize!");
+    } else {
+        Logger::info("Frame Buffer Complete!");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    m_width = width;
+    m_height = height;
 }
 
 void Renderer::render_world() {
-    const auto& shader = get_shader("world");
-    shader.use();
+    const auto& normal_block_shader = get_shader("normal_block");
+    normal_block_shader.use();
 
-    m_mv_loc = shader.loc("mv_matrix");
-    m_proj_loc = shader.loc("proj_matrix");
+    m_mv_loc = normal_block_shader.loc("mv_matrix");
+    m_proj_loc = normal_block_shader.loc("proj_matrix");
     glActiveTexture(GL_TEXTURE0);
 
     m_m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -373,7 +431,174 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
     m_mvp_mat = m_p_mat * m_mv_mat;
-    m_world.render(m_mvp_mat, m_texture_manager, m_camera.get_camera_pos());
+
+    auto& camera_pos = m_camera.get_camera_pos();
+    auto& m_planes = m_world.planes();
+    auto& m_render_snapshots = m_world.render_snapshots();
+
+    Math::extract_frustum_planes(m_mvp_mat, m_planes);
+
+    int rendered_sum = 0;
+
+    for (const auto& snapshot : m_render_snapshots) {
+
+        if (Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+                                     m_planes)) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindBuffer(GL_ARRAY_BUFFER, snapshot.normal_vbo);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, s));
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, layer));
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            glEnableVertexAttribArray(2);
+
+            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            rendered_sum++;
+        }
+    }
+    // cross_plane and discard
+
+    for (const auto& snapshot : m_render_snapshots) {
+        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+                                      m_planes)) {
+            continue;
+        }
+        glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
+        if (snapshot.cross_vertices_count != 0) {
+            glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
+            float dist2d = glm::distance(camera_pos_xz, center_xz);
+            if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
+                glBindTexture(GL_TEXTURE_2D_ARRAY,
+                              m_texture_manager.get_cross_plane_array());
+                glBindBuffer(GL_ARRAY_BUFFER, snapshot.cross_vbo);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                      (void*)0);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                      (void*)offsetof(Vertex, s));
+                glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                      (void*)offsetof(Vertex, layer));
+
+                glEnableVertexAttribArray(0);
+                glEnableVertexAttribArray(1);
+                glEnableVertexAttribArray(2);
+
+                glDrawArrays(GL_TRIANGLES, 0, snapshot.cross_vertices_count);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+            }
+        }
+        if (snapshot.normal_discard_vertices_count != 0) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindBuffer(GL_ARRAY_BUFFER, snapshot.normal_discard_vbo);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, s));
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, layer));
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            glEnableVertexAttribArray(2);
+
+            glDrawArrays(GL_TRIANGLES, 0,
+                         snapshot.normal_discard_vertices_count);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+    }
+
+    // copy depth buffer
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_oit_fbo);
+    glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height,
+                      GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_oit_fbo);
+
+    // pass one accumulate
+    auto& accum_shader = get_shader("accum");
+    accum_shader.use();
+    GLint mv_loc = accum_shader.loc("mv_matrix");
+    GLint proj_loc = accum_shader.loc("proj_matrix");
+    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
+    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+    glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
+    glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
+    float one = 1.0f;
+    glClearBufferfv(GL_COLOR, 1, &one);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+
+    glEnable(GL_BLEND);
+    glBlendFunci(0, GL_ONE, GL_ONE);
+
+    glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+    for (const auto& snapshot : m_render_snapshots) {
+        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+                                      m_planes)) {
+            continue;
+        }
+
+        if (snapshot.normal_blend_vertices_count != 0) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindBuffer(GL_ARRAY_BUFFER, snapshot.normal_blend_vbo);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, s));
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                                  (void*)offsetof(Vertex, layer));
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+            glEnableVertexAttribArray(2);
+
+            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_blend_vertices_count);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+    }
+    auto& composite_shader = get_shader("composite");
+    glDisable(GL_BLEND);
+    composite_shader.use();
+    glUniform1i(composite_shader.loc("u_accumTex"), 0);
+    glUniform1i(composite_shader.loc("u_revealTex"), 1);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+    glBindVertexArray(m_vao[6]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_quad_vbo);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void*)(2 * sizeof(float)));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_accum_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_reveal_texture);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    DebugCollector::get().report(
+        "rendered_chunk", "Rendered Chunk: " + std::to_string(rendered_sum));
 }
 
 void Renderer::render_dev_panel() {

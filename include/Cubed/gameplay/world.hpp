@@ -19,8 +19,10 @@ struct ChunkRenderSnapshot {
     size_t normal_vertices_count;
     GLuint cross_vbo;
     size_t cross_vertices_count;
-    GLuint transparent_vbo;
-    size_t transparent_vertices_count;
+    GLuint normal_discard_vbo;
+    size_t normal_discard_vertices_count;
+    GLuint normal_blend_vbo;
+    size_t normal_blend_vertices_count;
     glm::vec3 center;
     glm::vec3 half_extents;
 };
@@ -90,9 +92,6 @@ public:
 
     Player& get_player(const std::string& name);
     void init_world();
-    bool is_aabb_in_frustum(const glm::vec3& center,
-                            const glm::vec3& half_extents);
-
     int get_block(const glm::ivec3& block_pos) const;
     bool is_solid(const glm::ivec3& block_pos) const;
     bool can_pass_block(const glm::ivec3& block_pos) const;
@@ -100,9 +99,6 @@ public:
     static ChunkPos chunk_pos(int world_x, int world_z);
 
     void need_gen();
-    void render(const glm::mat4& mvp_matrix,
-                const TextureManager& texture_manager,
-                const glm::vec3& camera_pos);
 
     void set_block(const glm::ivec3& pos, unsigned id);
     void update(float delta_time);
@@ -121,6 +117,8 @@ public:
 
     CaveCarver& cave_carcer();
     RiverWorm& river_worm();
+    std::vector<glm::vec4>& planes();
+    std::vector<ChunkRenderSnapshot>& render_snapshots();
 };
 
 } // namespace Cubed

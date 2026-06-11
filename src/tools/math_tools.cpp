@@ -45,6 +45,21 @@ float smootherstep(float edge0, float edge1, float x) {
     return x * x * x * (x * (6.0f * x - 15.0f) + 10.0f);
 }
 
+bool is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents,
+                        const std::vector<glm::vec4>& planes) {
+    for (const auto& plane : planes) {
+        // distance
+        float d = glm::dot(glm::vec3(plane), center) + plane.w;
+        float r = half_extents.x * std::abs(plane.x) +
+                  half_extents.y * std::abs(plane.y) +
+                  half_extents.z * std::abs(plane.z);
+        if (d + r < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace Math
 
 } // namespace Cubed

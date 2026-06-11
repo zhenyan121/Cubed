@@ -15,7 +15,7 @@ class World;
 class DevPanel;
 class Renderer {
 public:
-    constexpr static int NUM_VAO = 6;
+    constexpr static int NUM_VAO = 7;
 
     Renderer(const Camera& camera, World& world,
              const TextureManager& texture_manager, DevPanel& dev_panel);
@@ -40,6 +40,9 @@ private:
 
     float m_delta_time = 0.0f;
 
+    float m_width = 0.0f;
+    float m_height = 0.0f;
+
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat;
 
     GLuint m_mv_loc = 0;
@@ -55,6 +58,10 @@ private:
     GLuint m_screen_texture = 0;
     GLuint m_depth_render_buffer = 0;
 
+    GLuint m_oit_fbo = 0;
+    GLuint m_accum_texture = 0;
+    GLuint m_reveal_texture = 0;
+    GLuint m_oit_depth_render_buffer = 0;
     GLuint m_quad_vbo = 0;
 
     glm::mat4 m_ui_proj;

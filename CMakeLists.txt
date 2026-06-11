@@ -123,6 +123,7 @@ add_executable(${PROJECT_NAME}
     src/gameplay/river_worm.cpp
     src/gameplay/river_path.cpp
     src/block.cpp
+    src/gameplay/vertex_data.cpp
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

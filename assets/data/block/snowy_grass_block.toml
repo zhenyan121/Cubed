@@ -1,5 +1,7 @@
 id = 8
+is_blend = false
 is_cross_plane = false
+is_discard = false
 is_gas = false
 is_liquid = false
 is_passable = false

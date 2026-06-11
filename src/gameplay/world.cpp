@@ -1,12 +1,9 @@
 #include "Cubed/gameplay/world.hpp"
 
 #include "Cubed/config.hpp"
-#include "Cubed/debug_collector.hpp"
 #include "Cubed/gameplay/player.hpp"
-#include "Cubed/texture_manager.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
-#include "Cubed/tools/math_tools.hpp"
 
 namespace Cubed {
 
@@ -291,115 +288,6 @@ void World::init_chunks() {
     }
 }
 */
-void World::render(const glm::mat4& mvp_matrix,
-                   const TextureManager& texture_manager,
-                   const glm::vec3& camera_pos) {
-    Math::extract_frustum_planes(mvp_matrix, m_planes);
-    int rendered_sum = 0;
-    for (const auto& snapshot : m_render_snapshots) {
-
-        if (is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
-            glBindTexture(GL_TEXTURE_2D_ARRAY,
-                          texture_manager.get_texture_array());
-            glBindBuffer(GL_ARRAY_BUFFER, snapshot.normal_vbo);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                  (void*)0);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                  (void*)offsetof(Vertex, s));
-            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                                  (void*)offsetof(Vertex, layer));
-
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            glEnableVertexAttribArray(2);
-
-            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            rendered_sum++;
-        }
-    }
-    glDepthMask(GL_FALSE);
-
-    struct SortableSnapshot {
-        const ChunkRenderSnapshot* snapshot;
-        float distance;
-    };
-
-    std::vector<SortableSnapshot> cross_list;
-    std::vector<SortableSnapshot> transparent_list;
-
-    for (const auto& snapshot : m_render_snapshots) {
-
-        if (!is_aabb_in_frustum(snapshot.center, snapshot.half_extents)) {
-            continue;
-        }
-
-        float dist = glm::distance(camera_pos, snapshot.center);
-        glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
-        if (snapshot.cross_vertices_count != 0) {
-            glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
-            float dist2d = glm::distance(camera_pos_xz, center_xz);
-            if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
-                cross_list.push_back({&snapshot, dist});
-            }
-        }
-        if (snapshot.transparent_vertices_count != 0) {
-            transparent_list.push_back({&snapshot, dist});
-        }
-    }
-    std::sort(transparent_list.begin(), transparent_list.end(),
-              [](const SortableSnapshot& a, const SortableSnapshot& b) {
-                  return a.distance > b.distance;
-              });
-    std::sort(cross_list.begin(), cross_list.end(),
-              [](const SortableSnapshot& a, const SortableSnapshot& b) {
-                  return a.distance > b.distance;
-              });
-
-    for (const auto& item : cross_list) {
-        const auto& snapshot = *item.snapshot;
-        glBindTexture(GL_TEXTURE_2D_ARRAY,
-                      texture_manager.get_cross_plane_array());
-        glBindBuffer(GL_ARRAY_BUFFER, snapshot.cross_vbo);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)offsetof(Vertex, s));
-        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)offsetof(Vertex, layer));
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-
-        glDrawArrays(GL_TRIANGLES, 0, snapshot.cross_vertices_count);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-
-    for (const auto& item : transparent_list) {
-        const auto& snapshot = *item.snapshot;
-        glBindTexture(GL_TEXTURE_2D_ARRAY, texture_manager.get_texture_array());
-        glBindBuffer(GL_ARRAY_BUFFER, snapshot.transparent_vbo);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)offsetof(Vertex, s));
-        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              (void*)offsetof(Vertex, layer));
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-
-        glDrawArrays(GL_TRIANGLES, 0, snapshot.transparent_vertices_count);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-
-    glDepthMask(GL_TRUE);
-    DebugCollector::get().report(
-        "rendered_chunk", "Rendered Chunk: " + std::to_string(rendered_sum));
-}
 
 ChunkPos World::chunk_pos(int world_x, int world_z) {
     int chunk_x, chunk_z;
@@ -774,21 +662,6 @@ void World::need_gen() {
     m_gen_cv.notify_one();
 }
 
-bool World::is_aabb_in_frustum(const glm::vec3& center,
-                               const glm::vec3& half_extents) {
-    for (const auto& plane : m_planes) {
-        // distance
-        float d = glm::dot(glm::vec3(plane), center) + plane.w;
-        float r = half_extents.x * std::abs(plane.x) +
-                  half_extents.y * std::abs(plane.y) +
-                  half_extents.z * std::abs(plane.z);
-        if (d + r < 0) {
-            return false;
-        }
-    }
-    return true;
-}
-
 int World::get_block(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
     std::lock_guard lk(m_chunks_mutex);
@@ -966,8 +839,10 @@ void World::update(float delta_time) {
                 m_render_snapshots.push_back(
                     {chunk.get_normal_vbo(), chunk.get_normal_vertices_sum(),
                      chunk.get_cross_vbo(), chunk.get_cross_vertices_sum(),
-                     chunk.get_transparent_vbo(),
-                     chunk.get_transparent_vertices_sum(),
+                     chunk.get_normal_discard_vbo(),
+                     chunk.get_normal_discard_vertices_sum(),
+                     chunk.get_normal_blend_vbo(),
+                     chunk.get_normal_blend_vertices_sum(),
                      glm::vec3(static_cast<float>(pos.x * CHUNK_SIZE) +
                                    static_cast<float>(CHUNK_SIZE / 2),
                                static_cast<float>(WORLD_SIZE_Y / 2),
@@ -1024,4 +899,8 @@ void World::rendering_distance(int rendering_distance) {
 
 CaveCarver& World::cave_carcer() { return m_cave_carcer; }
 RiverWorm& World::river_worm() { return m_river_worm; }
+std::vector<glm::vec4>& World::planes() { return m_planes; }
+std::vector<ChunkRenderSnapshot>& World::render_snapshots() {
+    return m_render_snapshots;
+};
 } // namespace Cubed

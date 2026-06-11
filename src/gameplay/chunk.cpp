@@ -9,65 +9,36 @@
 namespace Cubed {
 
 Chunk::Chunk(World& world, ChunkPos chunk_pos)
-    : m_chunk_pos(chunk_pos), m_world(world) {}
-
-Chunk::~Chunk() {
-    if (m_normal_vbo != 0) {
-        m_world.push_delete_vbo(m_normal_vbo);
-    }
-    if (m_cross_plane_vbo != 0) {
-        m_world.push_delete_vbo(m_cross_plane_vbo);
-    }
-    if (m_transparent_normal_vbo != 0) {
-        m_world.push_delete_vbo(m_transparent_normal_vbo);
+    : m_chunk_pos(chunk_pos), m_world(world) {
+    for (int i = 0; i < VERTEX_DATA_SUM; i++) {
+        m_vertex_data.emplace_back(m_world);
     }
 }
+
+Chunk::~Chunk() {}
 
 Chunk::Chunk(Chunk&& other) noexcept
     : m_dirty(other.is_dirty()), m_need_upload(other.m_need_upload.load()),
       m_is_on_gen_vertex_data(other.m_is_on_gen_vertex_data.load()),
-      m_normal_vertices_sum(other.m_normal_vertices_sum.load()),
-      m_cross_vertices_sum(other.m_cross_vertices_sum.load()),
-      m_transparent_vertices_sum(other.m_transparent_vertices_sum.load()),
       m_biome(other.m_biome.load()), m_chunk_pos(std::move(other.m_chunk_pos)),
       m_world(other.m_world), m_heightmap(std::move(other.m_heightmap)),
-      m_blocks(std::move(other.m_blocks)), m_normal_vbo(other.m_normal_vbo),
-      m_cross_plane_vbo(other.m_cross_plane_vbo),
-      m_transparent_normal_vbo(other.m_transparent_normal_vbo),
-      m_normal_vertices(std::move(other.m_normal_vertices)),
-      m_cross_plane_vertices(std::move(other.m_cross_plane_vertices)),
-      m_transparent_normal_vertices(
-          std::move(other.m_transparent_normal_vertices)),
-      m_seed(other.m_seed), m_conditions(other.m_conditions) {
-    other.m_normal_vbo = 0;
-    other.m_cross_plane_vbo = 0;
-    other.m_transparent_normal_vbo = 0;
-}
+      m_blocks(std::move(other.m_blocks)),
+      m_vertex_data(std::move(other.m_vertex_data)), m_seed(other.m_seed),
+      m_conditions(other.m_conditions) {}
 
 Chunk& Chunk::operator=(Chunk&& other) noexcept {
     // Logger::info("other Chunk pos {} {} in Chunk& Chunk::operator=(Chunk&&
     // other) this {}", other.m_chunk_pos.x, other.m_chunk_pos.z,
     // static_cast<const void*>(&other));
-    m_normal_vbo = other.m_normal_vbo;
-    other.m_normal_vbo = 0;
-    m_cross_plane_vbo = other.m_cross_plane_vbo;
-    m_transparent_normal_vbo = other.m_transparent_normal_vbo;
-    other.m_transparent_normal_vbo = 0;
-    other.m_cross_plane_vbo = 0;
+
     m_chunk_pos = std::move(other.m_chunk_pos);
     m_heightmap = std::move(other.m_heightmap);
     m_blocks = std::move(other.m_blocks);
     m_dirty = other.is_dirty();
-    m_normal_vertices = std::move(other.m_normal_vertices);
-    m_cross_plane_vertices = std::move(other.m_cross_plane_vertices);
-    m_transparent_normal_vertices =
-        std::move(other.m_transparent_normal_vertices);
+    m_vertex_data = std::move(other.m_vertex_data);
     m_biome = other.m_biome.load();
     m_is_on_gen_vertex_data = other.m_is_on_gen_vertex_data.load();
     m_need_upload = other.m_need_upload.load();
-    m_normal_vertices_sum = other.m_normal_vertices_sum.load();
-    m_cross_vertices_sum = other.m_cross_vertices_sum.load();
-    m_transparent_vertices_sum = other.m_transparent_vertices_sum.load();
     m_seed = other.m_seed;
     m_conditions = other.m_conditions;
     return *this;
@@ -139,29 +110,41 @@ void Chunk::gen_vertex_data(
     }
     m_is_on_gen_vertex_data = true;
     std::lock_guard lk(m_vertexs_data_mutex);
-    gen_normal_vertices(neighbor_block);
-    gen_cross_plane_vertices();
+
+    for (auto& data : m_vertex_data) {
+        data.m_vertices.clear();
+    }
+
+    gen_vertices(neighbor_block);
+    for (auto& data : m_vertex_data) {
+        data.update_sum();
+    }
     m_need_upload = true;
     m_is_on_gen_vertex_data = false;
 }
 
-GLuint Chunk::get_normal_vbo() const { return m_normal_vbo; }
+GLuint Chunk::get_normal_vbo() const { return m_vertex_data[0].m_vbo; }
 
 size_t Chunk::get_normal_vertices_sum() const {
-    if (m_normal_vertices_sum == 0) {
+    if (m_vertex_data[0].m_sum == 0) {
         Logger::warn("m_normal_vertices_sum is 0");
     }
-    return m_normal_vertices_sum.load();
+    return m_vertex_data[0].m_sum.load();
 }
 
-GLuint Chunk::get_cross_vbo() const { return m_cross_plane_vbo; }
+GLuint Chunk::get_cross_vbo() const { return m_vertex_data[1].m_vbo; }
 size_t Chunk::get_cross_vertices_sum() const {
-    return m_cross_vertices_sum.load();
+    return m_vertex_data[1].m_sum.load();
 }
 
-GLuint Chunk::get_transparent_vbo() const { return m_transparent_normal_vbo; }
-size_t Chunk::get_transparent_vertices_sum() const {
-    return m_transparent_vertices_sum.load();
+GLuint Chunk::get_normal_discard_vbo() const { return m_vertex_data[2].m_vbo; }
+size_t Chunk::get_normal_discard_vertices_sum() const {
+    return m_vertex_data[2].m_sum.load();
+}
+
+GLuint Chunk::get_normal_blend_vbo() const { return m_vertex_data[3].m_vbo; }
+size_t Chunk::get_normal_blend_vertices_sum() const {
+    return m_vertex_data[3].m_sum.load();
 }
 
 void Chunk::gen_phase_one() {
@@ -235,33 +218,12 @@ void Chunk::upload_to_gpu() {
 
     ASSERT(is_need_upload());
 
-    if (m_normal_vbo == 0) {
-        glGenBuffers(1, &m_normal_vbo);
+    std::lock_guard lk(m_vertexs_data_mutex);
+
+    for (auto& data : m_vertex_data) {
+        data.upload();
     }
 
-    std::lock_guard lk(m_vertexs_data_mutex);
-    glBindBuffer(GL_ARRAY_BUFFER, m_normal_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_normal_vertices.size() * sizeof(Vertex),
-                 m_normal_vertices.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    if (m_cross_plane_vertices.size() != 0) {
-        if (m_cross_plane_vbo == 0) {
-            glGenBuffers(1, &m_cross_plane_vbo);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, m_cross_plane_vbo);
-        glBufferData(GL_ARRAY_BUFFER,
-                     m_cross_plane_vertices.size() * sizeof(Vertex),
-                     m_cross_plane_vertices.data(), GL_DYNAMIC_DRAW);
-    }
-    if (m_transparent_normal_vertices.size() != 0) {
-        if (m_transparent_normal_vbo == 0) {
-            glGenBuffers(1, &m_transparent_normal_vbo);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, m_transparent_normal_vbo);
-        glBufferData(GL_ARRAY_BUFFER,
-                     m_transparent_normal_vertices.size() * sizeof(Vertex),
-                     m_transparent_normal_vertices.data(), GL_DYNAMIC_DRAW);
-    }
     // after fininshed it, can use
     clear_dirty();
     m_need_upload = false;
@@ -300,10 +262,8 @@ unsigned Chunk::seed() const {
 
 BiomeConditions& Chunk::conditions() { return m_conditions; }
 
-void Chunk::gen_normal_vertices(
+void Chunk::gen_vertices(
     const std::array<const std::vector<BlockType>*, 4>& neighbor_block) {
-    m_normal_vertices.clear();
-    m_transparent_normal_vertices.clear();
     static const glm::ivec3 DIR[6] = {{0, 0, 1},  {1, 0, 0}, {0, 0, -1},
                                       {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
 
@@ -399,6 +359,10 @@ void Chunk::gen_normal_vertices(
                     if (neighbor_culled) {
                         continue;
                     }
+                    if (BlockManager::is_cross_plane(cur_id)) {
+                        gen_cross_plane_vertices(world_x, world_y, world_z,
+                                                 cur_id);
+                    }
                     for (int i = 0; i < 6; i++) {
                         Vertex vex = {
                             VERTICES_POS[face][i][0] + (float)world_x * 1.0f,
@@ -410,55 +374,57 @@ void Chunk::gen_normal_vertices(
 
                         };
                         if (BlockManager::is_transparent(cur_id)) {
-                            m_transparent_normal_vertices.emplace_back(vex);
+                            if (BlockManager::is_discard(cur_id) &&
+                                BlockManager::is_blend(cur_id)) {
+                                Logger::warn(
+                                    "Block id {} is both discard and blend is "
+                                    "must only one can true !!!",
+                                    cur_id);
+                            }
+                            if (BlockManager::is_discard(cur_id)) {
+                                m_vertex_data[2].m_vertices.emplace_back(vex);
+                            } else if (BlockManager::is_blend(cur_id)) {
+                                m_vertex_data[3].m_vertices.emplace_back(vex);
+                            } else {
+                                Logger::warn("Id {} is transparent but not "
+                                             "discard or blend",
+                                             cur_id);
+                                m_vertex_data[3].m_vertices.emplace_back(vex);
+                            }
+
                         } else {
-                            m_normal_vertices.emplace_back(vex);
+                            m_vertex_data[0].m_vertices.emplace_back(vex);
                         }
                     }
                 }
             }
         }
     }
-    m_normal_vertices_sum = m_normal_vertices.size();
-    m_transparent_vertices_sum = m_transparent_normal_vertices.size();
 }
-void Chunk::gen_cross_plane_vertices() {
+void Chunk::gen_cross_plane_vertices(int world_x, int world_y, int world_z,
+                                     BlockType id) {
 
-    m_cross_plane_vertices.clear();
+    if (!BlockManager::is_cross_plane(id)) {
+        Logger::warn("Block {} {} {} id {} is not cross plane", world_x,
+                     world_y, world_z, id);
+        return;
+    }
+    for (int face = 0; face < 2; face++) {
+        for (int i = 0; i < 6; i++) {
+            Vertex vex = {
+                CROSS_VERTICES_POS[face][i][0] + (float)world_x * 1.0f,
+                CROSS_VERTICES_POS[face][i][1] + (float)world_y * 1.0f,
+                CROSS_VERTICES_POS[face][i][2] + (float)world_z * 1.0f,
+                CROSS_TEX_COORDS[face][i][0],
+                CROSS_TEX_COORDS[face][i][1],
+                static_cast<float>(BlockManager::cross_plane_index(id))
 
-    for (int x = 0; x < SIZE_X; x++) {
-        for (int y = 0; y < SIZE_Y; y++) {
-            for (int z = 0; z < SIZE_Z; z++) {
-                int world_x = x + m_chunk_pos.x * CHUNK_SIZE;
-                int world_z = z + m_chunk_pos.z * CHUNK_SIZE;
-                int world_y = y;
-                int id = m_blocks[index(x, y, z)];
-
-                if (!BlockManager::is_cross_plane(id)) {
-                    continue;
-                }
-                for (int face = 0; face < 2; face++) {
-                    for (int i = 0; i < 6; i++) {
-                        Vertex vex = {CROSS_VERTICES_POS[face][i][0] +
-                                          (float)world_x * 1.0f,
-                                      CROSS_VERTICES_POS[face][i][1] +
-                                          (float)world_y * 1.0f,
-                                      CROSS_VERTICES_POS[face][i][2] +
-                                          (float)world_z * 1.0f,
-                                      CROSS_TEX_COORDS[face][i][0],
-                                      CROSS_TEX_COORDS[face][i][1],
-                                      static_cast<float>(
-                                          BlockManager::cross_plane_index(id))
-
-                        };
-                        m_cross_plane_vertices.emplace_back(vex);
-                    }
-                }
-            }
+            };
+            m_vertex_data[1].m_vertices.emplace_back(vex);
         }
     }
-    m_cross_vertices_sum = m_cross_plane_vertices.size();
-    // Logger::info("Cross Sum {}", m_cross_vertices_sum.load());
 }
+
+// Logger::info("Cross Sum {}", m_cross_vertices_sum.load());
 
 } // namespace Cubed
