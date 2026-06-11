@@ -8,7 +8,7 @@ layout (binding = 0) uniform sampler2DArray samp;
 
 void main(void) {
     color = texture(samp, vec3(tc, tex_layer));
-    if (color.a < 0.9) {
+    if (color.a < 0.8) {
         discard;
     }
     //color = varyingColor;
