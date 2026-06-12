@@ -3,6 +3,7 @@
 #include "Cubed/gameplay/builders/desert_builder.hpp"
 #include "Cubed/gameplay/builders/forest_builder.hpp"
 #include "Cubed/gameplay/builders/mountain_builder.hpp"
+#include "Cubed/gameplay/builders/ocean_builder.hpp"
 #include "Cubed/gameplay/builders/plain_builder.hpp"
 #include "Cubed/gameplay/builders/river_builder.hpp"
 #include "Cubed/gameplay/builders/snowy_plain_builder.hpp"
@@ -17,7 +18,7 @@ namespace Cubed {
 
 using enum BiomeType;
 
-constexpr int BLEND_RADIUS = 12;
+constexpr int BLEND_RADIUS = 8;
 ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ASSERT_MSG(is_init, "ChunksGenerator is not init");
     ChunkPos pos = m_chunk.get_chunk_pos();
@@ -166,18 +167,43 @@ void ChunkGenerator::generate_heightmap() {
             amplitude = std::lerp(10, 40, t);
             */
             float t;
-            if (mountainous >= 0.7f) {
-                t = Math::smootherstep(0.7f, 0.75, mountainous);
-                base_y = std::lerp(70, 88, t);
-                amplitude = std::lerp(28, 48, t);
-            } else if (mountainous >= 0.65f) {
-                t = Math::smootherstep(0.65f, 0.7f, mountainous);
-                base_y = std::lerp(66, 70, t);
+            if (mountainous >= 0.95f) {
+                t = Math::smootherstep(0.95f, 1.0f, mountainous);
+                base_y = std::lerp(130, 140, t);
+                amplitude = std::lerp(38, 48, t);
+            } else if (mountainous >= 0.85f) {
+                t = Math::smootherstep(0.85f, 0.95f, mountainous);
+                base_y = std::lerp(100, 130, t);
+                amplitude = std::lerp(28, 38, t);
+            } else if (mountainous >= 0.8) {
+                t = Math::smootherstep(0.8f, 0.85f, mountainous);
+                base_y = std::lerp(85, 100, t);
                 amplitude = std::lerp(18, 28, t);
+            } else if (mountainous >= 0.75f) {
+                t = Math::smootherstep(0.75f, 0.8f, mountainous);
+                base_y = std::lerp(70, 85, t);
+                amplitude = std::lerp(6, 18, t);
+            } else if (mountainous >= 0.7) {
+                t = Math::smootherstep(0.7f, 0.75f, mountainous);
+                base_y = std::lerp(66, 70, t);
+                amplitude = std::lerp(6, 6, t);
+
+            } else if (mountainous >= 0.45f) {
+                t = Math::smootherstep(0.45f, 0.7f, mountainous);
+                base_y = std::lerp(64, 66, t);
+                amplitude = std::lerp(6, 6, t);
+            } else if (mountainous >= 0.3f) {
+                t = Math::smootherstep(0.3f, 0.45f, mountainous);
+                base_y = std::lerp(60, 64, t);
+                amplitude = std::lerp(6, 6, t);
+            } else if (mountainous >= 0.25f) {
+                t = Math::smootherstep(0.25f, 0.3f, mountainous);
+                base_y = std::lerp(44, 60, t);
+                amplitude = std::lerp(6, 6, t);
             } else {
-                t = Math::smootherstep(0.55, 0.65, mountainous);
-                base_y = std::lerp(58, 66, t);
-                amplitude = std::lerp(8, 18, t);
+                t = Math::smootherstep(0.0f, 0.25f, mountainous);
+                base_y = std::lerp(35, 44, t);
+                amplitude = std::lerp(3, 6, t);
             }
             heightmap[x][z] =
                 base_y + fbm_height(world_x, world_z, octaves, lacunarity, gain,
@@ -451,9 +477,11 @@ void ChunkGenerator::blend_surface_blocks_borders(
         for (int y = WORLD_HEIGHT - 1; y >= 0; --y) {
             int idx = Chunk::index(nx, y,
                                    nz); // linear index: y * area + z * size + x
-            if (idx >= 0 && idx < static_cast<int>(blocks.size()) &&
-                blocks[idx] != 0) {
-                return blocks[idx];
+            if (idx >= 0 && idx < static_cast<int>(blocks.size())) {
+                BlockType neighbor_type = blocks[idx];
+                if (BlockManager::is_transitional(neighbor_type)) {
+                    return neighbor_type;
+                }
             }
         }
         return 0; // fallback, should not happen for valid chunks
@@ -473,8 +501,8 @@ void ChunkGenerator::blend_surface_blocks_borders(
 
             // Weight map: type -> total weight
             std::unordered_map<BlockType, float> weights;
-            weights[type_self] = 1.0f; // self weight
-
+            float self_weight = 1.0f;
+            weights[type_self] = self_weight;
             // --- Right neighbor (index 0) ---
             if (neighbor_block[0] && x >= CHUNK_SIZE - BLEND_RADIUS) {
                 int dist = (CHUNK_SIZE - 1) - x;
@@ -523,47 +551,50 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 }
             }
 
+            if (weights.empty()) {
+                continue;
+            }
             // Find type with maximum total weight
             BlockType final_type = type_self;
-            float max_weight = weights[type_self];
+            /*float max_weight = weights[type_self];
             for (const auto& [type, w] : weights) {
                 if (w > max_weight) {
                     max_weight = w;
                     final_type = type;
                 }
+            }*/
+
+            float sum = 0.0f;
+            for (auto& kv : weights) {
+                sum += kv.second;
+            }
+            float rnd = m_random.random_float(0.0f, 1.0f);
+            float accum = 0.0f;
+            for (auto [t, w] : weights) {
+                accum += w / sum;
+                if (rnd < accum) {
+                    final_type = t;
+                    break;
+                }
             }
 
-            if (final_type == 0) {
-                return;
+            if (!BlockManager::is_transitional(final_type)) {
+                continue;
             }
-
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
-                if (final_type == 7 && top_y > SEA_LEVEL) {
-                    if (type_self == 7) {
-                        m_blocks[Chunk::index(x, top_y, z)] = 0;
-                    } else {
-                        m_blocks[Chunk::index(x, top_y, z)] = type_self;
-                    }
-
-                } else {
-                    m_blocks[Chunk::index(x, top_y, z)] = final_type;
-                }
-
+                BlockType new_surface = final_type;
+                m_blocks[Chunk::index(x, top_y, z)] = new_surface;
                 // bottom block
                 unsigned fill_type = 2;
-                if (final_type == 1) {
+                if (final_type == 1 || final_type == 8) {
                     fill_type = 2;
-                } else if (final_type == 4) {
-                    fill_type = 4;
+                } else {
+                    fill_type = final_type;
                 }
-                for (int y = top_y - 5; y < top_y; y++) {
-                    if (fill_type == 7 && y > SEA_LEVEL) {
-                        m_blocks[Chunk::index(x, y, z)] = 0;
-                    } else {
-                        m_blocks[Chunk::index(x, y, z)] = fill_type;
-                    }
+                for (int y = std::max(0, top_y - 5); y < top_y; y++) {
+                    m_blocks[Chunk::index(x, y, z)] = fill_type;
                 }
             }
         }
@@ -600,11 +631,16 @@ void ChunkGenerator::make_biome_builder() {
     case SNOWY_PLAIN:
         m_biome_builder = std::make_unique<SnowyPlainBuilder>(*this);
         break;
+    case OCEAN:
+        m_biome_builder = std::make_unique<OceanBuilder>(*this);
+        break;
     case NONE:
         m_biome_builder = nullptr;
         break;
     }
 }
+
+void ChunkGenerator::ocean_build() { m_biome_builder->ocean_water_build(); }
 
 void ChunkGenerator::generate_cave() {
     auto& cave_carver = m_chunk.world().cave_carcer();
@@ -617,9 +653,14 @@ void ChunkGenerator::generate_cave() {
     const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
     const int CHUNK_MIN_Y = 0;
     const int CHUNK_MAX_Y = SIZE_Y - 1;
+
     for (auto& [id, path] : paths) {
         for (const auto& point : path.points()) {
-
+            if ((m_chunk.biome() == BiomeType::RIVER) ||
+                (m_chunk.biome() == BiomeType::OCEAN)) {
+                path.clear_chunk(chunk_pos);
+                continue;
+            }
             const glm::vec3& center = point.pos;
             float rad_xz = point.rad_xz;
             float rad_y = point.rad_y;
@@ -651,6 +692,13 @@ void ChunkGenerator::generate_cave() {
                             if (y == 0) {
                                 continue;
                             }
+                            if (blocks[Chunk::index(x, y, z)] == 7) {
+                                continue;
+                            }
+                            if (y < WORLD_SIZE_Y - 1 &&
+                                blocks[Chunk::index(x, y + 1, z)] == 7) {
+                                continue;
+                            }
                             blocks[Chunk::index(x, y, z)] = 0;
                         }
                     }
@@ -678,7 +726,8 @@ void ChunkGenerator::generate_river() {
 
     for (auto& [id, path] : paths) {
         for (const auto& point : path.points()) {
-            if (m_chunk.biome() == BiomeType::DESERT) {
+            if ((m_chunk.biome() == BiomeType::DESERT) ||
+                (m_chunk.biome() == BiomeType::OCEAN)) {
                 path.clear_chunk(chunk_pos);
                 continue;
             }

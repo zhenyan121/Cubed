@@ -15,6 +15,7 @@ enum class BiomeType {
     MOUNTAIN,
     RIVER,
     SNOWY_PLAIN,
+    OCEAN,
     NONE
 };
 

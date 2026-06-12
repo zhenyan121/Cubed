@@ -7,3 +7,4 @@ is_cross_plane = false
 is_transparent = false
 is_discard = false
 is_blend = false
+is_transitional = false

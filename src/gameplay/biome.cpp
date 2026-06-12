@@ -62,6 +62,10 @@ std::string get_biome_str(BiomeType biome) {
         break;
     case SNOWY_PLAIN:
         str = "Snowy Plain";
+        break;
+    case OCEAN:
+        str = "Ocean";
+        break;
     case NONE:
         str = "Unknown";
         break;
@@ -189,6 +193,9 @@ int get_interpolated_height(float world_x, float world_z, float temp,
 BiomeType determine_biome(const BiomeConditions& conditions) {
     if (conditions.mountainous > 0.75) {
         return MOUNTAIN;
+    }
+    if (conditions.mountainous < 0.25) {
+        return OCEAN;
     }
     auto temp = conditions.temp;
     auto humid = conditions.humid;

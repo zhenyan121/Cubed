@@ -1,7 +1,6 @@
 #include "Cubed/gameplay/tree.hpp"
 
 #include "Cubed/gameplay/chunk.hpp"
-#include "Cubed/tools/log.hpp"
 
 #include <array>
 
@@ -32,7 +31,6 @@ bool build_tree(Chunk& chunk, const glm::ivec3& pos) {
     auto& block = chunk.get_chunk_blocks();
 
     if (block[Chunk::index(pos)] != 1) {
-        Logger::info("Root is not Grass Block");
         return false;
     }
     for (const auto& d : TREE) {

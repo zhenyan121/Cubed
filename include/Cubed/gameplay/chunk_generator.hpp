@@ -45,6 +45,7 @@ public:
     Chunk& chunk();
     Random& random();
     const std::array<BiomeType, 8>& neighbor_biome() const;
+    void ocean_build();
     void generate_cave();
     void generate_river();
 

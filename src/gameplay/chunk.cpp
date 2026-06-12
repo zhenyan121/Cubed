@@ -199,9 +199,8 @@ void Chunk::gen_phase_six(
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
+    // This must be fully completed before any other operations can proceed!
     m_generator->blend_surface_blocks_borders(neighbor_block);
-    m_generator->generate_cave();
-    m_generator->generate_river();
 }
 
 void Chunk::gen_phase_seven() {
@@ -209,6 +208,10 @@ void Chunk::gen_phase_seven() {
         Logger::error("ChunkGenerator is Nullptr");
         return;
     }
+    m_generator->ocean_build();
+    m_generator->generate_river();
+    m_generator->generate_cave();
+
     m_generator->generate_vegetation();
     mark_dirty();
     m_generator = nullptr;

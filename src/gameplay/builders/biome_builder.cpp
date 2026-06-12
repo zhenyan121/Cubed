@@ -39,4 +39,23 @@ void BiomeBuilder::place_grass() {
         }
     }
 }
+
+void BiomeBuilder::ocean_water_build() {
+    ChunkGenerator& chunk_generator = get_chunk_generator();
+    Chunk& chunk = chunk_generator.chunk();
+    auto& blocks = chunk.blocks();
+    const auto& heightmap = chunk.get_heightmap();
+
+    for (int x = 0; x < SIZE_X; ++x) {
+        for (int z = 0; z < SIZE_Z; ++z) {
+            int height = heightmap[x][z];
+            if (height <= SEA_LEVEL) {
+                for (int y = height; y <= SEA_LEVEL; y++) {
+                    blocks[Chunk::index(x, y, z)] = 7;
+                }
+            }
+        }
+    }
+}
+
 } // namespace Cubed

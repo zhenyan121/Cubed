@@ -70,8 +70,10 @@ private:
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
-    void compute_required_chunks(ChunkPosSet& required_chunks,
-                                 ChunkHashMap& temp_neighbor);
+    void
+    compute_required_chunks(ChunkPosSet& required_chunks,
+                            ChunkHashMap& temp_neighbor,
+                            std::vector<ChunkPos>& need_gen_temp_chunks_pos);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
     void

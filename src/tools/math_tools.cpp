@@ -59,7 +59,12 @@ bool is_aabb_in_frustum(const glm::vec3& center, const glm::vec3& half_extents,
     }
     return true;
 }
-
+float deterministic_random(int x, int z, uint64_t seed) {
+    uint64_t h = seed;
+    h = h * 6364136223846793005ULL + (uint64_t)x;
+    h = h * 6364136223846793005ULL + (uint64_t)z;
+    return (float)(h >> 40) / (float)(1 << 24);
+}
 } // namespace Math
 
 } // namespace Cubed

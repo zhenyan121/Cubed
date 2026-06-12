@@ -320,7 +320,9 @@ void World::gen_chunks_internal() {
     m_chunk_gen_finished = false;
     ChunkPosSet required_chunks;
     ChunkHashMap temp_neighbor;
-    compute_required_chunks(required_chunks, temp_neighbor);
+    std::vector<ChunkPos> need_gen_temp_chunks_pos;
+    compute_required_chunks(required_chunks, temp_neighbor,
+                            need_gen_temp_chunks_pos);
 
     ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
 
@@ -339,10 +341,13 @@ void World::gen_chunks_internal() {
     m_chunk_gen_fraction = 0.1f;
 
     ChunkUpdateList new_chunks;
+    ChunkHashMap new_temp_chunks;
     for (auto& pos : need_gen_chunks_pos) {
         new_chunks.push_back({pos, Chunk(*this, pos)});
     }
-
+    for (auto& pos : need_gen_temp_chunks_pos) {
+        new_temp_chunks.emplace(pos, Chunk(*this, pos));
+    }
     ConstChunkMap new_chunks_neighbor;
     //  affected neighbor
     ChunkPtrUpdateList affected_neighbor;
@@ -357,13 +362,15 @@ void World::gen_chunks_internal() {
         m_cave_carcer.try_to_add_path(pos, chunk.seed());
         m_river_worm.try_to_add_path(pos, chunk.seed());
     }
+    for (auto& [pos, chunk] : new_temp_chunks) {
+        chunk.gen_phase_one();
+    }
     // precompute path to ensure the continuity of the path
     for (auto& [pos, chunk] : temp_neighbor) {
         chunk.gen_phase_one();
         m_cave_carcer.try_to_add_path(pos, chunk.seed());
         m_river_worm.try_to_add_path(pos, chunk.seed());
     }
-
     m_chunk_gen_fraction = 0.2f;
 
     /*
@@ -402,6 +409,9 @@ void World::gen_chunks_internal() {
 
     for (auto& [pos, chunks] : new_chunks) {
         chunks.gen_phase_three();
+    }
+    for (auto& [pos, chunk] : new_temp_chunks) {
+        chunk.gen_phase_three();
     }
     // for (auto& [pos, chunks] : temp_neighbor) {
     //     chunks.gen_phase_three();
@@ -457,7 +467,9 @@ void World::gen_chunks_internal() {
     for (auto& [pos, chunks] : new_chunks) {
         chunks.gen_phase_five();
     }
-
+    for (auto& [pos, chunk] : new_temp_chunks) {
+        chunk.gen_phase_five();
+    }
     /*
     for (auto& [pos, chunks] : temp_neighbor) {
         chunks.gen_phase_five();
@@ -472,7 +484,14 @@ void World::gen_chunks_internal() {
                 auto neighbor_pos = pos + CHUNK_DIR[i];
                 auto it = new_chunks_neighbor.find(neighbor_pos);
                 if (it == new_chunks_neighbor.end()) {
-                    neighbor_blocks_data[i] = std::nullopt;
+                    auto it = new_temp_chunks.find(neighbor_pos);
+                    if (it == new_temp_chunks.end()) {
+                        neighbor_blocks_data[i] = std::nullopt;
+                        Logger::warn(
+                            "Can't find neighbor for chunk surface blend");
+                        continue;
+                    }
+                    neighbor_blocks_data[i] = it->second.get_chunk_blocks();
                     continue;
                 }
                 neighbor_blocks_data[i] = it->second->get_chunk_blocks();
@@ -539,8 +558,9 @@ void World::sync_player_pos(glm::vec3& player_pos) {
     player_pos = m_gen_player_pos;
 }
 
-void World::compute_required_chunks(ChunkPosSet& required_chunks,
-                                    ChunkHashMap& temp_neighbor) {
+void World::compute_required_chunks(
+    ChunkPosSet& required_chunks, ChunkHashMap& temp_neighbor,
+    std::vector<ChunkPos>& need_gen_temp_chunks_pos) {
     glm::vec3 player_pos;
     sync_player_pos(player_pos);
 
@@ -553,6 +573,15 @@ void World::compute_required_chunks(ChunkPosSet& required_chunks,
     for (int u = chunk_x - half; u <= chunk_x + half; ++u) {
         for (int v = chunk_z - half; v <= chunk_z + half; ++v) {
             required_chunks.emplace(u, v);
+        }
+    }
+    int new_half = half + 1;
+    for (int u = chunk_x - new_half; u <= chunk_x + new_half; ++u) {
+        for (int v = chunk_z - new_half; v <= chunk_z + new_half; ++v) {
+            auto it = required_chunks.find({u, v});
+            if (it == required_chunks.end()) {
+                need_gen_temp_chunks_pos.push_back({u, v});
+            }
         }
     }
     int max_path_len = std::max(CavePath::step_max(), RiverPath::step_max());
