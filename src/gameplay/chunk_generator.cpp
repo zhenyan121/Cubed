@@ -18,7 +18,7 @@ namespace Cubed {
 
 using enum BiomeType;
 
-constexpr int BLEND_RADIUS = 12;
+constexpr int BLEND_RADIUS = 8;
 ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ASSERT_MSG(is_init, "ChunksGenerator is not init");
     ChunkPos pos = m_chunk.get_chunk_pos();
@@ -477,9 +477,11 @@ void ChunkGenerator::blend_surface_blocks_borders(
         for (int y = WORLD_HEIGHT - 1; y >= 0; --y) {
             int idx = Chunk::index(nx, y,
                                    nz); // linear index: y * area + z * size + x
-            if (idx >= 0 && idx < static_cast<int>(blocks.size()) &&
-                blocks[idx] != 0) {
-                return blocks[idx];
+            if (idx >= 0 && idx < static_cast<int>(blocks.size())) {
+                BlockType neighbor_type = blocks[idx];
+                if (BlockManager::is_transitional(neighbor_type)) {
+                    return neighbor_type;
+                }
             }
         }
         return 0; // fallback, should not happen for valid chunks
@@ -499,8 +501,8 @@ void ChunkGenerator::blend_surface_blocks_borders(
 
             // Weight map: type -> total weight
             std::unordered_map<BlockType, float> weights;
-            weights[type_self] = 1.0f; // self weight
-
+            float self_weight = 1.0f;
+            weights[type_self] = self_weight;
             // --- Right neighbor (index 0) ---
             if (neighbor_block[0] && x >= CHUNK_SIZE - BLEND_RADIUS) {
                 int dist = (CHUNK_SIZE - 1) - x;
@@ -549,34 +551,41 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 }
             }
 
+            if (weights.empty()) {
+                continue;
+            }
             // Find type with maximum total weight
             BlockType final_type = type_self;
-            float max_weight = weights[type_self];
+            /*float max_weight = weights[type_self];
             for (const auto& [type, w] : weights) {
                 if (w > max_weight) {
                     max_weight = w;
                     final_type = type;
                 }
+            }*/
+
+            float sum = 0.0f;
+            for (auto& kv : weights) {
+                sum += kv.second;
+            }
+            float rnd = m_random.random_float(0.0f, 1.0f);
+            float accum = 0.0f;
+            for (auto [t, w] : weights) {
+                accum += w / sum;
+                if (rnd < accum) {
+                    final_type = t;
+                    break;
+                }
             }
 
-            if (final_type == 0) {
-                return;
+            if (!BlockManager::is_transitional(final_type)) {
+                continue;
             }
-
             // Update the top block if the type changed
             if (final_type != type_self) {
                 // top block
-                if (final_type == 7 && top_y > SEA_LEVEL) {
-                    if (type_self == 7) {
-                        m_blocks[Chunk::index(x, top_y, z)] = 0;
-                    } else {
-                        m_blocks[Chunk::index(x, top_y, z)] = type_self;
-                    }
-
-                } else {
-                    m_blocks[Chunk::index(x, top_y, z)] = final_type;
-                }
-
+                BlockType new_surface = final_type;
+                m_blocks[Chunk::index(x, top_y, z)] = new_surface;
                 // bottom block
                 unsigned fill_type = 2;
                 if (final_type == 1 || final_type == 8) {
@@ -584,7 +593,7 @@ void ChunkGenerator::blend_surface_blocks_borders(
                 } else {
                     fill_type = final_type;
                 }
-                for (int y = top_y - 5; y < top_y; y++) {
+                for (int y = std::max(0, top_y - 5); y < top_y; y++) {
                     if (fill_type == 7 && y > SEA_LEVEL) {
                         m_blocks[Chunk::index(x, y, z)] = 0;
                     } else {

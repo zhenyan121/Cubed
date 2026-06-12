@@ -50,13 +50,14 @@ struct BlockData {
 
     bool is_discard = false;
     bool is_blend = false;
-
+    bool is_transitional = false;
     BlockData(BlockType b_id, std::string_view b_name, bool liquid,
               bool passable, bool cross_plane, bool transparent, bool gas,
-              bool discard, bool blend)
+              bool discard, bool blend, bool transitional)
         : name(b_name), id(b_id), is_liquid(liquid), is_gas(gas),
           is_passable(passable), is_cross_plane(cross_plane),
-          is_transparent(transparent), is_discard(discard), is_blend(blend) {}
+          is_transparent(transparent), is_discard(discard), is_blend(blend),
+          is_transitional(transitional) {}
 };
 
 class BlockManager {
@@ -77,7 +78,7 @@ public:
 
     static bool is_discard(BlockType id);
     static bool is_blend(BlockType id);
-
+    static bool is_transitional(BlockType id);
     static BlockType cross_plane_index(BlockType id);
 
 private:

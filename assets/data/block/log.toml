@@ -5,5 +5,6 @@ is_discard = false
 is_gas = false
 is_liquid = false
 is_passable = false
+is_transitional = false
 is_transparent = false
 name = 'log'
