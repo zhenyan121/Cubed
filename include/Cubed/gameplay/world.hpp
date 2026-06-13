@@ -31,8 +31,10 @@ class Player;
 class TextureManager;
 class World {
 private:
+    using OptionalBlockVectorArray =
+        std::array<std::optional<std::vector<BlockType>>, 4>;
     using ChunkPtrUpdateList = std::vector<std::pair<ChunkPos, Chunk*>>;
-    using ChunkUpdateList = std::vector<std::pair<ChunkPos, Chunk>>;
+    using ChunkPairVector = std::vector<std::pair<ChunkPos, Chunk>>;
     using ConstChunkMap =
         std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
@@ -72,14 +74,14 @@ private:
     void sync_player_pos(glm::vec3& player_pos);
     void
     compute_required_chunks(ChunkPosSet& required_chunks,
-                            ChunkHashMap& temp_neighbor,
+                            ChunkPairVector& temp_neighbor,
                             std::vector<ChunkPos>& need_gen_temp_chunks_pos);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
                                           ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkUpdateList& new_chunks);
+                                          const ChunkPairVector& new_chunks);
     void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
                                                        ConstChunkMap&);
 

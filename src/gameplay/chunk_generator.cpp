@@ -642,69 +642,102 @@ void ChunkGenerator::make_biome_builder() {
 
 void ChunkGenerator::ocean_build() { m_biome_builder->ocean_water_build(); }
 
-void ChunkGenerator::generate_cave() {
-    auto& cave_carver = m_chunk.world().cave_carcer();
-    auto& paths = cave_carver.paths();
-    const auto& chunk_pos = m_chunk.chunk_pos();
-    auto& blocks = m_chunk.blocks();
+void ChunkGenerator::carve_worm(
+    const std::vector<PathPoint>& points, const ChunkPos& chunk_pos,
+    std::function<void(int /*x*/, int /*y*/, int /*z*/)> on_hit) {
     const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
     const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
     const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
     const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
     const int CHUNK_MIN_Y = 0;
     const int CHUNK_MAX_Y = SIZE_Y - 1;
+    for (const auto& point : points) {
 
-    for (auto& [id, path] : paths) {
-        for (const auto& point : path.points()) {
-            if ((m_chunk.biome() == BiomeType::RIVER) ||
-                (m_chunk.biome() == BiomeType::OCEAN)) {
-                path.clear_chunk(chunk_pos);
+        const glm::vec3& center = point.pos;
+        float rad_xz = point.rad_xz;
+        float rad_y = point.rad_y;
+
+        if (center.x + rad_xz < CHUNK_MIN_X ||
+            center.x - rad_xz > CHUNK_MAX_X ||
+            center.z + rad_xz < CHUNK_MIN_Z ||
+            center.z - rad_xz > CHUNK_MAX_Z || center.y + rad_y < CHUNK_MIN_Y ||
+            center.y - rad_y > CHUNK_MAX_Y) {
+            continue;
+        }
+
+        int min_x = static_cast<int>(std::floor(center.x - rad_xz));
+        int max_x = static_cast<int>(std::floor(center.x + rad_xz));
+        int min_z = static_cast<int>(std::floor(center.z - rad_xz));
+        int max_z = static_cast<int>(std::floor(center.z + rad_xz));
+        int min_y = static_cast<int>(std::floor(center.y - rad_y));
+        int max_y = static_cast<int>(std::floor(center.y + rad_y));
+
+        min_x = std::max(min_x, CHUNK_MIN_X);
+        max_x = std::min(max_x, CHUNK_MAX_X);
+        min_z = std::max(min_z, CHUNK_MIN_Z);
+        max_z = std::min(max_z, CHUNK_MAX_Z);
+        min_y = std::max(min_y, CHUNK_MIN_Y);
+        max_y = std::min(max_y, CHUNK_MAX_Y);
+
+        glm::vec3 right_raw =
+            glm::cross(point.tangent, glm::vec3(0.0f, 1.0f, 0.0f));
+        if (glm::dot(right_raw, right_raw) < 1e-6f)
+            right_raw = glm::cross(point.tangent, glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::vec3 right = glm::normalize(right_raw);
+        glm::vec3 up = glm::normalize(glm::cross(point.tangent, right));
+
+        float inv_a2 = 1.0f / (point.rad_xz * point.rad_xz);
+        float inv_b2 = 1.0f / (point.rad_y * point.rad_y);
+
+        for (int wy = min_y; wy <= max_y; ++wy) {
+            if (wy == 0)
                 continue;
-            }
-            const glm::vec3& center = point.pos;
-            float rad_xz = point.rad_xz;
-            float rad_y = point.rad_y;
+            float dy = static_cast<float>(wy) - point.pos.y;
 
-            int min_x = static_cast<int>(std::floor(center.x - rad_xz));
-            int max_x = static_cast<int>(std::floor(center.x + rad_xz));
-            int min_z = static_cast<int>(std::floor(center.z - rad_xz));
-            int max_z = static_cast<int>(std::floor(center.z + rad_xz));
-            int min_y = static_cast<int>(std::floor(center.y - rad_y));
-            int max_y = static_cast<int>(std::floor(center.y + rad_y));
-
-            min_x = std::max(min_x, CHUNK_MIN_X);
-            max_x = std::min(max_x, CHUNK_MAX_X);
-            min_z = std::max(min_z, CHUNK_MIN_Z);
-            max_z = std::min(max_z, CHUNK_MAX_Z);
-            min_y = std::max(min_y, CHUNK_MIN_Y);
-            max_y = std::min(max_y, CHUNK_MAX_Y);
+            float vy_contrib = dy * up.y;
+            float vy2 = vy_contrib * vy_contrib * inv_b2;
+            if (vy2 >= 1.0f)
+                continue;
 
             for (int wx = min_x; wx <= max_x; ++wx) {
-                int x = wx - CHUNK_MIN_X;
+                float dx = static_cast<float>(wx) - point.pos.x;
                 for (int wz = min_z; wz <= max_z; ++wz) {
-                    int z = wz - CHUNK_MIN_Z;
-                    for (int wy = min_y; wy <= max_y; ++wy) {
-                        int y = wy;
-                        glm::vec3 pos(static_cast<float>(wx),
-                                      static_cast<float>(wy),
-                                      static_cast<float>(wz));
-                        if (point.contains(pos)) {
-                            if (y == 0) {
-                                continue;
-                            }
-                            if (blocks[Chunk::index(x, y, z)] == 7) {
-                                continue;
-                            }
-                            if (y < WORLD_SIZE_Y - 1 &&
-                                blocks[Chunk::index(x, y + 1, z)] == 7) {
-                                continue;
-                            }
-                            blocks[Chunk::index(x, y, z)] = 0;
-                        }
-                    }
+                    float dz = static_cast<float>(wz) - point.pos.z;
+                    glm::vec3 to_point(dx, dy, dz);
+
+                    float h = glm::dot(to_point, right);
+                    float v = glm::dot(to_point, up);
+
+                    if (h * h * inv_a2 + v * v * inv_b2 > 1.0f)
+                        continue;
+                    int x = wx - CHUNK_MIN_X;
+                    on_hit(x, wy, wz - CHUNK_MIN_Z);
                 }
             }
         }
+    }
+}
+
+void ChunkGenerator::generate_cave() {
+    auto& cave_carver = m_chunk.world().cave_carcer();
+    auto& paths = cave_carver.paths();
+    const auto& chunk_pos = m_chunk.chunk_pos();
+    auto& blocks = m_chunk.blocks();
+
+    for (auto& [id, path] : paths) {
+        if ((m_chunk.biome() == BiomeType::RIVER) ||
+            (m_chunk.biome() == BiomeType::OCEAN)) {
+            path.clear_chunk(chunk_pos);
+            continue;
+        }
+        carve_worm(path.points(), chunk_pos, [&](int x, int y, int z) -> void {
+            int idx = Chunk::index(x, y, z);
+            if (blocks[idx] == 7)
+                return;
+            if (y < WORLD_SIZE_Y - 1 && blocks[Chunk::index(x, y + 1, z)] == 7)
+                return;
+            blocks[idx] = 0;
+        });
         path.clear_chunk(chunk_pos);
     }
 }
@@ -715,64 +748,27 @@ void ChunkGenerator::generate_river() {
     auto& paths = river_worm.paths();
     const auto& chunk_pos = m_chunk.chunk_pos();
     auto& blocks = m_chunk.blocks();
-    const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
-    const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
-    const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
-    const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
-    const int CHUNK_MIN_Y = 0;
-    const int CHUNK_MAX_Y = SIZE_Y - 1;
 
     bool is_river = false;
 
     for (auto& [id, path] : paths) {
-        for (const auto& point : path.points()) {
-            if ((m_chunk.biome() == BiomeType::DESERT) ||
-                (m_chunk.biome() == BiomeType::OCEAN)) {
-                path.clear_chunk(chunk_pos);
-                continue;
-            }
-            const glm::vec3& center = point.pos;
-            float rad_xz = point.rad_xz;
-            float rad_y = point.rad_y;
-
-            int min_x = static_cast<int>(std::floor(center.x - rad_xz));
-            int max_x = static_cast<int>(std::floor(center.x + rad_xz));
-            int min_z = static_cast<int>(std::floor(center.z - rad_xz));
-            int max_z = static_cast<int>(std::floor(center.z + rad_xz));
-            int min_y = static_cast<int>(std::floor(center.y - rad_y));
-            int max_y = static_cast<int>(std::floor(center.y + rad_y));
-
-            min_x = std::max(min_x, CHUNK_MIN_X);
-            max_x = std::min(max_x, CHUNK_MAX_X);
-            min_z = std::max(min_z, CHUNK_MIN_Z);
-            max_z = std::min(max_z, CHUNK_MAX_Z);
-            min_y = std::max(min_y, CHUNK_MIN_Y);
-            max_y = std::min(max_y, CHUNK_MAX_Y);
-
-            for (int wx = min_x; wx <= max_x; ++wx) {
-                int x = wx - CHUNK_MIN_X;
-                for (int wz = min_z; wz <= max_z; ++wz) {
-                    int z = wz - CHUNK_MIN_Z;
-                    for (int wy = min_y; wy <= max_y; ++wy) {
-                        int y = wy;
-                        glm::vec3 pos(static_cast<float>(wx),
-                                      static_cast<float>(wy),
-                                      static_cast<float>(wz));
-                        if (point.contains(pos)) {
-                            if (y > SEA_LEVEL) {
-                                blocks[Chunk::index(x, y, z)] = 0;
-                                continue;
-                            }
-                            is_river = true;
-                            if (blocks[Chunk::index(x, y, z)] == 0) {
-                                continue;
-                            }
-                            blocks[Chunk::index(x, y, z)] = 7;
-                        }
-                    }
-                }
-            }
+        if ((m_chunk.biome() == BiomeType::DESERT) ||
+            (m_chunk.biome() == BiomeType::OCEAN)) {
+            path.clear_chunk(chunk_pos);
+            continue;
         }
+        carve_worm(path.points(), chunk_pos, [&](int x, int y, int z) -> void {
+            int idx = Chunk::index(x, y, z);
+            if (y > SEA_LEVEL) {
+                blocks[idx] = 0;
+                return;
+            }
+            is_river = true;
+            if (blocks[idx] == 0) {
+                return;
+            }
+            blocks[idx] = 7;
+        });
         path.clear_chunk(chunk_pos);
     }
     if (is_river) {

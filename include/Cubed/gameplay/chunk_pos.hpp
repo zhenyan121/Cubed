@@ -16,7 +16,14 @@ struct ChunkPos {
             return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
         }
     };
-
+    struct TBBHash {
+        std::size_t hash(const ChunkPos& p) const {
+            return ChunkPos::Hash{}(p);
+        }
+        bool equal(const ChunkPos& a, const ChunkPos& b) const {
+            return a == b;
+        }
+    };
     ChunkPos operator+(const ChunkPos& pos) const {
         return ChunkPos{x + pos.x, z + pos.z};
     }

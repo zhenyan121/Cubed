@@ -14,6 +14,8 @@ class World;
 // if want to use, do init_chunk(), gen_vertex_data() and
 class Chunk {
 private:
+    using OptionalBlockVectorArray =
+        std::array<std::optional<std::vector<BlockType>>, 4>;
     static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUNK_SIZE;
@@ -46,8 +48,7 @@ private:
     BiomeConditions m_conditions;
 
     void clear_dirty();
-    void gen_vertices(
-        const std::array<const std::vector<BlockType>*, 4>& neighbor_block);
+    void gen_vertices(const OptionalBlockVectorArray& neighbor_block);
     void gen_cross_plane_vertices(int world_x, int world_y, int world_z,
                                   BlockType id);
 
@@ -97,8 +98,7 @@ public:
     //  1 : (-1, 0)
     //  2 : (0, 1)
     //  3 : (0, -1)
-    void gen_vertex_data(
-        const std::array<const std::vector<BlockType>*, 4>& neighbor_block);
+    void gen_vertex_data(const OptionalBlockVectorArray& neighbor_block);
     void upload_to_gpu();
 
     GLuint get_normal_vao() const;

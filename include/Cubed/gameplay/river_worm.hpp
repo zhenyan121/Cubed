@@ -4,13 +4,15 @@
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
-#include <unordered_map>
+#include <tbb/concurrent_hash_map.h>
 namespace Cubed {
 
 class RiverWorm {
+    using RiverHashMap = tbb::concurrent_hash_map<unsigned, RiverPath>;
+
 public:
     RiverWorm();
-    std::unordered_map<unsigned, RiverPath>& paths();
+    RiverHashMap& paths();
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
     void add_path(const glm::vec3& pos, unsigned chunk_seed);
@@ -21,7 +23,7 @@ public:
     float& river_probability();
 
 private:
-    std::unordered_map<unsigned, RiverPath> m_paths;
+    RiverHashMap m_paths;
     unsigned m_seed = 0;
     int m_sum = 0;
     Random m_random;

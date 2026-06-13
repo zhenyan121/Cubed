@@ -1,10 +1,14 @@
 #pragma once
 #include "Cubed/gameplay/cave_path.hpp"
+
+#include <tbb/concurrent_hash_map.h>
 namespace Cubed {
 class CaveCarver {
+    using CaveHashMap = tbb::concurrent_hash_map<unsigned, CavePath>;
+
 public:
     CaveCarver();
-    std::unordered_map<unsigned, CavePath>& paths();
+    CaveHashMap& paths();
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
     void add_path(const glm::vec3& pos, unsigned chunk_seed);
@@ -15,7 +19,7 @@ public:
     float& cave_probability();
 
 private:
-    std::unordered_map<unsigned, CavePath> m_paths;
+    CaveHashMap m_paths;
     unsigned m_seed = 0;
     int m_sum = 0;
     Random m_random;

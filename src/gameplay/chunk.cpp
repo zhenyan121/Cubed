@@ -103,8 +103,7 @@ int Chunk::index(const glm::vec3& pos) {
     return Chunk::index(pos.x, pos.y, pos.z);
 }
 
-void Chunk::gen_vertex_data(
-    const std::array<const std::vector<BlockType>*, 4>& neighbor_block) {
+void Chunk::gen_vertex_data(const OptionalBlockVectorArray& neighbor_block) {
     if (m_is_on_gen_vertex_data) {
         return;
     }
@@ -265,8 +264,7 @@ unsigned Chunk::seed() const {
 
 BiomeConditions& Chunk::conditions() { return m_conditions; }
 
-void Chunk::gen_vertices(
-    const std::array<const std::vector<BlockType>*, 4>& neighbor_block) {
+void Chunk::gen_vertices(const OptionalBlockVectorArray& neighbor_block) {
     static const glm::ivec3 DIR[6] = {{0, 0, 1},  {1, 0, 0}, {0, 0, -1},
                                       {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}};
 
@@ -299,8 +297,9 @@ void Chunk::gen_vertices(
                             World::chunk_pos(world_nx, world_nz);
 
                         auto is_culled =
-                            [&](const std::vector<BlockType>* chunk_blocks) {
-                                if (chunk_blocks == nullptr) {
+                            [&](const std::optional<std::vector<BlockType>>&
+                                    chunk_blocks) {
+                                if (chunk_blocks == std::nullopt) {
                                     return true;
                                 }
                                 int x, y, z;

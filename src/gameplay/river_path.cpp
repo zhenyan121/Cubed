@@ -72,7 +72,8 @@ void RiverPath::precompute_chunk_coverage() {
 
         for (int cx = min_cx; cx <= max_cx; ++cx)
             for (int cz = min_cz; cz <= max_cz; ++cz)
-                m_pending_chunks.insert({cx, cz});
+                m_pending_chunks.insert(
+                    std::make_pair(ChunkPos{cx, cz}, false));
     }
 }
 

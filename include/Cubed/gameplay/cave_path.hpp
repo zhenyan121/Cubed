@@ -5,10 +5,13 @@
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
-#include <unordered_set>
+#include <tbb/concurrent_hash_map.h>
 namespace Cubed {
 
 class CavePath {
+    using ChunkPosSet =
+        tbb::concurrent_hash_map<ChunkPos, bool, ChunkPos::TBBHash>;
+
 public:
     CavePath(unsigned int world_seed, int path_id, const glm::vec3& start_pos);
     const std::vector<PathPoint>& points() const;
@@ -44,7 +47,7 @@ private:
     Random m_random;
 
     std::vector<PathPoint> m_points;
-    std::unordered_set<ChunkPos, ChunkPos::Hash> m_pending_chunks;
+    ChunkPosSet m_pending_chunks;
     void collect_path_points();
     void precompute_chunk_coverage();
 };

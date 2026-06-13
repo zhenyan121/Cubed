@@ -58,6 +58,14 @@ if (WIN32)
     if(TARGET freetype)
     add_library(Freetype::Freetype ALIAS freetype)
     endif()
+
+    FetchContent_Declare(
+    onetbb                           
+    GIT_REPOSITORY https://github.com/uxlfoundation/oneTBB.git
+    GIT_TAG v2023.0.0
+    )
+    FetchContent_MakeAvailable(onetbb)
+
 endif()
 
 FetchContent_Declare(
@@ -83,6 +91,9 @@ FetchContent_MakeAvailable(tomlplusplus)
 
 add_subdirectory(third_party/imgui)
 
+
+set(TBB_TEST OFF)
+set(TBB_EXAMPLES OFF)
 
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
@@ -164,10 +175,11 @@ target_link_libraries(${PROJECT_NAME}
         Freetype::Freetype
         tomlplusplus::tomlplusplus
         imgui
+        tbb
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_link_libraries(${PROJECT_NAME} PRIVATE tbb)
+#    target_link_libraries(${PROJECT_NAME} PRIVATE tbb)
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -186,4 +198,14 @@ if (UNIX AND NOT APPLE)
 
 
     target_compile_options(${PROJECT_NAME} PRIVATE ${EGL_CFLAGS_OTHER} ${Wayland_CFLAGS_OTHER})
+endif()
+
+if (WIN32)
+    add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:tbb>         
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    COMMENT "Copying TBB runtime library to output directory"
+    )
 endif()

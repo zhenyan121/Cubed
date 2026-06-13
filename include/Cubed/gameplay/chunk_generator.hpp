@@ -4,6 +4,7 @@
 #include "Cubed/gameplay/biome.hpp"
 #include "Cubed/gameplay/block.hpp"
 #include "Cubed/gameplay/builders/biome_builder.hpp"
+#include "Cubed/gameplay/path_point.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <atomic>
@@ -61,6 +62,9 @@ private:
     unsigned m_chunk_seed = 0;
 
     void make_biome_builder();
+    void
+    carve_worm(const std::vector<PathPoint>& points, const ChunkPos& chunk_pos,
+               std::function<void(int /*x*/, int /*y*/, int /*z*/)> on_hit);
 };
 
 } // namespace Cubed

@@ -5,7 +5,7 @@
 namespace Cubed {
 CaveCarver::CaveCarver() {}
 
-std::unordered_map<unsigned, CavePath>& CaveCarver::paths() { return m_paths; }
+CaveCarver::CaveHashMap& CaveCarver::paths() { return m_paths; }
 
 void CaveCarver::init(unsigned world_seed) {
     m_seed = world_seed;
@@ -26,10 +26,13 @@ void CaveCarver::add_path(const glm::vec3& pos, unsigned chunk_seed) {
 
 void CaveCarver::try_to_add_path(const ChunkPos& chunk_pos,
                                  unsigned chunk_seed) {
-    auto it = m_paths.find(chunk_seed);
-    if (it != m_paths.end()) {
-        return;
+    {
+        CaveHashMap::const_accessor acc;
+        if (m_paths.find(acc, chunk_seed)) {
+            return;
+        }
     }
+
     Random random{chunk_seed};
     if (random.random_bool(static_cast<double>(m_cave_probability))) {
         const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
@@ -47,8 +50,15 @@ void CaveCarver::try_to_add_path(const ChunkPos& chunk_pos,
 }
 
 void CaveCarver::cleanup_finished_caves() {
-    std::erase_if(m_paths,
-                  [](const auto& kv) { return kv.second.is_finished(); });
+    std::vector<unsigned int> finished_keys;
+    for (const auto& pair : m_paths) {
+        if (pair.second.is_finished()) {
+            finished_keys.push_back(pair.first);
+        }
+    }
+    for (const auto& key : finished_keys) {
+        m_paths.erase(key);
+    }
 }
 
 int CaveCarver::cave_sum() const { return m_sum; }
