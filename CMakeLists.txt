@@ -58,13 +58,20 @@ if (WIN32)
     if(TARGET freetype)
     add_library(Freetype::Freetype ALIAS freetype)
     endif()
+    set(_BUILD_SHARED_LIBS_SAVED ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS ON)
 
     FetchContent_Declare(
     onetbb                           
     GIT_REPOSITORY https://github.com/uxlfoundation/oneTBB.git
     GIT_TAG v2023.0.0
     )
+    set(BUILD_TESTING OFF CACHE BOOL "Build tests" FORCE)
+    set(TBB_TEST OFF CACHE BOOL "Build TBB tests" FORCE)
     FetchContent_MakeAvailable(onetbb)
+
+    set(BUILD_SHARED_LIBS ${_BUILD_SHARED_LIBS_SAVED})
+    unset(_BUILD_SHARED_LIBS_SAVED)
 
 endif()
 
@@ -90,10 +97,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(tomlplusplus)
 
 add_subdirectory(third_party/imgui)
-
-
-set(TBB_TEST OFF)
-set(TBB_EXAMPLES OFF)
 
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
@@ -201,11 +204,17 @@ if (UNIX AND NOT APPLE)
 endif()
 
 if (WIN32)
-    add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:tbb>         
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    COMMENT "Copying TBB runtime library to output directory"
-    )
+    foreach(TBB_LIB IN ITEMS tbb tbbmalloc tbbmalloc_proxy)
+        if(TARGET ${TBB_LIB})
+            add_custom_command(
+                TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    $<TARGET_FILE:${TBB_LIB}>
+                    $<TARGET_FILE_DIR:${PROJECT_NAME}>
+                COMMENT "Copying ${TBB_LIB}.dll"
+            )
+        else()
+            message(STATUS "Target ${TBB_LIB} not found, skipping copy")
+        endif()
+    endforeach()
 endif()
