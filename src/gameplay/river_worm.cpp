@@ -9,7 +9,7 @@ RiverWorm::RiverHashMap& RiverWorm::paths() { return m_paths; }
 
 void RiverWorm::init(unsigned world_seed) {
     m_seed = world_seed;
-    m_sum = 0;
+
     m_random.init(m_seed);
 }
 
@@ -20,8 +20,7 @@ void RiverWorm::reload(unsigned world_seed) {
 }
 
 void RiverWorm::add_path(const glm::vec3& pos, unsigned chunk_seed) {
-    m_paths.emplace(chunk_seed, RiverPath{m_seed, m_sum, pos});
-    m_sum++;
+    m_paths.emplace(chunk_seed, RiverPath{chunk_seed, m_seed, pos});
 }
 
 void RiverWorm::try_to_add_path(const ChunkPos& chunk_pos,
@@ -57,6 +56,6 @@ void RiverWorm::cleanup_finished_rivers() {
     }
 }
 
-int RiverWorm::river_sum() const { return m_sum; }
+int RiverWorm::river_sum() const { return m_paths.size(); }
 float& RiverWorm::river_probability() { return m_probability; }
 } // namespace Cubed

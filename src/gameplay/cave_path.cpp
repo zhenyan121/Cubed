@@ -6,10 +6,9 @@
 
 #include <algorithm>
 namespace Cubed {
-CavePath::CavePath(unsigned int world_seed, int path_id,
+CavePath::CavePath(unsigned int chunk_seed, unsigned world_seed,
                    const glm::vec3& start_pos) {
-    m_path_id = path_id;
-    m_seed = HASH::combine_32(world_seed, path_id);
+    m_seed = HASH::combine_32(chunk_seed, world_seed);
     m_random.init(m_seed);
     m_yaw = m_random.random_float(0.0f, 360.0f);
     m_pitch = m_random.random_float(-10.0f, 10.0f);

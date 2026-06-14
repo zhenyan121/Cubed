@@ -5,12 +5,15 @@
 
 #include <algorithm>
 namespace Cubed {
-RiverPath::RiverPath(unsigned int world_seed, int path_id,
+RiverPath::RiverPath(unsigned int chunk_seed, unsigned world_seed,
                      const glm::vec3& start_pos) {
-    m_path_id = path_id;
-    m_seed = HASH::combine_32(world_seed, path_id);
+
+    m_seed = HASH::combine_32(chunk_seed, world_seed);
     m_random.init(m_seed);
+
     m_yaw = m_random.random_float(0.0f, 360.0f);
+
+    m_initial_yaw = m_yaw;
     m_pitch = 0.0f;
     m_start_path_point.pos = start_pos;
     m_start_path_point.rad_xz =
@@ -41,14 +44,15 @@ void RiverPath::collect_path_points() {
 
         float t = Math::smootherstep(0, m_step - 1, i);
 
-        float drad_xz = m_start_path_point.rad_xz * (1.0f - t);
-        float drad_y = m_start_path_point.rad_y * (1.0f - t);
+        float drad_xz = m_start_path_point.rad_xz * t;
+        float drad_y = m_start_path_point.rad_y * t;
         drad_xz = std::max(drad_xz, 4.0f);
         drad_y = std::max(drad_y, 4.0f);
         m_points.emplace_back(m_points[i].pos + glm::vec3{dx, dy, dz}, drad_xz,
                               drad_y);
 
         m_yaw += m_random.random_float(m_delta_angle_min, m_delta_angle_max);
+        m_yaw = std::clamp(m_yaw, m_initial_yaw - 10.0f, m_initial_yaw + 10.0f);
     }
     auto n = m_points.size();
     if (n >= 2) {

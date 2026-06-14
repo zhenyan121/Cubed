@@ -22,7 +22,7 @@ constexpr int BLEND_RADIUS = 8;
 ChunkGenerator::ChunkGenerator(Chunk& chunk) : m_chunk(chunk) {
     ASSERT_MSG(is_init, "ChunksGenerator is not init");
     ChunkPos pos = m_chunk.get_chunk_pos();
-    unsigned seed = HASH::mix_hash(pos.x, pos.z, m_generator_seed);
+    unsigned seed = HASH::chunk_seed_hash(pos.x, pos.z, m_generator_seed);
     m_random.init(seed);
     m_chunk_seed = seed;
 }

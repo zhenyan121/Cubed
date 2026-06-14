@@ -25,7 +25,6 @@ public:
 private:
     RiverHashMap m_paths;
     unsigned m_seed = 0;
-    int m_sum = 0;
     Random m_random;
     float m_probability = 0.01f;
 };

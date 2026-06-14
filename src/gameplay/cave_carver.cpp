@@ -9,7 +9,6 @@ CaveCarver::CaveHashMap& CaveCarver::paths() { return m_paths; }
 
 void CaveCarver::init(unsigned world_seed) {
     m_seed = world_seed;
-    m_sum = 0;
     m_random.init(m_seed);
 }
 
@@ -20,8 +19,7 @@ void CaveCarver::reload(unsigned world_seed) {
 }
 
 void CaveCarver::add_path(const glm::vec3& pos, unsigned chunk_seed) {
-    m_paths.emplace(chunk_seed, CavePath{m_seed, m_sum, pos});
-    m_sum++;
+    m_paths.emplace(chunk_seed, CavePath{chunk_seed, m_seed, pos});
 }
 
 void CaveCarver::try_to_add_path(const ChunkPos& chunk_pos,
@@ -61,6 +59,6 @@ void CaveCarver::cleanup_finished_caves() {
     }
 }
 
-int CaveCarver::cave_sum() const { return m_sum; }
+int CaveCarver::cave_sum() const { return m_paths.size(); }
 float& CaveCarver::cave_probability() { return m_cave_probability; }
 } // namespace Cubed

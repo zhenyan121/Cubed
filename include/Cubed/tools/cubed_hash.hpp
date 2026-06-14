@@ -7,7 +7,17 @@ namespace HASH {
 inline std::size_t str(std::string_view value) {
     return std::hash<std::string_view>{}(value);
 }
-inline uint32_t mix_hash(int32_t a, int32_t b, uint32_t fixed_seed) {
+inline uint32_t combine_32(uint32_t seed, uint32_t v) {
+    seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+}
+inline uint32_t chunk_seed_hash(int32_t a, int32_t b, uint32_t fixed_seed) {
+    uint32_t seed =
+        combine_32(combine_32(fixed_seed, (uint32_t)a), (uint32_t)b);
+    return seed;
+}
+/*
+inline uint32_t chunk_seed_hash(int32_t a, int32_t b, uint32_t fixed_seed) {
     uint32_t h = fixed_seed;
 
     h ^= (uint32_t)a * 0xcc9e2d51u;
@@ -27,10 +37,8 @@ inline uint32_t mix_hash(int32_t a, int32_t b, uint32_t fixed_seed) {
 
     return h;
 }
-inline uint32_t combine_32(uint32_t seed, uint32_t v) {
-    seed ^= v + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    return seed;
-}
+    */
+
 } // namespace HASH
 
 } // namespace Cubed

@@ -37,11 +37,11 @@ int Random::random_int(int min, int max) {
     return min + static_cast<int>(r % range);
 }
 float Random::random_float(float min, float max) {
+
     unsigned r = m_engine() >> 8;
-
     float t = static_cast<float>(r) * (1.0f / 16777216.0f);
+    float result = min + t * (max - min);
 
-    return min + t * (max - min);
+    return result;
 }
-
 } // namespace Cubed
