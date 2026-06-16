@@ -31,6 +31,13 @@ public:
 
 private:
     static constexpr glm::vec3 SUNLIGHT_COLOR{1.0f, 1.0f, 1.0f};
+    static constexpr glm::vec3 SUN_COLOR{1.00f, 0.95f, 0.80f};
+    static constexpr glm::vec3 MOON_COLOR{0.75f, 0.80f, 1.00f};
+    static constexpr glm::vec3 SKY_COLOR{0.529, 0.808, 0.922};
+    static constexpr float FAR_PLANE = 1000.0f;
+    static constexpr float NEAR_PLANE = 0.1f;
+    static constexpr float SUN_SIZE = 50.0f;
+    static constexpr float MOON_SIZE = 50.0f;
     const Camera& m_camera;
     DevPanel& m_dev_panel;
     const TextureManager& m_texture_manager;
@@ -75,6 +82,7 @@ private:
     2 - outline vao
     3 - ui vao
     4 - text vao
+
     */
     std::vector<GLuint> m_vao;
     std::vector<Vertex2D> m_ui;

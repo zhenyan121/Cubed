@@ -19,7 +19,7 @@ void main(void) {
         discard;
     }
 
-    vec3 lightDir = normalize(sunlightDir);
+    vec3 lightDir = normalize(-sunlightDir);
     
     vec3 ambient = ambientStrength * sunlightColor;
     

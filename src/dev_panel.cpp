@@ -263,6 +263,29 @@ void DevPanel::show_biome_table_bar() {
     }
 }
 
+void DevPanel::show_time_table_bar() {
+    World& world = m_app.world();
+    ImGui::Text("Game Tick %lld", world.game_tick());
+    ImGui::Text("Day Tick %lld", world.day_tick());
+    ImGui::Text("Set Day Tick");
+    ImGui::SameLine();
+    if (ImGui::SliderInt("DayTick", &m_pre_set_day_tick, 0, DAY_TIME)) {
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save##DayTick")) {
+        world.day_tick(static_cast<TickType>(m_pre_set_day_tick));
+    }
+    ImGui::Text("MSPT %d", world.per_tick_time());
+    ImGui::Text("Set MSPT");
+    ImGui::SameLine();
+    if (ImGui::SliderInt("SetMSPT", &m_pre_set_tick_speed, 0, 200)) {
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save##MSPT")) {
+        world.per_tick_time(m_pre_set_tick_speed);
+    }
+}
+
 void DevPanel::show_cave_table_bar() {
     auto& cave_carcer = m_app.world().cave_carcer();
 
@@ -457,6 +480,10 @@ void DevPanel::show_world_tab_item() {
         ImGui::Text("Chunk Build Progress\n");
         ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
         if (ImGui::BeginTabBar("World Settings")) {
+            if (ImGui::BeginTabItem("Time")) {
+                show_time_table_bar();
+                ImGui::EndTabItem();
+            }
             if (ImGui::BeginTabItem("Cave")) {
                 show_cave_table_bar();
                 ImGui::EndTabItem();

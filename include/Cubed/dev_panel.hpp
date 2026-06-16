@@ -44,8 +44,11 @@ private:
     bool m_need_save_config = false;
     bool m_gen_thread_running = true;
     int m_theme = 0;
+    int m_pre_set_day_tick = 0;
+    int m_pre_set_tick_speed = 0;
     void show_about_table_bar();
     void show_biome_table_bar();
+    void show_time_table_bar();
     void show_cave_table_bar();
     void show_river_table_bar();
     void show_settings_tab_item();

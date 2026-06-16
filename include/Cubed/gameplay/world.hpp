@@ -2,6 +2,7 @@
 #include "Cubed/AABB.hpp"
 #include "Cubed/gameplay/cave_carver.hpp"
 #include "Cubed/gameplay/chunk.hpp"
+#include "Cubed/gameplay/game_time.hpp"
 #include "Cubed/gameplay/river_worm.hpp"
 
 #include <atomic>
@@ -39,13 +40,21 @@ private:
         std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
     using ChunkHashMap = std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash>;
+
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
-    glm::vec3 m_sunlight_dir{1.0f, 2.0f, 1.0f};
     ChunkHashMap m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
     std::vector<glm::vec4> m_planes;
 
     std::thread m_gen_thread;
+    std::thread m_server_thread;
+
+    std::stop_source m_server_stop_source;
+
+    std::atomic<int> m_per_tick_time = DEFAULT_PER_TICK_TIME; // ms
+
+    std::atomic<TickType> m_day_tick = 6000;
+
     mutable std::mutex m_chunks_mutex;
     std::mutex m_gen_signal_mutex;
     std::mutex m_new_chunk_queue_mutex;
@@ -62,6 +71,9 @@ private:
     std::atomic<bool> m_could_gen{true};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<float> m_chunk_gen_fraction{0.0f};
+
+    std::atomic<TickType> m_game_ticks{0};
+
     std::vector<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
     std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
@@ -120,7 +132,10 @@ public:
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
     void start_gen_thread();
+    void start_server_thread();
     void stop_gen_thread();
+    void stop_server_thread();
+    void serever_run(std::stop_token stoken);
 
     CaveCarver& cave_carcer();
     RiverWorm& river_worm();
@@ -128,6 +143,11 @@ public:
     std::vector<ChunkRenderSnapshot>& render_snapshots();
 
     glm::vec3 sunlight_dir() const;
+    TickType game_tick() const;
+    TickType day_tick() const;
+    void day_tick(TickType tick);
+    int per_tick_time() const;
+    void per_tick_time(int ms);
 };
 
 } // namespace Cubed

@@ -7,6 +7,8 @@
 
 #include <execution>
 
+using namespace std::chrono;
+
 namespace Cubed {
 
 struct ChunkRenderData {
@@ -18,6 +20,7 @@ World::World() {}
 
 World::~World() {
     stop_gen_thread();
+    stop_server_thread();
     m_chunks.clear();
     {
         std::lock_guard lk(m_delete_vbo_mutex);
@@ -85,6 +88,8 @@ void World::init_world() {
     auto t2 = std::chrono::system_clock::now();
     auto d = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
     Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
+
+    start_server_thread();
 
     Logger::info("TestPlayer Create Finish");
 }
@@ -727,6 +732,11 @@ void World::start_gen_thread() {
     });
 }
 
+void World::start_server_thread() {
+    m_server_thread = std::thread(
+        [this]() { serever_run(m_server_stop_source.get_token()); });
+}
+
 void World::stop_gen_thread() {
     m_gen_running = false;
     m_gen_cv.notify_all();
@@ -734,6 +744,23 @@ void World::stop_gen_thread() {
         m_gen_thread.join();
     }
     Logger::info("Gen Thread Stopped");
+}
+
+void World::stop_server_thread() {
+    m_server_stop_source.request_stop();
+    if (m_server_thread.joinable()) {
+        m_server_thread.join();
+    }
+}
+
+void World::serever_run(std::stop_token stoken) {
+    Logger::info("Server Thread Started!");
+    while (!stoken.stop_requested()) {
+        std::this_thread::sleep_for(milliseconds(m_per_tick_time));
+        ++m_game_ticks;
+        m_day_tick = (++m_day_tick) % DAY_TIME;
+    }
+    Logger::info("Server Thread Stopped!");
 }
 
 void World::need_gen() {
@@ -1006,6 +1033,47 @@ std::vector<glm::vec4>& World::planes() { return m_planes; }
 std::vector<ChunkRenderSnapshot>& World::render_snapshots() {
     return m_render_snapshots;
 };
-glm::vec3 World::sunlight_dir() const { return m_sunlight_dir; }
+/*
+glm::vec3 World::sunlight_dir() const {
+    float t = static_cast<float>(m_day_tick) / DAY_TIME;
+
+    float azimuth = glm::radians(90.0f - t * 360.0f);
+
+    float altitude =
+        glm::half_pi<float>() * sin((t - 0.25f) * glm::two_pi<float>());
+
+    glm::vec3 dir{cos(altitude) * cos(azimuth), sin(altitude),
+                  cos(altitude) * sin(azimuth)};
+
+    return glm::normalize(dir);
+}
+*/
+
+glm::vec3 World::sunlight_dir() const {
+    float altitude = sin((m_day_tick - 6 * PER_HOUR) /
+                         static_cast<float>(DAY_TIME / 2) * std::numbers::pi) *
+                     90.0f;
+
+    float t = static_cast<float>(m_day_tick) / DAY_TIME;
+    float azimuth = 90.0f - 360.0f * (t - 0.25f);
+
+    float alt = glm::radians(altitude);
+    float az = glm::radians(azimuth);
+    glm::vec3 dir;
+    dir.x = cos(alt) * sin(az);
+    dir.y = sin(alt);
+    dir.z = cos(alt) * cos(az);
+
+    return glm::normalize(-dir);
+}
+
+TickType World::game_tick() const { return m_game_ticks.load(); }
+TickType World::day_tick() const { return m_day_tick.load(); }
+void World::day_tick(TickType tick) {
+    tick %= DAY_TIME;
+    m_day_tick = tick;
+}
+int World::per_tick_time() const { return m_per_tick_time.load(); }
+void World::per_tick_time(int ms) { m_per_tick_time = ms; }
 
 } // namespace Cubed

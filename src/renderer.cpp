@@ -257,13 +257,44 @@ void Renderer::render_sky() {
 
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-
+    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(SKY_COLOR));
     glBindVertexArray(m_vao[1]);
 
     glDisable(GL_DEPTH_TEST);
 
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glEnable(GL_DEPTH_TEST);
+
+    // draw sun and moon
+    glDepthMask(GL_FALSE);
+
+    glBindVertexArray(m_vao[0]);
+    // draw sum
+    glm::vec3 sun_pos = m_camera.get_camera_pos() +
+                        normalize(-m_world.sunlight_dir()) * (FAR_PLANE * 0.9f);
+    glm::vec3 sun_view_pos = glm::vec3(m_v_mat * glm::vec4(sun_pos, 1.0f));
+    m_mv_mat = glm::translate(glm::mat4(1.0f), sun_view_pos) *
+               glm::scale(glm::mat4(1.0f), glm::vec3(SUN_SIZE)) *
+               glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
+    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
+    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(SUN_COLOR));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glm::vec3 moon_pos = m_camera.get_camera_pos() +
+                         normalize(m_world.sunlight_dir()) * (FAR_PLANE * 0.9f);
+    glm::vec3 moon_view_pos = glm::vec3(m_v_mat * glm::vec4(moon_pos, 1.0f));
+    m_mv_mat = glm::translate(glm::mat4(1.0f), moon_view_pos) *
+               glm::scale(glm::mat4(1.0f), glm::vec3(MOON_SIZE)) *
+               glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
+    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
+    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(MOON_COLOR));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDepthMask(GL_TRUE);
 }
 
 void Renderer::render_text() {
@@ -343,7 +374,8 @@ void Renderer::update_fov(float fov) {
 
 void Renderer::update_proj_matrix(float aspect, float width, float height) {
     m_aspect = aspect;
-    m_p_mat = glm::perspective(glm::radians(m_fov), aspect, 0.1f, 1000.0f);
+    m_p_mat =
+        glm::perspective(glm::radians(m_fov), aspect, NEAR_PLANE, FAR_PLANE);
     m_ui_proj = glm::ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f);
     // scale and then translate
     m_ui_m_matrix =
