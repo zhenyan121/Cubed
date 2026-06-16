@@ -32,6 +32,7 @@ public:
     const glm::vec3& get_camera_pos() const;
 
     bool is_under_water() const;
+    glm::vec3 get_camera_front() const;
 };
 
 } // namespace Cubed

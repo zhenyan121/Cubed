@@ -8,6 +8,7 @@ out vec2 tc;
 out vec3 normal;
 out vec3 vert_pos;
 flat out int tex_layer;
+out vec4 FragPosLightSpace;
 
 mat4 buildRotateX(float rad);
 mat4 buildRotateY(float rad);
@@ -17,19 +18,19 @@ mat4 buildTranslate(float x, float y, float z);
 uniform mat4 mv_matrix;
 uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
-
+uniform mat4 lightSpaceMatrix;
 
 void main(void) {
     vec4 viewPos = mv_matrix * vec4(pos, 1.0);
 
-    vert_pos = viewPos.xyz;
+    vert_pos = pos;
 
     tc = texCoord;
     
     tex_layer = int(layer);
     
     normal = mat3(norm_matrix) * aNormal;
-    
+    FragPosLightSpace = lightSpaceMatrix * vec4(pos, 1.0);
     gl_Position = proj_matrix * viewPos;
 }
 

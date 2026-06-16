@@ -60,4 +60,6 @@ const glm::vec3& Camera::get_camera_pos() const { return m_camera_pos; }
 
 bool Camera::is_under_water() const { return m_under_water; }
 
+glm::vec3 Camera::get_camera_front() const { return m_player->get_front(); }
+
 } // namespace Cubed

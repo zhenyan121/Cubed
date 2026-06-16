@@ -39,7 +39,8 @@ private:
     static constexpr float NEAR_PLANE = 0.1f;
     static constexpr float SUN_SIZE = 50.0f;
     static constexpr float MOON_SIZE = 50.0f;
-
+    static constexpr float DEPTH_MAP_WIDTH = 2048.0f;
+    static constexpr float DEPTH_MAP_HEIGHT = 2048.0f;
     float m_ambient_strength = 0.1f;
 
     const Camera& m_camera;
@@ -74,6 +75,10 @@ private:
     GLuint m_accum_texture = 0;
     GLuint m_reveal_texture = 0;
     GLuint m_oit_depth_render_buffer = 0;
+
+    GLuint m_depth_map_fbo = 0;
+    GLuint m_depth_map_texture = 0;
+
     GLuint m_quad_vbo = 0;
 
     glm::mat4 m_ui_proj;

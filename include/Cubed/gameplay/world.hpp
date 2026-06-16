@@ -69,6 +69,7 @@ private:
     std::atomic<bool> m_is_rebuilding{false};
     std::atomic<bool> m_chunk_gen_finished{false};
     std::atomic<bool> m_could_gen{true};
+    std::atomic<bool> m_day_night_cycle{true};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<float> m_chunk_gen_fraction{0.0f};
 

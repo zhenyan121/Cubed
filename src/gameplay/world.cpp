@@ -757,8 +757,10 @@ void World::serever_run(std::stop_token stoken) {
     Logger::info("Server Thread Started!");
     while (!stoken.stop_requested()) {
         std::this_thread::sleep_for(milliseconds(m_per_tick_time));
-        ++m_game_ticks;
-        m_day_tick = (++m_day_tick) % DAY_TIME;
+        if (m_day_night_cycle) {
+            ++m_game_ticks;
+            m_day_tick = (++m_day_tick) % DAY_TIME;
+        }
     }
     Logger::info("Server Thread Stopped!");
 }

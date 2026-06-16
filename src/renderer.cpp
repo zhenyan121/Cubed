@@ -42,6 +42,9 @@ Renderer::~Renderer() {
     glDeleteTextures(1, &m_accum_texture);
     glDeleteTextures(1, &m_reveal_texture);
     glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+
+    glDeleteFramebuffers(1, &m_depth_map_fbo);
+    glDeleteTextures(1, &m_depth_map_texture);
 }
 
 void Renderer::hot_reload() {
@@ -76,6 +79,8 @@ void Renderer::init() {
     Shader composite_block_shader{"composite",
                                   "shaders/block_composite_v_shader.glsl",
                                   "shaders/block_composite_f_shader.glsl"};
+    Shader depth_shader{"depth_shader", "shaders/depth_shader.glsl",
+                        "shaders/depth_fragment_shader.glsl"};
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -86,6 +91,7 @@ void Renderer::init() {
     m_shaders.insert({accum_shader.hash(), std::move(accum_shader)});
     m_shaders.insert(
         {composite_block_shader.hash(), std::move(composite_block_shader)});
+    m_shaders.insert({depth_shader.hash(), std::move(depth_shader)});
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -456,11 +462,124 @@ void Renderer::updata_framebuffer(int width, int height) {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // depth map fbo
+    if (m_depth_map_fbo == 0) {
+        glGenFramebuffers(1, &m_depth_map_fbo);
+    }
+    glDeleteTextures(1, &m_depth_map_texture);
+    glGenTextures(1, &m_depth_map_texture);
+
+    glBindTexture(GL_TEXTURE_2D, m_depth_map_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, DEPTH_MAP_WIDTH,
+                 DEPTH_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+    // Manually compare shadows
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE,
+    //                 GL_COMPARE_REF_TO_TEXTURE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_depth_map_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           m_depth_map_texture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        Logger::error("FBO incomplete after resize!");
+    } else {
+        Logger::info("Frame Buffer Complete!");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_width = width;
     m_height = height;
 }
 
 void Renderer::render_world() {
+    // shader map
+    const auto& depth_shader = get_shader("depth_shader");
+    depth_shader.use();
+
+    glm::vec3 cam_pos = m_camera.get_camera_pos();
+    glm::vec3 cam_fwd = m_camera.get_camera_front();
+    float half_extent = 256.0f;
+
+    glm::vec3 center = cam_pos + cam_fwd * (half_extent * 0.5f);
+
+    glm::vec3 sundir = glm::normalize(m_world.sunlight_dir());
+    glm::vec3 up =
+        fabs(sundir.y) > 0.99f ? glm::vec3(0, 0, 1) : glm::vec3(0, 1, 0);
+
+    glm::mat4 light_basis = glm::lookAt(glm::vec3(0.0f), sundir, up);
+    float texels_per_unit = DEPTH_MAP_WIDTH / (half_extent * 2.0f);
+    glm::vec3 ls_center = glm::vec3(light_basis * glm::vec4(center, 1.0f));
+    ls_center.x = std::round(ls_center.x * texels_per_unit) / texels_per_unit;
+    ls_center.y = std::round(ls_center.y * texels_per_unit) / texels_per_unit;
+    glm::vec3 snapped_center =
+        glm::vec3(glm::inverse(light_basis) * glm::vec4(ls_center, 1.0f));
+
+    float distance = 128.0f;
+    glm::vec3 light_pos = snapped_center - sundir * distance;
+    glm::mat4 light_view = glm::lookAt(light_pos, snapped_center, up);
+    glm::mat4 light_projection = glm::ortho(
+        -half_extent, half_extent, -half_extent, half_extent, 1.0f, 500.0f);
+
+    glm::mat4 light_space_matrix = light_projection * light_view;
+    glUniformMatrix4fv(depth_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
+                       glm::value_ptr(light_space_matrix));
+
+    glViewport(0, 0, DEPTH_MAP_WIDTH, DEPTH_MAP_WIDTH);
+    glCullFace(GL_FRONT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_depth_map_fbo);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    auto& m_render_snapshots = m_world.render_snapshots();
+    auto& camera_pos = m_camera.get_camera_pos();
+    glActiveTexture(GL_TEXTURE1);
+    glEnable(GL_DEPTH_TEST);
+    for (const auto& snapshot : m_render_snapshots) {
+        glBindTexture(GL_TEXTURE_2D_ARRAY,
+                      m_texture_manager.get_texture_array());
+        glBindVertexArray(snapshot.normal_vao);
+
+        glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
+    }
+
+    // cross_plane and discard
+
+    for (const auto& snapshot : m_render_snapshots) {
+
+        glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
+        if (snapshot.cross_vertices_count != 0) {
+            glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
+            float dist2d = glm::distance(camera_pos_xz, center_xz);
+            if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
+                glBindTexture(GL_TEXTURE_2D_ARRAY,
+                              m_texture_manager.get_texture_array());
+                glBindVertexArray(snapshot.cross_vao);
+
+                glDrawArrays(GL_TRIANGLES, 0, snapshot.cross_vertices_count);
+            }
+        }
+        if (snapshot.normal_discard_vertices_count != 0) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindVertexArray(snapshot.normal_discard_vao);
+
+            glDrawArrays(GL_TRIANGLES, 0,
+                         snapshot.normal_discard_vertices_count);
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+
+    glCullFace(GL_BACK);
+    glViewport(0, 0, m_width, m_height);
     const auto& normal_block_shader = get_shader("normal_block");
     normal_block_shader.use();
 
@@ -468,6 +587,8 @@ void Renderer::render_world() {
     m_proj_loc = normal_block_shader.loc("proj_matrix");
 
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_depth_map_texture);
+    glActiveTexture(GL_TEXTURE1);
 
     m_m_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     m_v_mat = m_camera.get_camera_lookat();
@@ -480,6 +601,8 @@ void Renderer::render_world() {
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
     glUniformMatrix4fv(normal_block_shader.loc("norm_matrix"), 1, GL_FALSE,
                        glm::value_ptr(m_norm_mat));
+    glUniformMatrix4fv(normal_block_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
+                       glm::value_ptr(light_space_matrix));
     glUniform1f(normal_block_shader.loc("ambientStrength"), m_ambient_strength);
     glUniform3fv(normal_block_shader.loc("sunlightColor"), 1,
                  glm::value_ptr(SUNLIGHT_COLOR));
@@ -488,9 +611,7 @@ void Renderer::render_world() {
 
     m_mvp_mat = m_p_mat * m_mv_mat;
 
-    auto& camera_pos = m_camera.get_camera_pos();
     auto& m_planes = m_world.planes();
-    auto& m_render_snapshots = m_world.render_snapshots();
 
     Math::extract_frustum_planes(m_mvp_mat, m_planes);
 
@@ -571,6 +692,7 @@ void Renderer::render_world() {
     glBlendFunci(0, GL_ONE, GL_ONE);
 
     glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+    glActiveTexture(GL_TEXTURE0);
     for (const auto& snapshot : m_render_snapshots) {
         if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
                                       m_planes)) {
