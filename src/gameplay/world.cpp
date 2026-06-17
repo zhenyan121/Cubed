@@ -757,9 +757,9 @@ void World::serever_run(std::stop_token stoken) {
     Logger::info("Server Thread Started!");
     while (!stoken.stop_requested()) {
         std::this_thread::sleep_for(milliseconds(m_per_tick_time));
-        if (m_day_night_cycle) {
+        if (m_tick_running) {
             ++m_game_ticks;
-            m_day_tick = (++m_day_tick) % DAY_TIME;
+            m_day_tick = (m_day_tick + 1) % DAY_TIME;
         }
     }
     Logger::info("Server Thread Stopped!");
@@ -1078,4 +1078,6 @@ void World::day_tick(TickType tick) {
 int World::per_tick_time() const { return m_per_tick_time.load(); }
 void World::per_tick_time(int ms) { m_per_tick_time = ms; }
 
+bool World::is_tick_running() const { return m_tick_running.load(); }
+void World::tick_running(bool run) { m_tick_running = run; }
 } // namespace Cubed

@@ -266,7 +266,13 @@ void DevPanel::show_biome_table_bar() {
 void DevPanel::show_time_table_bar() {
     World& world = m_app.world();
     ImGui::Text("Game Tick %llu", world.game_tick());
+    ImGui::SameLine();
     ImGui::Text("Day Tick %llu", world.day_tick());
+    m_tick_frezze = !world.is_tick_running();
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Tick Frezze", &m_tick_frezze)) {
+        world.tick_running(!m_tick_frezze);
+    }
     if (ImGui::SliderInt("SetDayTick", &m_pre_set_day_tick, 0, DAY_TIME)) {
     }
     ImGui::SameLine();

@@ -1,6 +1,7 @@
 #pragma once
 
-using TickType = unsigned long long;
+// Prevent unsigned underflow issues in subtraction
+using TickType = long long;
 
 constexpr int DEFAULT_PER_TICK_TIME = 50;
 
