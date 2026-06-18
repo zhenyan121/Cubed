@@ -506,6 +506,7 @@ void Renderer::render_world() {
     auto& m_render_snapshots = m_world.render_snapshots();
     auto& camera_pos = m_camera.get_camera_pos();
     float texels_per_unit = 0.0f;
+    glm::vec3 sundir = glm::normalize(m_world.sunlight_dir());
     if (m_shader_on) {
         const auto& depth_shader = get_shader("depth_shader");
         depth_shader.use();
@@ -516,7 +517,6 @@ void Renderer::render_world() {
 
         glm::vec3 center = cam_pos + cam_fwd * (half_extent * 0.5f);
 
-        glm::vec3 sundir = glm::normalize(m_world.sunlight_dir());
         glm::vec3 raw_shadow_sundir =
             quantize_sun_direction(sundir, ANGLE_STEP_DEG);
         glm::vec3 shadow_sundir =
@@ -621,6 +621,15 @@ void Renderer::render_world() {
     glm::vec3 light_dir_view =
         glm::normalize(glm::mat3(m_v_mat) * m_world.sunlight_dir());
 
+    float sun_height = (-sundir).y;
+    float t = std::clamp(sun_height * 0.5f + 0.5f, 0.0f, 1.0f);
+
+    glm::vec3 sun_color =
+        mix(glm::vec3(1.00f, 0.45f, 0.15f), glm::vec3(1.00f, 0.90f, 0.65f), t);
+
+    glm::vec3 ambient_color =
+        mix(glm::vec3(0.18f, 0.12f, 0.35f), glm::vec3(0.35f, 0.50f, 0.85f), t);
+
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
     glUniformMatrix4fv(normal_block_shader.loc("norm_matrix"), 1, GL_FALSE,
@@ -629,7 +638,9 @@ void Renderer::render_world() {
                        glm::value_ptr(light_space_matrix));
     glUniform1f(normal_block_shader.loc("ambientStrength"), m_ambient_strength);
     glUniform3fv(normal_block_shader.loc("sunlightColor"), 1,
-                 glm::value_ptr(SUNLIGHT_COLOR));
+                 glm::value_ptr(sun_color));
+    glUniform3fv(normal_block_shader.loc("ambientColor"), 1,
+                 glm::value_ptr(ambient_color));
     glUniform3fv(normal_block_shader.loc("sunlightDir"), 1,
                  glm::value_ptr(light_dir_view));
     glUniform1i(normal_block_shader.loc("shadowMode"), m_shadow_mode);

@@ -12,6 +12,7 @@ layout (binding = 1) uniform sampler2DArray samp;
 
 uniform float ambientStrength;
 uniform vec3 sunlightColor;
+uniform vec3 ambientColor;
 uniform vec3 sunlightDir;
 uniform vec3 cameraPos;
 uniform bool shader_on;
@@ -281,7 +282,7 @@ void main(void) {
     vec3 H = 
         normalize(lightDir + V);
 
-    vec3 ambient = ambientStrength * sunlightColor;
+    vec3 ambient = ambientStrength * ambientColor;
     
     float diff = max(dot(norm, lightDir), 0.0);
     
