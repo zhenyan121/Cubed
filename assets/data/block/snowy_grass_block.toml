@@ -8,3 +8,4 @@ is_passable = false
 is_transitional = true
 is_transparent = false
 name = 'snowy_grass_block'
+roughness = 0.9

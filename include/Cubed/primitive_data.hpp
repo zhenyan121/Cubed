@@ -224,6 +224,7 @@ struct Vertex3D {
     float s = 0.0f, t = 0.0f;
     float layer = 0.0f;
     float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+    float roughness = 1.0f;
 };
 
 struct Vertex2D {

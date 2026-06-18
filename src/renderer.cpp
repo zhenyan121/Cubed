@@ -640,6 +640,10 @@ void Renderer::render_world() {
     glUniform1f(normal_block_shader.loc("minRadius"), m_min_radius);
     glUniform1f(normal_block_shader.loc("maxRadius"), m_max_radius);
     glUniform1i(normal_block_shader.loc("samples"), m_samples);
+    glUniform1f(normal_block_shader.loc("specularStrength"),
+                m_specular_strength);
+    glUniform3fv(normal_block_shader.loc("cameraPos"), 1,
+                 glm::value_ptr(m_camera.get_camera_pos()));
     m_mvp_mat = m_p_mat * m_mv_mat;
 
     auto& m_planes = m_world.planes();
@@ -825,4 +829,5 @@ int& Renderer::light_size_uv() { return m_light_size_uv; }
 float& Renderer::min_radius() { return m_min_radius; }
 float& Renderer::max_radius() { return m_max_radius; }
 int& Renderer::samples() { return m_samples; }
+float& Renderer::specular_strength() { return m_specular_strength; }
 } // namespace Cubed

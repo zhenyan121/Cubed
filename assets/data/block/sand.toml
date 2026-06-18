@@ -8,3 +8,4 @@ is_passable = false
 is_transitional = true
 is_transparent = false
 name = 'sand'
+roughness = 0.8

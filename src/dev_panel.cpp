@@ -621,6 +621,8 @@ void DevPanel::show_shader_tab_item() {
                                &m_app.renderer().ambient_strength(), 0.0f,
                                0.35f))
             ;
+        ImGui::SliderFloat("SpecularStrength",
+                           &m_app.renderer().specular_strength(), 0.0f, 2.0f);
         ImGui::Checkbox("Discard Transparent",
                         &m_app.renderer().discard_transparent());
         ImGui::Combo("ShaderMode", &m_app.renderer().shadow_mode(), shader_mode,

@@ -8,3 +8,4 @@ is_passable = false
 is_transitional = false
 is_transparent = true
 name = 'leaf'
+roughness = 0.7

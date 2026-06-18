@@ -111,6 +111,15 @@ bool BlockManager::is_transitional(BlockType id) {
     }
     return m_datas[id].is_transitional;
 }
+
+float BlockManager::roughness(BlockType id) {
+    if (id >= sums()) {
+        Logger::error("Id {}, is Over The Max Id", id, sums() - 1);
+        return m_datas[0].roughness;
+    }
+    return m_datas[id].roughness;
+}
+
 void BlockManager::init() {
     fs::path data_path{block_data_dir};
 
@@ -149,9 +158,11 @@ void BlockManager::init() {
         auto is_discard = safe_get_value(block, "is_discard", false);
         auto is_blend = safe_get_value(block, "is_blend", false);
         auto is_transitional = safe_get_value(block, "is_transitional", false);
+        auto roughness = safe_get_value(block, "roughness", 1.0);
         m_datas.emplace_back(*id, *name, *is_liquid, *is_passable,
                              *is_cross_plane, *is_transparent, *is_gas,
-                             *is_discard, *is_blend, *is_transitional);
+                             *is_discard, *is_blend, *is_transitional,
+                             static_cast<float>(*roughness));
     }
     std::sort(
         m_datas.begin(), m_datas.end(),

@@ -38,6 +38,7 @@ public:
     float& min_radius();
     float& max_radius();
     int& samples();
+    float& specular_strength();
 
 private:
     static constexpr glm::vec3 SUNLIGHT_COLOR{1.0f, 1.0f, 1.0f};
@@ -108,6 +109,9 @@ private:
     float m_min_radius = 2.0f;
     float m_max_radius = 20.0f;
     int m_samples = 16;
+
+    float m_specular_strength = 0.5f;
+
     /*
     0 - quad vao
     1 - sky vao
