@@ -34,6 +34,10 @@ public:
     bool& shader_on();
     int& shadow_mode();
     int& light_cull_face();
+    int& light_size_uv();
+    float& min_radius();
+    float& max_radius();
+    int& samples();
 
 private:
     static constexpr glm::vec3 SUNLIGHT_COLOR{1.0f, 1.0f, 1.0f};
@@ -99,7 +103,11 @@ private:
     float m_blend_t = 1.0f;
     bool m_blend_initialized = false;
     static constexpr float BLEND_DURATION = 0.15f;
+    int m_light_size_uv = 20;
 
+    float m_min_radius = 2.0f;
+    float m_max_radius = 20.0f;
+    int m_samples = 16;
     /*
     0 - quad vao
     1 - sky vao

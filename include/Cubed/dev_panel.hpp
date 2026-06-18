@@ -47,6 +47,7 @@ private:
     int m_pre_set_day_tick = 0;
     int m_pre_set_tick_speed = 1;
     bool m_tick_frezze = false;
+    int m_samples_idx = 1;
     void show_about_table_bar();
     void show_biome_table_bar();
     void show_time_table_bar();

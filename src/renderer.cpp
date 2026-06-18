@@ -505,6 +505,7 @@ void Renderer::render_world() {
     glm::mat4 light_space_matrix;
     auto& m_render_snapshots = m_world.render_snapshots();
     auto& camera_pos = m_camera.get_camera_pos();
+    float texels_per_unit = 0.0f;
     if (m_shader_on) {
         const auto& depth_shader = get_shader("depth_shader");
         depth_shader.use();
@@ -524,7 +525,7 @@ void Renderer::render_world() {
                                                      : glm::vec3(0, 1, 0);
 
         glm::mat4 light_basis = glm::lookAt(glm::vec3(0.0f), shadow_sundir, up);
-        float texels_per_unit = DEPTH_MAP_SIZE / (half_extent * 2.0f);
+        texels_per_unit = DEPTH_MAP_SIZE / (half_extent * 2.0f);
         glm::vec3 ls_center = glm::vec3(light_basis * glm::vec4(center, 1.0f));
         ls_center.x =
             std::round(ls_center.x * texels_per_unit) / texels_per_unit;
@@ -633,6 +634,12 @@ void Renderer::render_world() {
                  glm::value_ptr(light_dir_view));
     glUniform1i(normal_block_shader.loc("shadowMode"), m_shadow_mode);
     glUniform1i(normal_block_shader.loc("shader_on"), m_shader_on);
+    glUniform1f(normal_block_shader.loc("texelsPerUnit"), texels_per_unit);
+    glUniform1f(normal_block_shader.loc("lightSizeUV"),
+                static_cast<GLfloat>(m_light_size_uv));
+    glUniform1f(normal_block_shader.loc("minRadius"), m_min_radius);
+    glUniform1f(normal_block_shader.loc("maxRadius"), m_max_radius);
+    glUniform1i(normal_block_shader.loc("samples"), m_samples);
     m_mvp_mat = m_p_mat * m_mv_mat;
 
     auto& m_planes = m_world.planes();
@@ -814,4 +821,8 @@ bool& Renderer::discard_transparent() { return m_discard_tranparent; }
 bool& Renderer::shader_on() { return m_shader_on; }
 int& Renderer::shadow_mode() { return m_shadow_mode; }
 int& Renderer::light_cull_face() { return m_light_cull_face; }
+int& Renderer::light_size_uv() { return m_light_size_uv; }
+float& Renderer::min_radius() { return m_min_radius; }
+float& Renderer::max_radius() { return m_max_radius; }
+int& Renderer::samples() { return m_samples; }
 } // namespace Cubed

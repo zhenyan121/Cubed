@@ -611,9 +611,10 @@ void DevPanel::show_items_tab_item() {
 
 void DevPanel::show_shader_tab_item() {
 
-    static const char* shader_mode[] = {"Rotated Poisson Disk PCF",
-                                        "3x3 Square Grid PCF", "PCF off"};
+    static const char* shader_mode[] = {
+        "Rotated Poisson Disk PCF", "3x3 Square Grid PCF", "PCF off", "PCSS"};
     static const char* cull_face_mode[] = {"Front", "Back"};
+    static const char* samples[] = {"8", "16", "32"};
     if (ImGui::BeginTabItem("shader")) {
         ImGui::Checkbox("Shader", &m_app.renderer().shader_on());
         if (ImGui::SliderFloat("AmbientStrength",
@@ -626,6 +627,25 @@ void DevPanel::show_shader_tab_item() {
                      IM_ARRAYSIZE(shader_mode));
         ImGui::Combo("LightCullFaceMode", &m_app.renderer().light_cull_face(),
                      cull_face_mode, IM_ARRAYSIZE(cull_face_mode));
+        if (ImGui::Combo("samples", &m_samples_idx, samples,
+                         IM_ARRAYSIZE(samples))) {
+            if (m_samples_idx == 0) {
+                m_app.renderer().samples() = 8;
+            } else if (m_samples_idx == 1) {
+                m_app.renderer().samples() = 16;
+            } else if (m_samples_idx == 2) {
+                m_app.renderer().samples() = 32;
+            } else {
+                Logger::warn("Samples Index {} is invaild", m_samples_idx);
+                m_app.renderer().samples() = 16;
+            }
+        }
+        ImGui::SliderInt("LightSizeUV", &m_app.renderer().light_size_uv(), 0,
+                         800);
+        ImGui::SliderFloat("MinRaduis", &m_app.renderer().min_radius(), 0.0f,
+                           20.0f);
+        ImGui::SliderFloat("MaxRadius", &m_app.renderer().max_radius(), 0.0f,
+                           100.0f);
         ImGui::EndTabItem();
     }
 }
