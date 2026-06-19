@@ -45,6 +45,7 @@ public:
     float& cloud_threshold_low();
     float& cloud_threshold_high();
     float& refract_strength();
+    float& underwater_fog_density();
 
 private:
     struct ParallelLight {
@@ -151,6 +152,8 @@ private:
     float m_cloud_threshold_high = 0.75f;
 
     float m_refract_strength = 0.03f;
+
+    float m_underwater_fog_density = 0.08f;
 
     ParallelLight m_parallel_light;
     SkyUniform m_sky_uniform;

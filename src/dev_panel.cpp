@@ -662,6 +662,9 @@ void DevPanel::show_shader_tab_item() {
         ImGui::Checkbox("Water Perturb", &m_app.renderer().water_perturb());
         ImGui::SameLine();
         ImGui::Checkbox("WaterDepthFade", &m_app.renderer().water_depth_fade());
+        ImGui::SliderFloat("Underwater Fog Density",
+                           &m_app.renderer().underwater_fog_density(), 0.0f,
+                           1.0f);
         ImGui::EndTabItem();
     }
 }

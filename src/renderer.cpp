@@ -443,7 +443,7 @@ void Renderer::render_underwater() {
     shader.set_loc("u_time", static_cast<float>(glfwGetTime()));
     shader.set_loc("u_underwater", m_camera.is_under_water());
     shader.set_loc("u_waterColor", glm::vec3(0.1f, 0.25f, 0.35f));
-    shader.set_loc("u_fogDensity", 0.08f);
+    shader.set_loc("u_fogDensity", m_underwater_fog_density);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_screen_texture);
@@ -980,4 +980,5 @@ float& Renderer::cloud_speed() { return m_cloud_speed; }
 float& Renderer::cloud_threshold_low() { return m_cloud_threshold_low; }
 float& Renderer::cloud_threshold_high() { return m_cloud_threshold_high; }
 float& Renderer::refract_strength() { return m_refract_strength; }
+float& Renderer::underwater_fog_density() { return m_underwater_fog_density; }
 } // namespace Cubed
