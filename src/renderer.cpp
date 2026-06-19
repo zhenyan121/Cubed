@@ -37,12 +37,12 @@ Renderer::~Renderer() {
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
     glDeleteFramebuffers(1, &m_fbo);
     glDeleteTextures(1, &m_screen_texture);
-    glDeleteRenderbuffers(1, &m_depth_render_buffer);
+    glDeleteTextures(1, &m_depth_texture);
 
     glDeleteFramebuffers(1, &m_oit_fbo);
     glDeleteTextures(1, &m_accum_texture);
     glDeleteTextures(1, &m_reveal_texture);
-    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+    glDeleteTextures(1, &m_oit_depth_texture);
 
     glDeleteFramebuffers(1, &m_depth_map_fbo);
     glDeleteTextures(1, &m_depth_map_texture);
@@ -84,6 +84,9 @@ void Renderer::init() {
                         "shaders/depth_fragment_shader.glsl"};
     Shader billboard{"billboard", "shaders/billboard_v_shader.glsl",
                      "shaders/billboard_f_shader.glsl"};
+    Shader water_shader{"water", "shaders/water_v_shader.glsl",
+                        "shaders/water_f_shader.glsl"};
+
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -96,6 +99,7 @@ void Renderer::init() {
         {composite_block_shader.hash(), std::move(composite_block_shader)});
     m_shaders.insert({depth_shader.hash(), std::move(depth_shader)});
     m_shaders.insert({billboard.hash(), std::move(billboard)});
+    m_shaders.insert({water_shader.hash(), std::move(water_shader)});
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -492,7 +496,7 @@ void Renderer::updata_framebuffer(int width, int height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
     glDeleteTextures(1, &m_screen_texture);
-    glDeleteRenderbuffers(1, &m_depth_render_buffer);
+    glDeleteTextures(1, &m_depth_texture);
 
     glGenTextures(1, &m_screen_texture);
     glBindTexture(GL_TEXTURE_2D, m_screen_texture);
@@ -504,11 +508,14 @@ void Renderer::updata_framebuffer(int width, int height) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            m_screen_texture, 0);
 
-    glGenRenderbuffers(1, &m_depth_render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, m_depth_render_buffer);
+    glGenTextures(1, &m_depth_texture);
+    glBindTexture(GL_TEXTURE_2D, m_depth_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           m_depth_texture, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         Logger::error("FBO incomplete after resize!");
@@ -520,7 +527,7 @@ void Renderer::updata_framebuffer(int width, int height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
     glDeleteTextures(1, &m_accum_texture);
     glDeleteTextures(1, &m_reveal_texture);
-    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+    glDeleteTextures(1, &m_oit_depth_texture);
     glGenTextures(1, &m_accum_texture);
     glBindTexture(GL_TEXTURE_2D, m_accum_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA,
@@ -537,11 +544,14 @@ void Renderer::updata_framebuffer(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
                            m_reveal_texture, 0);
-    glGenRenderbuffers(1, &m_oit_depth_render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_oit_depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, m_oit_depth_render_buffer);
+    glGenTextures(1, &m_oit_depth_texture);
+    glBindTexture(GL_TEXTURE_2D, m_oit_depth_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           m_oit_depth_texture, 0);
     GLenum draw_buffer[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, draw_buffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -797,30 +807,6 @@ void Renderer::render_world() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_oit_fbo);
 
     // pass one accumulate
-    auto& accum_shader = get_shader("accum");
-    accum_shader.use();
-
-    GLint mv_loc = accum_shader.loc("mv_matrix");
-    GLint proj_loc = accum_shader.loc("proj_matrix");
-
-    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniformMatrix4fv(accum_shader.loc("norm_matrix"), 1, GL_FALSE,
-                       glm::value_ptr(m_norm_mat));
-    glUniformMatrix4fv(accum_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
-                       glm::value_ptr(light_space_matrix));
-    glUniform1f(accum_shader.loc("ambientStrength"), m_ambient_strength);
-    glUniform3fv(accum_shader.loc("sunlightColor"), 1,
-                 glm::value_ptr(m_parallel_light.directional_light_color));
-    glUniform3fv(accum_shader.loc("ambientColor"), 1,
-                 glm::value_ptr(m_parallel_light.finnal_ambient_color));
-    glUniform3fv(accum_shader.loc("sunlightDir"), 1,
-                 glm::value_ptr(light_dir_view));
-    glUniform1i(accum_shader.loc("shader_on"), m_shader_on);
-    glUniform1f(accum_shader.loc("specularStrength"), m_specular_strength);
-    glUniform3fv(accum_shader.loc("cameraPos"), 1,
-                 glm::value_ptr(m_camera.get_camera_pos()));
-
     glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
 
     glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
@@ -834,6 +820,34 @@ void Renderer::render_world() {
     glBlendFunci(0, GL_ONE, GL_ONE);
 
     glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+
+    auto set_accum_loc = [&](const Shader& accum_shader) {
+        GLint mv_loc = accum_shader.loc("mv_matrix");
+        GLint proj_loc = accum_shader.loc("proj_matrix");
+        glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
+        glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+        glUniformMatrix4fv(accum_shader.loc("norm_matrix"), 1, GL_FALSE,
+                           glm::value_ptr(m_norm_mat));
+        glUniformMatrix4fv(accum_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
+                           glm::value_ptr(light_space_matrix));
+        glUniform1f(accum_shader.loc("ambientStrength"), m_ambient_strength);
+        glUniform3fv(accum_shader.loc("sunlightColor"), 1,
+                     glm::value_ptr(m_parallel_light.directional_light_color));
+        glUniform3fv(accum_shader.loc("ambientColor"), 1,
+                     glm::value_ptr(m_parallel_light.finnal_ambient_color));
+        glUniform3fv(accum_shader.loc("sunlightDir"), 1,
+                     glm::value_ptr(light_dir_view));
+        glUniform1i(accum_shader.loc("shader_on"), m_shader_on);
+        glUniform1f(accum_shader.loc("specularStrength"), m_specular_strength);
+        glUniform3fv(accum_shader.loc("cameraPos"), 1,
+                     glm::value_ptr(m_camera.get_camera_pos()));
+    };
+
+    auto& accum_shader = get_shader("accum");
+    accum_shader.use();
+
+    set_accum_loc(accum_shader);
+
     glActiveTexture(GL_TEXTURE0);
     for (const auto& snapshot : m_render_snapshots) {
         if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
@@ -849,6 +863,28 @@ void Renderer::render_world() {
             glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_blend_vertices_count);
         }
     }
+
+    auto& water_shader = get_shader("water");
+    water_shader.use();
+
+    set_accum_loc(water_shader);
+
+    glActiveTexture(GL_TEXTURE0);
+    for (const auto& snapshot : m_render_snapshots) {
+        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+                                      m_planes)) {
+            continue;
+        }
+
+        if (snapshot.water_vertices_count != 0) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindVertexArray(snapshot.water_vao);
+
+            glDrawArrays(GL_TRIANGLES, 0, snapshot.water_vertices_count);
+        }
+    }
+
     auto& composite_shader = get_shader("composite");
     glDisable(GL_BLEND);
     composite_shader.use();

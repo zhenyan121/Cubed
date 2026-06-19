@@ -105,12 +105,12 @@ private:
 
     GLuint m_fbo = 0;
     GLuint m_screen_texture = 0;
-    GLuint m_depth_render_buffer = 0;
+    GLuint m_depth_texture = 0;
 
     GLuint m_oit_fbo = 0;
     GLuint m_accum_texture = 0;
     GLuint m_reveal_texture = 0;
-    GLuint m_oit_depth_render_buffer = 0;
+    GLuint m_oit_depth_texture = 0;
 
     GLuint m_depth_map_fbo = 0;
     GLuint m_depth_map_texture = 0;

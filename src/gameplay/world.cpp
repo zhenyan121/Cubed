@@ -971,6 +971,7 @@ void World::update(float delta_time) {
                      chunk.get_normal_discard_vertices_sum(),
                      chunk.get_normal_blend_vao(),
                      chunk.get_normal_blend_vertices_sum(),
+                     chunk.get_water_vao(), chunk.get_water_vertices_sum(),
                      glm::vec3(static_cast<float>(pos.x * CHUNK_SIZE) +
                                    static_cast<float>(CHUNK_SIZE / 2),
                                static_cast<float>(WORLD_SIZE_Y / 2),
