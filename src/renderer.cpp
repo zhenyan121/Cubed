@@ -312,6 +312,8 @@ void Renderer::render_sky() {
     float horizon_sharpness =
         glm::mix(NIGHT_SHARPNESS, day_sharpness, m_parallel_light.day_factor);
 
+    m_cloud_time += m_delta_time * m_cloud_speed;
+
     const auto& sky_shader = get_shader("sky");
 
     sky_shader.use();
@@ -333,6 +335,7 @@ void Renderer::render_sky() {
     glUniform3fv(sky_shader.loc("sunColor"), 1,
                  glm::value_ptr(m_parallel_light.directional_light_color));
     glUniform1f(sky_shader.loc("horizonSharpness"), horizon_sharpness);
+    glUniform1f(sky_shader.loc("time"), m_cloud_time);
     glBindVertexArray(m_vao[1]);
 
     glDisable(GL_DEPTH_TEST);
@@ -907,4 +910,5 @@ float& Renderer::min_radius() { return m_min_radius; }
 float& Renderer::max_radius() { return m_max_radius; }
 int& Renderer::samples() { return m_samples; }
 float& Renderer::specular_strength() { return m_specular_strength; }
+float& Renderer::cloud_speed() { return m_cloud_speed; }
 } // namespace Cubed

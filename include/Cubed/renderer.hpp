@@ -39,6 +39,7 @@ public:
     float& max_radius();
     int& samples();
     float& specular_strength();
+    float& cloud_speed();
 
 private:
     struct ParallelLight {
@@ -82,6 +83,9 @@ private:
     float m_fov = DEFAULT_FOV;
 
     float m_delta_time = 0.0f;
+
+    float m_cloud_time = 0.0f;
+    float m_cloud_speed = 5.0f;
 
     float m_width = 0.0f;
     float m_height = 0.0f;

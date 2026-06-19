@@ -642,12 +642,17 @@ void DevPanel::show_shader_tab_item() {
                 m_app.renderer().samples() = 16;
             }
         }
-        ImGui::SliderInt("LightSizeUV", &m_app.renderer().light_size_uv(), 0,
-                         800);
-        ImGui::SliderFloat("MinRaduis", &m_app.renderer().min_radius(), 0.0f,
-                           20.0f);
-        ImGui::SliderFloat("MaxRadius", &m_app.renderer().max_radius(), 0.0f,
+        if (m_app.renderer().shadow_mode() == 3) {
+            ImGui::SliderInt("LightSizeUV", &m_app.renderer().light_size_uv(),
+                             0, 800);
+            ImGui::SliderFloat("MinRaduis", &m_app.renderer().min_radius(),
+                               0.0f, 20.0f);
+            ImGui::SliderFloat("MaxRadius", &m_app.renderer().max_radius(),
+                               0.0f, 100.0f);
+        }
+        ImGui::SliderFloat("Cloud Speed", &m_app.renderer().cloud_speed(), 1.0f,
                            100.0f);
+
         ImGui::EndTabItem();
     }
 }
