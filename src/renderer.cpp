@@ -82,6 +82,8 @@ void Renderer::init() {
                                   "shaders/block_composite_f_shader.glsl"};
     Shader depth_shader{"depth_shader", "shaders/depth_shader.glsl",
                         "shaders/depth_fragment_shader.glsl"};
+    Shader billboard{"billboard", "shaders/billboard_v_shader.glsl",
+                     "shaders/billboard_f_shader.glsl"};
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -93,6 +95,7 @@ void Renderer::init() {
     m_shaders.insert(
         {composite_block_shader.hash(), std::move(composite_block_shader)});
     m_shaders.insert({depth_shader.hash(), std::move(depth_shader)});
+    m_shaders.insert({billboard.hash(), std::move(billboard)});
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -203,7 +206,7 @@ void Renderer::render() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    day_night_calculation();
     render_sky();
     render_world();
     render_outline();
@@ -219,6 +222,34 @@ void Renderer::render() {
     render_ui();
     render_text();
     render_dev_panel();
+}
+
+void Renderer::day_night_calculation() {
+    m_parallel_light.sundir = glm::normalize(m_world.sunlight_dir());
+    m_parallel_light.sun_height = (-m_parallel_light.sundir).y;
+    m_parallel_light.lightdir = m_parallel_light.sundir;
+
+    m_parallel_light.day_light =
+        glm::smoothstep(0.15f, 0.3f, m_parallel_light.sun_height);
+
+    m_parallel_light.sun_color = mix(SUNSET_SUNLIGHT_COLOR, NOON_SUNLIGHT_COLOR,
+                                     m_parallel_light.day_light);
+
+    glm::vec3 ambient_color = mix(SUNSET_AMBIENT_COLOR, NOON_AMBIENT_COLOR,
+                                  m_parallel_light.day_light);
+
+    m_parallel_light.day_factor =
+        glm::smoothstep(-0.15f, 0.05f, m_parallel_light.sun_height);
+    auto day_factor = m_parallel_light.day_factor;
+    float light_intensity =
+        glm::smoothstep(moon_intensity, sun_intensity, day_factor);
+    m_parallel_light.directional_light_color =
+        glm::mix(MOON_COLOR, m_parallel_light.sun_color, day_factor) *
+        light_intensity;
+    m_parallel_light.finnal_ambient_color =
+        glm::mix(NIGHT_AMBIENT_COLOR, ambient_color, day_factor);
+
+    m_ambient_strength = glm::mix(0.45f, 0.25f, day_factor);
 }
 
 void Renderer::render_outline() {
@@ -252,20 +283,56 @@ void Renderer::render_outline() {
 
 void Renderer::render_sky() {
 
-    const auto& shader = get_shader("sky");
+    glm::vec3 zenith = {0.20f, 0.45f, 0.95f};
 
-    shader.use();
-    m_mv_loc = shader.loc("mv_matrix");
-    m_proj_loc = shader.loc("proj_matrix");
+    glm::vec3 horizon = {0.55f, 0.75f, 1.00f};
+
+    glm::vec3 sunset_zenith = {0.05f, 0.10f, 0.25f};
+
+    glm::vec3 sunset_horizon = {1.0f, 0.35f, 0.10f};
+
+    glm::vec3 night_zenith = {0.01f, 0.015f, 0.04f};
+    glm::vec3 night_horizon = {0.03f, 0.035f, 0.06f};
+
+    constexpr float NIGHT_SHARPNESS = 0.35f;
+    constexpr float SUNSET_SHARPNESS = 0.6f;
+    constexpr float NOON_SHARPNESS = 0.35f;
+
+    glm::vec3 day_top = mix(sunset_zenith, zenith, m_parallel_light.day_light);
+    glm::vec3 day_bottom =
+        mix(sunset_horizon, horizon, m_parallel_light.day_light);
+
+    glm::vec3 sky_top = mix(night_zenith, day_top, m_parallel_light.day_factor);
+    glm::vec3 sky_bottom =
+        mix(night_horizon, day_bottom, m_parallel_light.day_factor);
+
+    float day_sharpness =
+        glm::mix(SUNSET_SHARPNESS, NOON_SHARPNESS, m_parallel_light.day_light);
+
+    float horizon_sharpness =
+        glm::mix(NIGHT_SHARPNESS, day_sharpness, m_parallel_light.day_factor);
+
+    const auto& sky_shader = get_shader("sky");
+
+    sky_shader.use();
+    m_mv_loc = sky_shader.loc("mv_matrix");
+    m_proj_loc = sky_shader.loc("proj_matrix");
 
     m_m_mat = glm::translate(glm::mat4(1.0f), m_camera.get_camera_pos() -
                                                   glm::vec3(0.5f, 0.5f, 0.5f));
     m_v_mat = m_camera.get_camera_lookat();
     m_mv_mat = m_v_mat * m_m_mat;
 
+    glm::vec3 sun_dir_view = (-m_parallel_light.sundir);
+
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(SKY_COLOR));
+    glUniform3fv(sky_shader.loc("skyTop"), 1, glm::value_ptr(sky_top));
+    glUniform3fv(sky_shader.loc("skyBottom"), 1, glm::value_ptr(sky_bottom));
+    glUniform3fv(sky_shader.loc("sunDir"), 1, glm::value_ptr(sun_dir_view));
+    glUniform3fv(sky_shader.loc("sunColor"), 1,
+                 glm::value_ptr(m_parallel_light.directional_light_color));
+    glUniform1f(sky_shader.loc("horizonSharpness"), horizon_sharpness);
     glBindVertexArray(m_vao[1]);
 
     glDisable(GL_DEPTH_TEST);
@@ -274,19 +341,25 @@ void Renderer::render_sky() {
     glEnable(GL_DEPTH_TEST);
 
     // draw sun and moon
+    const auto& billboard = get_shader("billboard");
+    billboard.use();
     glDepthMask(GL_FALSE);
 
     glBindVertexArray(m_vao[0]);
-    // draw sum
+    // draw sun
     glm::vec3 sun_pos = m_camera.get_camera_pos() +
                         normalize(-m_world.sunlight_dir()) * (FAR_PLANE * 0.9f);
     glm::vec3 sun_view_pos = glm::vec3(m_v_mat * glm::vec4(sun_pos, 1.0f));
     m_mv_mat = glm::translate(glm::mat4(1.0f), sun_view_pos) *
                glm::scale(glm::mat4(1.0f), glm::vec3(SUN_SIZE)) *
                glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
+
+    m_mv_loc = billboard.loc("mv_matrix");
+    m_proj_loc = billboard.loc("proj_matrix");
+
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(SUN_COLOR));
+    glUniform3fv(billboard.loc("color"), 1, glm::value_ptr(SUN_COLOR));
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -298,7 +371,7 @@ void Renderer::render_sky() {
                glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(shader.loc("color"), 1, glm::value_ptr(MOON_COLOR));
+    glUniform3fv(billboard.loc("color"), 1, glm::value_ptr(MOON_COLOR));
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -506,9 +579,9 @@ void Renderer::render_world() {
     auto& m_render_snapshots = m_world.render_snapshots();
     auto& camera_pos = m_camera.get_camera_pos();
     float texels_per_unit = 0.0f;
-    glm::vec3 sundir = glm::normalize(m_world.sunlight_dir());
-    float sun_height = (-sundir).y;
-    glm::vec3 lightdir = sundir;
+
+    const auto& lightdir = m_parallel_light.lightdir;
+
     if (m_shader_on) {
         const auto& depth_shader = get_shader("depth_shader");
         depth_shader.use();
@@ -622,23 +695,6 @@ void Renderer::render_world() {
     m_mv_mat = m_v_mat * m_m_mat;
     m_norm_mat = glm::transpose(glm::inverse(m_mv_mat));
     glm::vec3 light_dir_view = glm::normalize(glm::mat3(m_v_mat) * lightdir);
-    float daylight = glm::smoothstep(0.05f, 0.2f, sun_height);
-
-    glm::vec3 sun_color =
-        mix(SUNSET_SUNLIGHT_COLOR, NOON_SUNLIGHT_COLOR, daylight);
-
-    glm::vec3 ambient_color =
-        mix(SUNSET_AMBIENT_COLOR, NOON_AMBIENT_COLOR, daylight);
-
-    float day_factor = glm::smoothstep(-0.15f, 0.05f, sun_height);
-    float light_intensity =
-        glm::smoothstep(moon_intensity, sun_intensity, day_factor);
-    glm::vec3 directional_light_color =
-        glm::mix(MOON_COLOR, sun_color, day_factor) * light_intensity;
-    glm::vec3 finnal_ambient_color =
-        glm::mix(NIGHT_AMBIENT_COLOR, ambient_color, day_factor);
-
-    m_ambient_strength = glm::mix(0.45f, 0.25f, day_factor);
 
     glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
     glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
@@ -648,9 +704,9 @@ void Renderer::render_world() {
                        glm::value_ptr(light_space_matrix));
     glUniform1f(normal_block_shader.loc("ambientStrength"), m_ambient_strength);
     glUniform3fv(normal_block_shader.loc("sunlightColor"), 1,
-                 glm::value_ptr(directional_light_color));
+                 glm::value_ptr(m_parallel_light.directional_light_color));
     glUniform3fv(normal_block_shader.loc("ambientColor"), 1,
-                 glm::value_ptr(finnal_ambient_color));
+                 glm::value_ptr(m_parallel_light.finnal_ambient_color));
     glUniform3fv(normal_block_shader.loc("sunlightDir"), 1,
                  glm::value_ptr(light_dir_view));
     glUniform1i(normal_block_shader.loc("shadowMode"), m_shadow_mode);

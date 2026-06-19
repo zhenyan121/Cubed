@@ -41,9 +41,19 @@ public:
     float& specular_strength();
 
 private:
+    struct ParallelLight {
+        glm::vec3 sundir;
+        glm::vec3 lightdir;
+        float sun_height = 0.0f;
+        float day_light = 0.0f;
+        float day_factor = 0.0f;
+        glm::vec3 sun_color;
+        glm::vec3 directional_light_color;
+        glm::vec3 finnal_ambient_color;
+    };
+
     static constexpr glm::vec3 SUN_COLOR{1.00f, 0.95f, 0.80f};
     static constexpr glm::vec3 MOON_COLOR{0.75f, 0.80f, 1.00f};
-    static constexpr glm::vec3 SKY_COLOR{0.529, 0.808, 0.922};
 
     static constexpr glm::vec3 SUNSET_SUNLIGHT_COLOR{1.00f, 0.45f, 0.15f};
     static constexpr glm::vec3 NOON_SUNLIGHT_COLOR{1.00f, 0.90f, 0.65f};
@@ -120,7 +130,7 @@ private:
 
     float moon_intensity = 0.3f;
     float sun_intensity = 1.00f;
-
+    ParallelLight m_parallel_light;
     /*
     0 - quad vao
     1 - sky vao
@@ -134,6 +144,8 @@ private:
 
     void init_quad();
     void init_text();
+
+    void day_night_calculation();
 
     void render_outline();
     void render_sky();
