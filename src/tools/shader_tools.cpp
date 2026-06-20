@@ -133,8 +133,10 @@ unsigned char* load_image_data(const std::string& tex_image_path,
     }
     unsigned char* data = nullptr;
     int width, height, channels;
-    data = SOIL_load_image(path.string().c_str(), &width, &height, &channels,
-                           SOIL_LOAD_AUTO);
+    data =
+        SOIL_load_image(path.string().c_str(), &width, &height, &channels,
+                        SOIL_LOAD_RGBA); // Materials are all RGBA; must force
+    // RGBA, otherwise sampling will fail.
     if (check_exist) {
         if (!data) {
             ASSERT_MSG(data, "Could not load texture" + path.string());

@@ -274,7 +274,6 @@ vec3 calcNewNormal() {
     return normalize(newNormal);
 }
 
-
 void main(void) {
     vec4 objectColor = texture(samp, vec3(tc, tex_layer));
 
@@ -343,7 +342,9 @@ void main(void) {
 
     float shadow = ShadowCalculation(FragPosLightSpace, norm, lightDir);  
   
-    color = vec4((ambient + (1.0 - shadow) * (diffuse)) * objectColor.rgb + (1.0-shadow) * specular, objectColor.a);
-
-    //color = varyingColor;
+    color = vec4((ambient + (1.0 - shadow) * (diffuse)) * objectColor.rgb + (1.0-shadow) * specular * objectColor.rgb, objectColor.a);
+    //color = vec4(normal * 0.5 + 0.5, 1.0);
+    //color = vec4(tangent * 0.5 + 0.5, 1.0);;
+    //color = vec4(norm * 0.5 + 0.5, 1.0);
+    //color = vec4(calcNewNormal(), 1.0);
 }
