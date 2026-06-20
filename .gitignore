@@ -42,3 +42,4 @@ CMakeError.log
 .DS_Store
 assets/config.toml
 .venv/
+pyout/
