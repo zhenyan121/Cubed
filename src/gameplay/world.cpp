@@ -162,7 +162,7 @@ void World::gen_chunks_internal() {
                   new_temp_chunks.end(),
                   [this](std::pair<ChunkPos, Chunk>& new_chunk) {
                       auto& [pos, chunk] = new_chunk;
-                      chunk.gen_chunk();
+                      chunk.gen_phase_one();
                       m_cave_carcer.try_to_add_path(pos, chunk.seed());
                       m_river_worm.try_to_add_path(pos, chunk.seed());
                   });
