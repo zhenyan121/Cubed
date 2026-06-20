@@ -728,6 +728,8 @@ void Renderer::render_world() {
     normal_block_shader.set_loc("specularStrength", m_specular_strength);
     normal_block_shader.set_loc("cameraPos", m_camera.get_camera_pos());
     normal_block_shader.set_loc("flipY", m_flip_y);
+    normal_block_shader.set_loc("renderDistance", m_world.rendering_distance());
+    normal_block_shader.set_loc("skyColor", m_sky_uniform.sky_top);
     m_mvp_mat = m_p_mat * m_mv_mat;
 
     auto& m_planes = m_world.planes();
