@@ -19,7 +19,7 @@ private:
     static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUNK_SIZE;
-    static constexpr int VERTEX_DATA_SUM = 4;
+    static constexpr int VERTEX_DATA_SUM = 5;
     std::atomic<bool> m_dirty{false};
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data{false};
@@ -39,6 +39,7 @@ private:
     1 - cross_plane
     2 - normal_discard
     3 - transparent and blend
+    4 - water
     */
     std::vector<VertexData> m_vertex_data;
     float frequency = 0.01f;
@@ -112,6 +113,9 @@ public:
 
     GLuint get_normal_blend_vao() const;
     size_t get_normal_blend_vertices_sum() const;
+
+    GLuint get_water_vao() const;
+    size_t get_water_vertices_sum() const;
 
     bool is_dirty() const;
     void mark_dirty();

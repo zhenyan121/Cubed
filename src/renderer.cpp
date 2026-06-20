@@ -37,12 +37,12 @@ Renderer::~Renderer() {
     glDeleteVertexArrays(NUM_VAO, m_vao.data());
     glDeleteFramebuffers(1, &m_fbo);
     glDeleteTextures(1, &m_screen_texture);
-    glDeleteRenderbuffers(1, &m_depth_render_buffer);
+    glDeleteTextures(1, &m_screen_depth_texture);
 
     glDeleteFramebuffers(1, &m_oit_fbo);
     glDeleteTextures(1, &m_accum_texture);
     glDeleteTextures(1, &m_reveal_texture);
-    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+    glDeleteTextures(1, &m_oit_depth_texture);
 
     glDeleteFramebuffers(1, &m_depth_map_fbo);
     glDeleteTextures(1, &m_depth_map_texture);
@@ -84,6 +84,9 @@ void Renderer::init() {
                         "shaders/depth_fragment_shader.glsl"};
     Shader billboard{"billboard", "shaders/billboard_v_shader.glsl",
                      "shaders/billboard_f_shader.glsl"};
+    Shader water_shader{"water", "shaders/water_v_shader.glsl",
+                        "shaders/water_f_shader.glsl"};
+
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -96,6 +99,7 @@ void Renderer::init() {
         {composite_block_shader.hash(), std::move(composite_block_shader)});
     m_shaders.insert({depth_shader.hash(), std::move(depth_shader)});
     m_shaders.insert({billboard.hash(), std::move(billboard)});
+    m_shaders.insert({water_shader.hash(), std::move(water_shader)});
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -260,17 +264,14 @@ void Renderer::render_outline() {
 
     if (block_pos != std::nullopt) {
 
-        m_mv_loc = shader.loc("mv_matrix");
-        m_proj_loc = shader.loc("proj_matrix");
-
         m_m_mat =
             glm::translate(glm::mat4(1.0f), glm::vec3(block_pos.value().pos));
 
         m_v_mat = m_camera.get_camera_lookat();
         m_mv_mat = m_v_mat * m_m_mat;
 
-        glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-        glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
+        shader.set_loc("mv_matrix", m_mv_mat);
+        shader.set_loc("proj_matrix", m_p_mat);
 
         glBindVertexArray(m_vao[2]);
 
@@ -306,19 +307,20 @@ void Renderer::render_sky() {
     glm::vec3 day_bottom =
         mix(sunset_horizon, horizon, m_parallel_light.day_light);
 
-    glm::vec3 sky_top = mix(night_zenith, day_top, m_parallel_light.day_factor);
-    glm::vec3 sky_bottom =
+    m_sky_uniform.sky_top =
+        mix(night_zenith, day_top, m_parallel_light.day_factor);
+    m_sky_uniform.sky_bottom =
         mix(night_horizon, day_bottom, m_parallel_light.day_factor);
 
     float day_sharpness =
         glm::mix(SUNSET_SHARPNESS, NOON_SHARPNESS, m_parallel_light.day_light);
 
-    float horizon_sharpness =
+    m_sky_uniform.horizon_sharpness =
         glm::mix(NIGHT_SHARPNESS, day_sharpness, m_parallel_light.day_factor);
 
     float day_cloud_mix =
         glm::mix(SUNSET_CLOUD_MIX, NOON_CLOUD_MIX, m_parallel_light.day_light);
-    float cloud_white_mix =
+    m_sky_uniform.cloud_white_mix =
         glm::mix(NIGHT_CLOUD_MIX, day_cloud_mix, m_parallel_light.day_factor);
 
     m_cloud_time += m_delta_time * m_cloud_speed;
@@ -326,28 +328,24 @@ void Renderer::render_sky() {
     const auto& sky_shader = get_shader("sky");
 
     sky_shader.use();
-    m_mv_loc = sky_shader.loc("mv_matrix");
-    m_proj_loc = sky_shader.loc("proj_matrix");
 
     m_m_mat = glm::translate(glm::mat4(1.0f), m_camera.get_camera_pos() -
                                                   glm::vec3(0.5f, 0.5f, 0.5f));
     m_v_mat = m_camera.get_camera_lookat();
     m_mv_mat = m_v_mat * m_m_mat;
 
-    glm::vec3 sun_dir_view = (-m_parallel_light.sundir);
-
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(sky_shader.loc("skyTop"), 1, glm::value_ptr(sky_top));
-    glUniform3fv(sky_shader.loc("skyBottom"), 1, glm::value_ptr(sky_bottom));
-    glUniform3fv(sky_shader.loc("sunDir"), 1, glm::value_ptr(sun_dir_view));
-    glUniform3fv(sky_shader.loc("sunColor"), 1,
-                 glm::value_ptr(m_parallel_light.directional_light_color));
-    glUniform1f(sky_shader.loc("horizonSharpness"), horizon_sharpness);
-    glUniform1f(sky_shader.loc("time"), m_cloud_time);
-    glUniform1f(sky_shader.loc("cloudWhiteMix"), cloud_white_mix);
-    glUniform1f(sky_shader.loc("cloudThresholdLow"), m_cloud_threshold_low);
-    glUniform1f(sky_shader.loc("cloudThresholdHigh"), m_cloud_threshold_high);
+    m_sky_uniform.sun_dir_view = (-m_parallel_light.sundir);
+    sky_shader.set_loc("mv_matrix", m_mv_mat);
+    sky_shader.set_loc("proj_matrix", m_p_mat);
+    sky_shader.set_loc("skyTop", m_sky_uniform.sky_top);
+    sky_shader.set_loc("skyBottom", m_sky_uniform.sky_bottom);
+    sky_shader.set_loc("sunDir", m_sky_uniform.sun_dir_view);
+    sky_shader.set_loc("sunColor", m_parallel_light.directional_light_color);
+    sky_shader.set_loc("horizonSharpness", m_sky_uniform.horizon_sharpness);
+    sky_shader.set_loc("time", m_cloud_time);
+    sky_shader.set_loc("cloudWhiteMix", m_sky_uniform.cloud_white_mix);
+    sky_shader.set_loc("cloudThresholdLow", m_cloud_threshold_low);
+    sky_shader.set_loc("cloudThresholdHigh", m_cloud_threshold_high);
     glBindVertexArray(m_vao[1]);
 
     glDisable(GL_DEPTH_TEST);
@@ -369,12 +367,9 @@ void Renderer::render_sky() {
                glm::scale(glm::mat4(1.0f), glm::vec3(SUN_SIZE)) *
                glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
 
-    m_mv_loc = billboard.loc("mv_matrix");
-    m_proj_loc = billboard.loc("proj_matrix");
-
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(billboard.loc("color"), 1, glm::value_ptr(SUN_COLOR));
+    billboard.set_loc("mv_matrix", m_mv_mat);
+    billboard.set_loc("proj_matrix", m_p_mat);
+    billboard.set_loc("color", SUN_COLOR);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -384,9 +379,9 @@ void Renderer::render_sky() {
     m_mv_mat = glm::translate(glm::mat4(1.0f), moon_view_pos) *
                glm::scale(glm::mat4(1.0f), glm::vec3(MOON_SIZE)) *
                glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, -0.5f, 0.0f));
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniform3fv(billboard.loc("color"), 1, glm::value_ptr(MOON_COLOR));
+    billboard.set_loc("mv_matrix", m_mv_mat);
+    billboard.set_loc("proj_matrix", m_p_mat);
+    billboard.set_loc("color", MOON_COLOR);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -406,9 +401,7 @@ void Renderer::render_text() {
 
     glDisable(GL_DEPTH_TEST);
 
-    m_proj_loc = shader.loc("projection");
-
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
+    shader.set_loc("projection", m_ui_proj);
 
     auto& texts = DebugCollector::get().all_texts();
     for (auto& t : texts) {
@@ -425,11 +418,9 @@ void Renderer::render_ui() {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    m_mv_loc = shader.loc("m_matrix");
-    m_proj_loc = shader.loc("proj_matrix");
 
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_ui_m_matrix));
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_ui_proj));
+    shader.set_loc("mv_matrix", m_ui_m_matrix);
+    shader.set_loc("proj_matrix", m_ui_proj);
 
     glBindVertexArray(m_vao[3]);
 
@@ -448,15 +439,23 @@ void Renderer::render_underwater() {
 
     glBindVertexArray(m_vao[0]);
 
-    glUniform1i(shader.loc("u_sceneTexture"), 0);
-    glUniform1f(shader.loc("u_time"), glfwGetTime());
-    glUniform1i(shader.loc("u_underwater"), m_camera.is_under_water());
-    glUniform3f(shader.loc("u_waterColor"), 0.1f, 0.25f, 0.35f);
-    glUniform1f(shader.loc("u_fogDensity"), 0.08f);
-
+    shader.set_loc("u_sceneTexture", 0);
+    shader.set_loc("u_time", static_cast<float>(glfwGetTime()));
+    shader.set_loc("u_underwater", m_camera.is_under_water());
+    shader.set_loc("u_waterColor", glm::vec3(0.1f, 0.25f, 0.35f));
+    shader.set_loc("u_fogDensity", m_underwater_fog_density);
+    shader.set_loc("cameraPos", m_camera.get_camera_pos());
+    shader.set_loc("sunDir", -m_parallel_light.sundir);
+    shader.set_loc("waterDensity", m_water_density);
+    shader.set_loc("InverseViewProjection", glm::inverse(m_p_mat * m_v_mat));
+    shader.set_loc("sunColor", m_parallel_light.sun_color);
+    shader.set_loc("u_lightSpaceMatrix", m_parallel_light.light_space_matrix);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_screen_texture);
-
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_screen_depth_texture);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_depth_map_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
@@ -492,7 +491,7 @@ void Renderer::updata_framebuffer(int width, int height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
     glDeleteTextures(1, &m_screen_texture);
-    glDeleteRenderbuffers(1, &m_depth_render_buffer);
+    glDeleteTextures(1, &m_screen_depth_texture);
 
     glGenTextures(1, &m_screen_texture);
     glBindTexture(GL_TEXTURE_2D, m_screen_texture);
@@ -504,11 +503,14 @@ void Renderer::updata_framebuffer(int width, int height) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            m_screen_texture, 0);
 
-    glGenRenderbuffers(1, &m_depth_render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, m_depth_render_buffer);
+    glGenTextures(1, &m_screen_depth_texture);
+    glBindTexture(GL_TEXTURE_2D, m_screen_depth_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           m_screen_depth_texture, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         Logger::error("FBO incomplete after resize!");
@@ -520,7 +522,7 @@ void Renderer::updata_framebuffer(int width, int height) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
     glDeleteTextures(1, &m_accum_texture);
     glDeleteTextures(1, &m_reveal_texture);
-    glDeleteRenderbuffers(1, &m_oit_depth_render_buffer);
+    glDeleteTextures(1, &m_oit_depth_texture);
     glGenTextures(1, &m_accum_texture);
     glBindTexture(GL_TEXTURE_2D, m_accum_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA,
@@ -537,11 +539,14 @@ void Renderer::updata_framebuffer(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
                            m_reveal_texture, 0);
-    glGenRenderbuffers(1, &m_oit_depth_render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_oit_depth_render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER, m_oit_depth_render_buffer);
+    glGenTextures(1, &m_oit_depth_texture);
+    glBindTexture(GL_TEXTURE_2D, m_oit_depth_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           m_oit_depth_texture, 0);
     GLenum draw_buffer[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
     glDrawBuffers(2, draw_buffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -590,7 +595,7 @@ void Renderer::updata_framebuffer(int width, int height) {
 #pragma region render_world
 void Renderer::render_world() {
     // shader map
-    glm::mat4 light_space_matrix;
+    glm::mat4& light_space_matrix = m_parallel_light.light_space_matrix;
     auto& m_render_snapshots = m_world.render_snapshots();
     auto& camera_pos = m_camera.get_camera_pos();
     float texels_per_unit = 0.0f;
@@ -635,10 +640,9 @@ void Renderer::render_world() {
                        near_plane, far_plane);
 
         light_space_matrix = light_projection * light_view;
-        glUniformMatrix4fv(depth_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
-                           glm::value_ptr(light_space_matrix));
-        glUniform1i(depth_shader.loc("is_discard_tranparent"),
-                    m_discard_tranparent);
+        depth_shader.set_loc("lightSpaceMatrix", light_space_matrix);
+        depth_shader.set_loc("is_discard_tranparent", m_discard_tranparent);
+
         glViewport(0, 0, DEPTH_MAP_SIZE, DEPTH_MAP_SIZE);
         if (m_light_cull_face == 0) {
             glCullFace(GL_FRONT);
@@ -698,9 +702,6 @@ void Renderer::render_world() {
     const auto& normal_block_shader = get_shader("normal_block");
     normal_block_shader.use();
 
-    m_mv_loc = normal_block_shader.loc("mv_matrix");
-    m_proj_loc = normal_block_shader.loc("proj_matrix");
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_depth_map_texture);
     glActiveTexture(GL_TEXTURE1);
@@ -711,31 +712,27 @@ void Renderer::render_world() {
     m_norm_mat = glm::transpose(glm::inverse(m_mv_mat));
     glm::vec3 light_dir_view = glm::normalize(glm::mat3(m_v_mat) * lightdir);
 
-    glUniformMatrix4fv(m_mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(m_proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-    glUniformMatrix4fv(normal_block_shader.loc("norm_matrix"), 1, GL_FALSE,
-                       glm::value_ptr(m_norm_mat));
-    glUniformMatrix4fv(normal_block_shader.loc("lightSpaceMatrix"), 1, GL_FALSE,
-                       glm::value_ptr(light_space_matrix));
-    glUniform1f(normal_block_shader.loc("ambientStrength"), m_ambient_strength);
-    glUniform3fv(normal_block_shader.loc("sunlightColor"), 1,
-                 glm::value_ptr(m_parallel_light.directional_light_color));
-    glUniform3fv(normal_block_shader.loc("ambientColor"), 1,
-                 glm::value_ptr(m_parallel_light.finnal_ambient_color));
-    glUniform3fv(normal_block_shader.loc("sunlightDir"), 1,
-                 glm::value_ptr(light_dir_view));
-    glUniform1i(normal_block_shader.loc("shadowMode"), m_shadow_mode);
-    glUniform1i(normal_block_shader.loc("shader_on"), m_shader_on);
-    glUniform1f(normal_block_shader.loc("texelsPerUnit"), texels_per_unit);
-    glUniform1f(normal_block_shader.loc("lightSizeUV"),
-                static_cast<GLfloat>(m_light_size_uv));
-    glUniform1f(normal_block_shader.loc("minRadius"), m_min_radius);
-    glUniform1f(normal_block_shader.loc("maxRadius"), m_max_radius);
-    glUniform1i(normal_block_shader.loc("samples"), m_samples);
-    glUniform1f(normal_block_shader.loc("specularStrength"),
-                m_specular_strength);
-    glUniform3fv(normal_block_shader.loc("cameraPos"), 1,
-                 glm::value_ptr(m_camera.get_camera_pos()));
+    normal_block_shader.set_loc("mv_matrix", m_mv_mat);
+    normal_block_shader.set_loc("proj_matrix", m_p_mat);
+    normal_block_shader.set_loc("norm_matrix", m_norm_mat);
+    normal_block_shader.set_loc("lightSpaceMatrix", light_space_matrix);
+    normal_block_shader.set_loc("ambientStrength", m_ambient_strength);
+    normal_block_shader.set_loc("sunlightColor",
+                                m_parallel_light.directional_light_color);
+    normal_block_shader.set_loc("ambientColor",
+                                m_parallel_light.finnal_ambient_color);
+    normal_block_shader.set_loc("sunlightDir", light_dir_view);
+    normal_block_shader.set_loc("shadowMode", m_shadow_mode);
+    normal_block_shader.set_loc("shader_on", m_shader_on);
+    normal_block_shader.set_loc("texelsPerUnit", texels_per_unit);
+    normal_block_shader.set_loc("lightSizeUV",
+                                static_cast<float>(m_light_size_uv));
+    normal_block_shader.set_loc("minRadius", m_min_radius);
+    normal_block_shader.set_loc("maxRadius", m_max_radius);
+    normal_block_shader.set_loc("samples", m_samples);
+    normal_block_shader.set_loc("specularStrength", m_specular_strength);
+    normal_block_shader.set_loc("cameraPos", m_camera.get_camera_pos());
+
     m_mvp_mat = m_p_mat * m_mv_mat;
 
     auto& m_planes = m_world.planes();
@@ -797,15 +794,6 @@ void Renderer::render_world() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_oit_fbo);
 
     // pass one accumulate
-    auto& accum_shader = get_shader("accum");
-    accum_shader.use();
-
-    GLint mv_loc = accum_shader.loc("mv_matrix");
-    GLint proj_loc = accum_shader.loc("proj_matrix");
-
-    glUniformMatrix4fv(mv_loc, 1, GL_FALSE, glm::value_ptr(m_mv_mat));
-    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm::value_ptr(m_p_mat));
-
     glBindFramebuffer(GL_FRAMEBUFFER, m_oit_fbo);
 
     glClearBufferfv(GL_COLOR, 0, glm::value_ptr(glm::vec4(0.0f)));
@@ -819,6 +807,28 @@ void Renderer::render_world() {
     glBlendFunci(0, GL_ONE, GL_ONE);
 
     glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+
+    auto set_accum_loc = [&](const Shader& accum_shader) {
+        accum_shader.set_loc("mv_matrix", m_mv_mat);
+        accum_shader.set_loc("proj_matrix", m_p_mat);
+        accum_shader.set_loc("norm_matrix", m_norm_mat);
+        accum_shader.set_loc("lightSpaceMatrix", light_space_matrix);
+        accum_shader.set_loc("ambientStrength", m_ambient_strength);
+        accum_shader.set_loc("sunlightColor",
+                             m_parallel_light.directional_light_color);
+        accum_shader.set_loc("ambientColor",
+                             m_parallel_light.finnal_ambient_color);
+        accum_shader.set_loc("sunlightDir", light_dir_view);
+        accum_shader.set_loc("shader_on", m_shader_on);
+        accum_shader.set_loc("specularStrength", m_specular_strength);
+        accum_shader.set_loc("cameraPos", m_camera.get_camera_pos());
+    };
+
+    auto& accum_shader = get_shader("accum");
+    accum_shader.use();
+
+    set_accum_loc(accum_shader);
+
     glActiveTexture(GL_TEXTURE0);
     for (const auto& snapshot : m_render_snapshots) {
         if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
@@ -834,6 +844,56 @@ void Renderer::render_world() {
             glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_blend_vertices_count);
         }
     }
+
+    // use SSR
+
+    auto& water_shader = get_shader("water");
+    water_shader.use();
+
+    set_accum_loc(water_shader);
+
+    water_shader.set_loc("sceneColorTex", 1);
+    water_shader.set_loc("sceneDepthTex", 2);
+    water_shader.set_loc("inv_proj_matrix", glm::inverse(m_p_mat));
+    water_shader.set_loc("inv_view_matrix", glm::inverse(m_v_mat));
+
+    // sky loc
+
+    water_shader.set_loc("skyTop", m_sky_uniform.sky_top);
+    water_shader.set_loc("skyBottom", m_sky_uniform.sky_bottom);
+    water_shader.set_loc("sunDir", m_sky_uniform.sun_dir_view);
+    water_shader.set_loc("sunColor", m_parallel_light.directional_light_color);
+    water_shader.set_loc("horizonSharpness", m_sky_uniform.horizon_sharpness);
+    water_shader.set_loc("time", glfwGetTime());
+    water_shader.set_loc("cloudWhiteMix", m_sky_uniform.cloud_white_mix);
+    water_shader.set_loc("cloudThresholdLow", m_cloud_threshold_low);
+    water_shader.set_loc("cloudThresholdHigh", m_cloud_threshold_high);
+    water_shader.set_loc("underwater", m_camera.is_under_water());
+    water_shader.set_loc("refractStrength", m_refract_strength);
+    water_shader.set_loc("enablePerturb", m_water_perturb);
+    water_shader.set_loc("enableDepthFade", m_water_depth_fade);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_screen_texture);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_screen_depth_texture);
+
+    glActiveTexture(GL_TEXTURE0);
+    for (const auto& snapshot : m_render_snapshots) {
+        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+                                      m_planes)) {
+            continue;
+        }
+
+        if (snapshot.water_vertices_count != 0) {
+            glBindTexture(GL_TEXTURE_2D_ARRAY,
+                          m_texture_manager.get_texture_array());
+            glBindVertexArray(snapshot.water_vao);
+
+            glDrawArrays(GL_TRIANGLES, 0, snapshot.water_vertices_count);
+        }
+    }
+
     auto& composite_shader = get_shader("composite");
     glDisable(GL_BLEND);
     composite_shader.use();
@@ -915,6 +975,8 @@ Renderer::get_smoothed_shadow_lightdir(const glm::vec3& raw_shadow_lightdir,
 float& Renderer::ambient_strength() { return m_ambient_strength; }
 bool& Renderer::discard_transparent() { return m_discard_tranparent; }
 bool& Renderer::shader_on() { return m_shader_on; }
+bool& Renderer::water_perturb() { return m_water_perturb; }
+bool& Renderer::water_depth_fade() { return m_water_depth_fade; }
 int& Renderer::shadow_mode() { return m_shadow_mode; }
 int& Renderer::light_cull_face() { return m_light_cull_face; }
 int& Renderer::light_size_uv() { return m_light_size_uv; }
@@ -925,4 +987,7 @@ float& Renderer::specular_strength() { return m_specular_strength; }
 float& Renderer::cloud_speed() { return m_cloud_speed; }
 float& Renderer::cloud_threshold_low() { return m_cloud_threshold_low; }
 float& Renderer::cloud_threshold_high() { return m_cloud_threshold_high; }
+float& Renderer::refract_strength() { return m_refract_strength; }
+float& Renderer::underwater_fog_density() { return m_underwater_fog_density; }
+float& Renderer::water_density() { return m_water_density; }
 } // namespace Cubed

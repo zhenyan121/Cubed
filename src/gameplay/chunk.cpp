@@ -146,6 +146,11 @@ size_t Chunk::get_normal_blend_vertices_sum() const {
     return m_vertex_data[3].m_sum.load();
 }
 
+GLuint Chunk::get_water_vao() const { return m_vertex_data[4].m_vao; }
+size_t Chunk::get_water_vertices_sum() const {
+    return m_vertex_data[4].m_sum.load();
+}
+
 void Chunk::gen_phase_one() {
     m_generator = std::make_unique<ChunkGenerator>(*this);
     if (!m_generator) {
@@ -392,7 +397,14 @@ void Chunk::gen_vertices(const OptionalBlockVectorArray& neighbor_block) {
                             if (BlockManager::is_discard(cur_id)) {
                                 m_vertex_data[2].m_vertices.emplace_back(vex);
                             } else if (BlockManager::is_blend(cur_id)) {
-                                m_vertex_data[3].m_vertices.emplace_back(vex);
+                                if (cur_id == 7) {
+                                    m_vertex_data[4].m_vertices.emplace_back(
+                                        vex);
+                                } else {
+                                    m_vertex_data[3].m_vertices.emplace_back(
+                                        vex);
+                                }
+
                             } else {
                                 Logger::warn("Id {} is transparent but not "
                                              "discard or blend",

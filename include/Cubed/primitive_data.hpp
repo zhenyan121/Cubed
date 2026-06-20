@@ -212,7 +212,7 @@ constexpr float CROSS_NORMALS[2][6][3] = {
      {0.0f, 1.0f, 0.0f}}};
 
 #pragma endregion
-
+// [-1, 1]
 constexpr float QUAD_VERTICES[] = {
     // postion        // texcoorlds
     -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f,

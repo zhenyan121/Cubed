@@ -24,6 +24,8 @@ struct ChunkRenderSnapshot {
     size_t normal_discard_vertices_count;
     GLuint normal_blend_vao;
     size_t normal_blend_vertices_count;
+    GLuint water_vao;
+    size_t water_vertices_count;
     glm::vec3 center;
     glm::vec3 half_extents;
 };

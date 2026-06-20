@@ -46,7 +46,7 @@ float fbm(vec2 p) {
     return v;
 }
 
-void main(void) {
+vec3 computeSkyColor(vec3 dir) {
     vec3 sund = normalize(sunDir);
 
     float t =
@@ -87,6 +87,13 @@ void main(void) {
     float glow = pow(sunAmount, 8.0) * 0.15 + pow(sunAmount, 32.0) * 0.3;
 
     sky += glow * sunColor;
+
+    return sky;
+}
+
+void main(void) {
+    
+    vec3 sky = computeSkyColor(dir);
 
     frag_color = vec4(sky, 1.0);
     //frag_color = vec4(vec3(sunAmount), 1.0);

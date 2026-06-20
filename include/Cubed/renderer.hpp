@@ -32,6 +32,8 @@ public:
 
     bool& discard_transparent();
     bool& shader_on();
+    bool& water_perturb();
+    bool& water_depth_fade();
     int& shadow_mode();
     int& light_cull_face();
     int& light_size_uv();
@@ -42,10 +44,13 @@ public:
     float& cloud_speed();
     float& cloud_threshold_low();
     float& cloud_threshold_high();
+    float& refract_strength();
+    float& underwater_fog_density();
+    float& water_density();
 
 private:
     struct ParallelLight {
-        glm::vec3 sundir;
+        glm::vec3 sundir; // direction from sun to vertex
         glm::vec3 lightdir;
         float sun_height = 0.0f;
         float day_light = 0.0f;
@@ -53,6 +58,15 @@ private:
         glm::vec3 sun_color;
         glm::vec3 directional_light_color;
         glm::vec3 finnal_ambient_color;
+        glm::mat4 light_space_matrix;
+    };
+
+    struct SkyUniform {
+        glm::vec3 sky_top;
+        glm::vec3 sky_bottom;
+        glm::vec3 sun_dir_view;
+        float horizon_sharpness;
+        float cloud_white_mix;
     };
 
     static constexpr glm::vec3 SUN_COLOR{1.00f, 0.95f, 0.80f};
@@ -79,6 +93,8 @@ private:
 
     bool m_discard_tranparent = true;
     bool m_shader_on = true;
+    bool m_water_perturb = true;
+    bool m_water_depth_fade = true;
     int m_shadow_mode = 0;
     int m_light_cull_face = 0;
     float m_aspect = 0.0f;
@@ -94,9 +110,6 @@ private:
 
     glm::mat4 m_p_mat, m_v_mat, m_m_mat, m_mv_mat, m_mvp_mat, m_norm_mat;
 
-    GLuint m_mv_loc = 0;
-    GLuint m_proj_loc = 0;
-
     GLuint m_sky_vbo = 0;
     GLuint m_text_vbo = 0;
     GLuint m_outline_indices_vbo = 0;
@@ -105,12 +118,12 @@ private:
 
     GLuint m_fbo = 0;
     GLuint m_screen_texture = 0;
-    GLuint m_depth_render_buffer = 0;
+    GLuint m_screen_depth_texture = 0;
 
     GLuint m_oit_fbo = 0;
     GLuint m_accum_texture = 0;
     GLuint m_reveal_texture = 0;
-    GLuint m_oit_depth_render_buffer = 0;
+    GLuint m_oit_depth_texture = 0;
 
     GLuint m_depth_map_fbo = 0;
     GLuint m_depth_map_texture = 0;
@@ -140,7 +153,14 @@ private:
     float m_cloud_threshold_low = 0.5f;
     float m_cloud_threshold_high = 0.75f;
 
+    float m_refract_strength = 0.03f;
+
+    float m_underwater_fog_density = 0.08f;
+
+    float m_water_density = 0.12f;
+
     ParallelLight m_parallel_light;
+    SkyUniform m_sky_uniform;
     /*
     0 - quad vao
     1 - sky vao
