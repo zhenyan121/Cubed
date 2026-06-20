@@ -96,10 +96,7 @@ private:
                                          const ChunkPosSet&);
     void
     build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
-                                          ChunkPtrUpdateList& affected_neighbor,
                                           const ChunkPairVector& new_chunks);
-    void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
-                                                       ConstChunkMap&);
 
 public:
     World();
