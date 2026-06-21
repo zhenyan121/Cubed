@@ -43,20 +43,7 @@ public:
             });
         }
     }
-    ~ThreadPool() {
-        m_stopping = true;
-        for (auto& w : m_workers) {
-            w.request_stop();
-        }
-
-        m_cv.notify_all();
-
-        for (auto& w : m_workers) {
-            if (w.joinable()) {
-                w.join();
-            }
-        }
-    }
+    ~ThreadPool() { stop(); }
     template <typename F> auto enqueue(F&& f) {
 
         using R = std::invoke_result_t<F>;
@@ -73,6 +60,20 @@ public:
         }
         m_cv.notify_one();
         return fut;
+    }
+    void stop() {
+        m_stopping = true;
+        for (auto& w : m_workers) {
+            w.request_stop();
+        }
+
+        m_cv.notify_all();
+
+        for (auto& w : m_workers) {
+            if (w.joinable()) {
+                w.join();
+            }
+        }
     }
     size_t thread_sum() const { return m_thread_sum.load(); }
 };

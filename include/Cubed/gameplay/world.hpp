@@ -58,7 +58,7 @@ private:
 
     std::thread m_gen_thread;
     std::thread m_server_thread;
-    std::unique_ptr<ThreadPool> m_gen_thread_pool;
+    std::atomic<std::shared_ptr<ThreadPool>> m_gen_thread_pool;
     std::stop_source m_server_stop_source;
 
     std::atomic<int> m_per_tick_time = DEFAULT_PER_TICK_TIME; // ms
@@ -159,6 +159,8 @@ public:
 
     bool is_tick_running() const;
     void tick_running(bool run);
+
+    void change_pool_threads(int threads);
 };
 
 } // namespace Cubed

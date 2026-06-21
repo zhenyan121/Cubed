@@ -22,7 +22,11 @@ World::~World() {
     stop_gen_thread();
     stop_server_thread();
     wait_all_chunk_tasks();
-    m_gen_thread_pool.reset();
+    auto pool_ptr = m_gen_thread_pool.load();
+    if (pool_ptr) {
+        pool_ptr->stop();
+    }
+    m_gen_thread_pool.store(nullptr);
 
     m_chunks.clear();
     {
@@ -86,10 +90,7 @@ void World::init_world() {
     m_river_worm.init(ChunkGenerator::seed());
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     int max_thread = std::thread::hardware_concurrency();
-    int used_thread = std::max(max_thread - 3, 1);
-    Logger::info("Max Support Thread is {}, use {} threads to gen", max_thread,
-                 used_thread);
-    m_gen_thread_pool = std::make_unique<ThreadPool>(used_thread);
+    change_pool_threads(max_thread - RESERVED_THREADS);
 
     auto t1 = std::chrono::system_clock::now();
 
@@ -170,8 +171,12 @@ void World::gen_chunks_internal() {
     {
         std::scoped_lock lock{m_cave_carcer.path_mutex(),
                               m_river_worm.paths_mutex()};
-        parallel_do(*m_gen_thread_pool, temp_neighbor.begin(),
-                    temp_neighbor.end(), m_gen_thread_pool->thread_sum(),
+        auto pool_ptr = m_gen_thread_pool.load();
+        if (!pool_ptr) {
+            return;
+        }
+        parallel_do(*pool_ptr, temp_neighbor.begin(), temp_neighbor.end(),
+                    pool_ptr->thread_sum(),
                     [this](std::pair<ChunkPos, Chunk>& new_chunk) {
                         auto& [pos, chunk] = new_chunk;
                         chunk.gen_phase_one();
@@ -251,10 +256,14 @@ void World::sync_and_collect_missing_chunks(
 
 void World::submit_new_chunks() {
     std::lock_guard lock(m_new_chunk_mutex);
+    auto pool_ptr = m_gen_thread_pool.load();
+    if (!pool_ptr) {
+        return;
+    }
     for (auto& [pos, task] : new_chunks) {
         if (!task.future.valid()) {
-            task.future = m_gen_thread_pool->enqueue(
-                [&task]() { task.chunk.gen_chunk(); });
+            task.future =
+                pool_ptr->enqueue([&task]() { task.chunk.gen_chunk(); });
         }
     }
 }
@@ -648,4 +657,13 @@ void World::per_tick_time(int ms) { m_per_tick_time = ms; }
 
 bool World::is_tick_running() const { return m_tick_running.load(); }
 void World::tick_running(bool run) { m_tick_running = run; }
+void World::change_pool_threads(int threads) {
+    int max_thread = std::thread::hardware_concurrency();
+    if (max_thread < 1) {
+        max_thread = 4;
+    }
+    int used_thread = std::clamp(threads, 1, max_thread);
+    Logger::info("Create New Thread Pool Use {} Threads", used_thread);
+    m_gen_thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+}
 } // namespace Cubed
