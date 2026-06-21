@@ -723,19 +723,23 @@ void ChunkGenerator::generate_cave() {
     auto& paths = cave_carver.paths();
     const auto& chunk_pos = m_chunk.chunk_pos();
     auto& blocks = m_chunk.blocks();
+    {
+        std::shared_lock lock(cave_carver.path_mutex());
+        for (auto& [id, path] : paths) {
 
-    for (auto& [id, path] : paths) {
-
-        carve_worm(path.points(), chunk_pos, [&](int x, int y, int z) -> void {
-            int idx = Chunk::index(x, y, z);
-            if (blocks[idx] == 7)
-                return;
-            if (y < WORLD_SIZE_Y - 1 && blocks[Chunk::index(x, y + 1, z)] == 7)
-                return;
-            blocks[idx] = 0;
-        });
-        if (!m_chunk.is_temp_chunk()) {
-            path.clear_chunk(chunk_pos);
+            carve_worm(path.points(), chunk_pos,
+                       [&](int x, int y, int z) -> void {
+                           int idx = Chunk::index(x, y, z);
+                           if (blocks[idx] == 7)
+                               return;
+                           if (y < WORLD_SIZE_Y - 1 &&
+                               blocks[Chunk::index(x, y + 1, z)] == 7)
+                               return;
+                           blocks[idx] = 0;
+                       });
+            if (!m_chunk.is_temp_chunk()) {
+                path.clear_chunk(chunk_pos);
+            }
         }
     }
 }
@@ -746,29 +750,33 @@ void ChunkGenerator::generate_river() {
     auto& paths = river_worm.paths();
     const auto& chunk_pos = m_chunk.chunk_pos();
     auto& blocks = m_chunk.blocks();
-
     bool is_river = false;
-
-    for (auto& [id, path] : paths) {
-        if ((m_chunk.biome() == BiomeType::DESERT) ||
-            (m_chunk.biome() == BiomeType::OCEAN)) {
-            path.clear_chunk(chunk_pos);
-            continue;
-        }
-        carve_worm(path.points(), chunk_pos, [&](int x, int y, int z) -> void {
-            int idx = Chunk::index(x, y, z);
-            if (y > SEA_LEVEL) {
-                blocks[idx] = 0;
-                return;
+    {
+        std::shared_lock lock(river_worm.paths_mutex());
+        for (auto& [id, path] : paths) {
+            if ((m_chunk.biome() == BiomeType::DESERT) ||
+                (m_chunk.biome() == BiomeType::OCEAN)) {
+                if (!m_chunk.is_temp_chunk()) {
+                    path.clear_chunk(chunk_pos);
+                }
+                continue;
             }
-            is_river = true;
-            if (blocks[idx] == 0) {
-                return;
+            carve_worm(path.points(), chunk_pos,
+                       [&](int x, int y, int z) -> void {
+                           int idx = Chunk::index(x, y, z);
+                           if (y > SEA_LEVEL) {
+                               blocks[idx] = 0;
+                               return;
+                           }
+                           is_river = true;
+                           if (blocks[idx] == 0) {
+                               return;
+                           }
+                           blocks[idx] = 7;
+                       });
+            if (!m_chunk.is_temp_chunk()) {
+                path.clear_chunk(chunk_pos);
             }
-            blocks[idx] = 7;
-        });
-        if (!m_chunk.is_temp_chunk()) {
-            path.clear_chunk(chunk_pos);
         }
     }
 

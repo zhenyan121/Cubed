@@ -104,6 +104,7 @@ private:
 
     void submit_new_chunks();
     void poll_finished_chunks();
+    void wait_all_chunk_tasks();
 
 public:
     World();

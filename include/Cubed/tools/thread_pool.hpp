@@ -48,7 +48,14 @@ public:
         for (auto& w : m_workers) {
             w.request_stop();
         }
+
         m_cv.notify_all();
+
+        for (auto& w : m_workers) {
+            if (w.joinable()) {
+                w.join();
+            }
+        }
     }
     template <typename F> auto enqueue(F&& f) {
 

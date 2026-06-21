@@ -21,6 +21,9 @@ World::World() {}
 World::~World() {
     stop_gen_thread();
     stop_server_thread();
+    wait_all_chunk_tasks();
+    m_gen_thread_pool.reset();
+
     m_chunks.clear();
     {
         std::lock_guard lk(m_delete_vbo_mutex);
@@ -35,6 +38,12 @@ World::~World() {
             glDeleteVertexArrays(1, &x);
         }
         m_pending_delete_vao.clear();
+    }
+}
+
+void World::wait_all_chunk_tasks() {
+    for (auto& [pos, task] : new_chunks) {
+        task.future.get();
     }
 }
 
@@ -158,21 +167,26 @@ void World::gen_chunks_internal() {
         new_chunks.emplace(pos, Chunk(*this, pos));
     }
     auto t1 = system_clock::now();
-    parallel_do(*m_gen_thread_pool, temp_neighbor.begin(), temp_neighbor.end(),
-                m_gen_thread_pool->thread_sum(),
-                [this](std::pair<ChunkPos, Chunk>& new_chunk) {
-                    auto& [pos, chunk] = new_chunk;
-                    chunk.gen_phase_one();
-                    m_cave_carcer.try_to_add_path(pos, chunk.seed());
-                    m_river_worm.try_to_add_path(pos, chunk.seed());
-                });
+    {
+        std::scoped_lock lock{m_cave_carcer.path_mutex(),
+                              m_river_worm.paths_mutex()};
+        parallel_do(*m_gen_thread_pool, temp_neighbor.begin(),
+                    temp_neighbor.end(), m_gen_thread_pool->thread_sum(),
+                    [this](std::pair<ChunkPos, Chunk>& new_chunk) {
+                        auto& [pos, chunk] = new_chunk;
+                        chunk.gen_phase_one();
+                        m_cave_carcer.try_to_add_path(pos, chunk.seed());
+                        m_river_worm.try_to_add_path(pos, chunk.seed());
+                    });
+        m_cave_carcer.cleanup_finished_caves();
+        m_river_worm.cleanup_finished_rivers();
+    }
+
     auto t2 = system_clock::now();
     Logger::info("Temp Neighbor Add Path Consum {}",
                  duration_cast<milliseconds>(t2 - t1));
     m_chunk_gen_fraction = 0.9f;
 
-    m_cave_carcer.cleanup_finished_caves();
-    m_river_worm.cleanup_finished_rivers();
     m_chunk_gen_fraction = 1.0f;
     submit_new_chunks();
     m_chunk_gen_finished = true;
@@ -209,10 +223,6 @@ void World::compute_required_chunks(ChunkPosSet& required_chunks,
         for (int dz = -radius; dz <= radius; ++dz) {
             if (dx * dx + dz * dz <= r2) {
                 ChunkPos pos{chunk_x + dx, chunk_z + dz};
-                auto it = required_chunks.find(pos);
-                if (it != required_chunks.end()) {
-                    continue;
-                }
                 temp_neighbor.emplace_back(pos, Chunk(*this, pos));
             }
         }

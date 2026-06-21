@@ -17,11 +17,13 @@ public:
 
     int cave_sum() const;
     float& cave_probability();
+    std::shared_mutex& path_mutex();
 
 private:
     CaveHashMap m_paths;
     unsigned m_seed = 0;
     Random m_random;
     float m_cave_probability = 0.035f;
+    std::shared_mutex m_path_mutex;
 };
 } // namespace Cubed

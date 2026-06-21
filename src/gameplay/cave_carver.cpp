@@ -63,5 +63,5 @@ void CaveCarver::cleanup_finished_caves() {
 
 int CaveCarver::cave_sum() const { return m_paths.size(); }
 float& CaveCarver::cave_probability() { return m_cave_probability; }
-
+std::shared_mutex& CaveCarver::path_mutex() { return m_path_mutex; }
 } // namespace Cubed
