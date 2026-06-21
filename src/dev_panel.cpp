@@ -565,6 +565,8 @@ void DevPanel::show_player_tab_item() {
                                       m_player_profile.pos[1],
                                       m_player_profile.pos[2]});
         }
+        ImGui::SliderFloat("Fly Y Speed", &m_player->fly_y_speed(), 0.0f,
+                           100.0f);
         ImGui::SliderFloat("Acceleration", &m_player->acceleration(), 1.0f,
                            200.0f);
         ImGui::SliderFloat("Deceleration", &m_player->deceleration(), 1.0f,
