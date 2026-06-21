@@ -8,8 +8,8 @@
 
 namespace Cubed {
 
-Chunk::Chunk(World& world, ChunkPos chunk_pos)
-    : m_chunk_pos(chunk_pos), m_world(world) {
+Chunk::Chunk(World& world, ChunkPos chunk_pos, bool temp_chunk)
+    : m_temp_chunk(temp_chunk), m_chunk_pos(chunk_pos), m_world(world) {
     for (int i = 0; i < VERTEX_DATA_SUM; i++) {
         m_vertex_data.emplace_back(m_world);
     }
@@ -466,7 +466,7 @@ void Chunk::gen_chunk() {
     }
     std::vector<Chunk> neighbor;
     for (int i = 0; i < 4; i++) {
-        neighbor.emplace_back(m_world, m_chunk_pos + CHUNK_DIR[i]);
+        neighbor.emplace_back(m_world, m_chunk_pos + CHUNK_DIR[i], true);
     }
     for (auto& chunk : neighbor) {
         chunk.gen_phase_one();
@@ -488,9 +488,9 @@ void Chunk::gen_chunk() {
         neightbor_blocks[i] = neighbor[i].get_chunk_blocks();
     }
     gen_vertex_data(neightbor_blocks);
-    m_gen_finish = true;
 }
-bool Chunk::is_gen_finish() const { return m_gen_finish.load(); }
 // Logger::info("Cross Sum {}", m_cross_vertices_sum.load());
+
+bool Chunk::is_temp_chunk() const { return m_temp_chunk.load(); }
 
 } // namespace Cubed

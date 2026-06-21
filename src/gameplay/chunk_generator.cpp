@@ -734,7 +734,9 @@ void ChunkGenerator::generate_cave() {
                 return;
             blocks[idx] = 0;
         });
-        path.clear_chunk(chunk_pos);
+        if (!m_chunk.is_temp_chunk()) {
+            path.clear_chunk(chunk_pos);
+        }
     }
 }
 
@@ -765,8 +767,11 @@ void ChunkGenerator::generate_river() {
             }
             blocks[idx] = 7;
         });
-        path.clear_chunk(chunk_pos);
+        if (!m_chunk.is_temp_chunk()) {
+            path.clear_chunk(chunk_pos);
+        }
     }
+
     if (is_river) {
         m_chunk.biome(RIVER);
     }

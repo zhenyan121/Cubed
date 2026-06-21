@@ -24,7 +24,8 @@ private:
     std::atomic<bool> m_need_upload{true};
     std::atomic<bool> m_is_on_gen_vertex_data{false};
     std::atomic<bool> m_gening{false};
-    std::atomic<bool> m_gen_finish{false};
+    std::atomic<bool> m_temp_chunk{false};
+
     std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
 
@@ -56,7 +57,7 @@ private:
                                   BlockType id);
 
 public:
-    Chunk(World& world, ChunkPos chunk_pos);
+    Chunk(World& world, ChunkPos chunk_pos, bool temp_chunk = false);
     ~Chunk();
     Chunk(const Chunk&) = delete;
     Chunk& operator=(const Chunk&) = delete;
@@ -128,8 +129,7 @@ public:
     void set_chunk_block(int index, unsigned id);
     // ensure thread safe!
     void gen_chunk();
-
-    bool is_gen_finish() const;
+    bool is_temp_chunk() const;
     ChunkPos chunk_pos() const;
     BiomeType biome() const;
     void biome(BiomeType b);

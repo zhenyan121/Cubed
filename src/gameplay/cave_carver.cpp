@@ -49,11 +49,13 @@ void CaveCarver::try_to_add_path(const ChunkPos& chunk_pos,
 
 void CaveCarver::cleanup_finished_caves() {
     std::vector<unsigned int> finished_keys;
+
     for (const auto& pair : m_paths) {
         if (pair.second.is_finished()) {
             finished_keys.push_back(pair.first);
         }
     }
+
     for (const auto& key : finished_keys) {
         m_paths.erase(key);
     }
@@ -61,4 +63,5 @@ void CaveCarver::cleanup_finished_caves() {
 
 int CaveCarver::cave_sum() const { return m_paths.size(); }
 float& CaveCarver::cave_probability() { return m_cave_probability; }
+
 } // namespace Cubed
