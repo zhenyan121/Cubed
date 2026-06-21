@@ -4,7 +4,9 @@
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
+#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
+
 namespace Cubed {
 
 class RiverWorm {

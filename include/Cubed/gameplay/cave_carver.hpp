@@ -1,7 +1,9 @@
 #pragma once
 #include "Cubed/gameplay/cave_path.hpp"
 
+#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
+
 namespace Cubed {
 class CaveCarver {
     using CaveHashMap = tbb::concurrent_hash_map<unsigned, CavePath>;
