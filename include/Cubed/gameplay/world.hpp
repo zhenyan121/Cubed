@@ -82,7 +82,8 @@ private:
     std::atomic<bool> m_tick_running{true};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<float> m_chunk_gen_fraction{0.0f};
-
+    std::atomic<int> m_pool_threads{1};
+    std::atomic<int> m_max_threads{1};
     std::atomic<TickType> m_game_ticks{0};
 
     std::vector<ChunkPos> m_dirty_queue;
@@ -159,7 +160,8 @@ public:
 
     bool is_tick_running() const;
     void tick_running(bool run);
-
+    int pool_threads() const;
+    int max_threads() const;
     void change_pool_threads(int threads);
 };
 

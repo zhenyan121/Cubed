@@ -463,6 +463,23 @@ void DevPanel::show_world_tab_item() {
         if (ImGui::SliderInt("Render Distance", &rendering_distance, 2, 128)) {
             m_app.world().rendering_distance(rendering_distance);
         }
+        ImGui::Text(
+            "Pool Threads %d  Max Support Threads %d  Reserved Threads %d",
+            m_app.world().pool_threads(), m_app.world().max_threads(),
+            RESERVED_THREADS);
+        ImGui::SliderInt("Set Pool Threads", &m_threads, 1,
+                         m_app.world().max_threads());
+        ImGui::SameLine();
+        if (ImGui::Button("Set")) {
+            m_app.world().change_pool_threads(m_threads);
+        }
+        if (m_threads > m_app.world().max_threads() - RESERVED_THREADS) {
+            ImGui::TextColored(
+                ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                "Waring: When the threads in the thread pool exceed \n(maximum "
+                "threads minus reserved threads), \nit may cause stuttering.");
+        }
+
         if (ImGui::Button("Rebuild World")) {
             m_app.world().rebuild_world();
         }

@@ -657,13 +657,17 @@ void World::per_tick_time(int ms) { m_per_tick_time = ms; }
 
 bool World::is_tick_running() const { return m_tick_running.load(); }
 void World::tick_running(bool run) { m_tick_running = run; }
+int World::pool_threads() const { return m_pool_threads.load(); }
+int World::max_threads() const { return m_max_threads.load(); }
 void World::change_pool_threads(int threads) {
-    int max_thread = std::thread::hardware_concurrency();
-    if (max_thread < 1) {
-        max_thread = 4;
+    m_max_threads = std::thread::hardware_concurrency();
+    if (m_max_threads < 1) {
+        Logger::warn("Can't Get Max Support Threads, Set Max Threads to 4");
+        m_max_threads = 4;
     }
-    int used_thread = std::clamp(threads, 1, max_thread);
+    int used_thread = std::clamp(threads, 1, m_max_threads.load());
     Logger::info("Create New Thread Pool Use {} Threads", used_thread);
     m_gen_thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+    m_pool_threads = used_thread;
 }
 } // namespace Cubed
