@@ -463,6 +463,29 @@ void DevPanel::show_world_tab_item() {
         if (ImGui::SliderInt("Render Distance", &rendering_distance, 2, 128)) {
             m_app.world().rendering_distance(rendering_distance);
         }
+        ImGui::Text(
+            "Pool Threads %d  Max Support Threads %d  Reserved Threads %d",
+            m_app.world().pool_threads(), m_app.world().max_threads(),
+            RESERVED_THREADS);
+        ImGui::SliderInt("Set Pool Threads", &m_threads, 1,
+                         m_app.world().max_threads());
+        ImGui::SameLine();
+        if (ImGui::Button("Set")) {
+            m_app.world().change_pool_threads(m_threads);
+        }
+        if (m_threads > m_app.world().max_threads() - RESERVED_THREADS) {
+            ImGui::TextColored(
+                ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                "Waring: When the threads in the thread pool exceed \n(maximum "
+                "threads minus reserved threads), \nit may cause stuttering.");
+        }
+
+        static const char* chunk_load_style[] = {"Random", "Center"};
+        m_chunk_style = m_app.world().chunk_load_style();
+        if (ImGui::Combo("ChunkLoadStyle", &m_chunk_style, chunk_load_style,
+                         IM_ARRAYSIZE(chunk_load_style))) {
+            m_app.world().set_chunk_load_style(m_chunk_style);
+        }
         if (ImGui::Button("Rebuild World")) {
             m_app.world().rebuild_world();
         }
@@ -542,6 +565,8 @@ void DevPanel::show_player_tab_item() {
                                       m_player_profile.pos[1],
                                       m_player_profile.pos[2]});
         }
+        ImGui::SliderFloat("Fly Y Speed", &m_player->fly_y_speed(), 0.0f,
+                           100.0f);
         ImGui::SliderFloat("Acceleration", &m_player->acceleration(), 1.0f,
                            200.0f);
         ImGui::SliderFloat("Deceleration", &m_player->deceleration(), 1.0f,

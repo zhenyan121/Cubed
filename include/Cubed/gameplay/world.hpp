@@ -4,6 +4,7 @@
 #include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/game_time.hpp"
 #include "Cubed/gameplay/river_worm.hpp"
+#include "Cubed/tools/thread_pool.hpp"
 
 #include <atomic>
 #include <condition_variable>
@@ -34,15 +35,24 @@ class Player;
 class TextureManager;
 class World {
 private:
+    enum class ChunkLoadStyle { RANDOM, CENTER };
+
+    struct PendingChunk {
+        Chunk chunk;
+        std::future<void> future;
+    };
+
     using OptionalBlockVectorArray =
         std::array<std::optional<std::vector<BlockType>>, 4>;
     using ChunkPtrUpdateList = std::vector<std::pair<ChunkPos, Chunk*>>;
     using ChunkPairVector = std::vector<std::pair<ChunkPos, Chunk>>;
+    using ChunkPairQueue = std::queue<std::pair<ChunkPos, Chunk>>;
     using ConstChunkMap =
         std::unordered_map<ChunkPos, const Chunk*, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
     using ChunkHashMap = std::unordered_map<ChunkPos, Chunk, ChunkPos::Hash>;
-
+    using PendingChunkHashMap =
+        std::unordered_map<ChunkPos, PendingChunk, ChunkPos::Hash>;
     glm::vec3 m_gen_player_pos{0.0f, 0.0f, 0.0f};
     ChunkHashMap m_chunks;
     std::unordered_map<std::size_t, Player> m_players;
@@ -50,7 +60,7 @@ private:
 
     std::thread m_gen_thread;
     std::thread m_server_thread;
-
+    std::atomic<std::shared_ptr<ThreadPool>> m_gen_thread_pool;
     std::stop_source m_server_stop_source;
 
     std::atomic<int> m_per_tick_time = DEFAULT_PER_TICK_TIME; // ms
@@ -59,7 +69,7 @@ private:
 
     mutable std::mutex m_chunks_mutex;
     std::mutex m_gen_signal_mutex;
-    std::mutex m_new_chunk_queue_mutex;
+    std::mutex m_new_chunk_mutex;
     std::mutex m_delete_vbo_mutex;
     std::mutex m_delete_vao_mutex;
     std::mutex m_gen_player_pos_mutex;
@@ -74,13 +84,15 @@ private:
     std::atomic<bool> m_tick_running{true};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<float> m_chunk_gen_fraction{0.0f};
-
+    std::atomic<int> m_pool_threads{0};
+    std::atomic<int> m_max_threads{1};
     std::atomic<TickType> m_game_ticks{0};
-
+    std::atomic<ChunkLoadStyle> m_chunk_load_style{ChunkLoadStyle::RANDOM};
     std::vector<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
-    std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk;
-    std::vector<std::pair<ChunkPos, Chunk>> m_new_chunk_queue;
+    std::vector<std::pair<ChunkPos, Chunk>> m_new_finished_chunk;
+    // Can only be used in the gen thread
+    PendingChunkHashMap new_chunks;
 
     CaveCarver m_cave_carcer;
     RiverWorm m_river_worm;
@@ -88,18 +100,14 @@ private:
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
-    void
-    compute_required_chunks(ChunkPosSet& required_chunks,
-                            ChunkPairVector& temp_neighbor,
-                            std::vector<ChunkPos>& need_gen_temp_chunks_pos);
+    void compute_required_chunks(ChunkPosSet& required_chunks,
+                                 ChunkPairVector& temp_neighbor);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
-    void
-    build_neighbor_context_for_new_chunks(ConstChunkMap& new_chunks_neighbor,
-                                          ChunkPtrUpdateList& affected_neighbor,
-                                          const ChunkPairVector& new_chunks);
-    void build_neighbor_context_for_affected_neighbors(ChunkPtrUpdateList&,
-                                                       ConstChunkMap&);
+
+    void submit_new_chunks();
+    void poll_finished_chunks();
+    void wait_all_chunk_tasks();
 
 public:
     World();
@@ -118,7 +126,7 @@ public:
     bool is_solid(const glm::ivec3& block_pos) const;
     bool can_pass_block(const glm::ivec3& block_pos) const;
     BlockType get_block_tpye(const glm::ivec3& block_pos) const;
-    static ChunkPos chunk_pos(int world_x, int world_z);
+    static ChunkPos get_chunk_pos(int world_x, int world_z);
 
     void need_gen();
 
@@ -138,6 +146,8 @@ public:
     void start_server_thread();
     void stop_gen_thread();
     void stop_server_thread();
+    void stop_thread_pool();
+    void start_thread_pool();
     void serever_run(std::stop_token stoken);
 
     CaveCarver& cave_carcer();
@@ -154,6 +164,11 @@ public:
 
     bool is_tick_running() const;
     void tick_running(bool run);
+    int pool_threads() const;
+    int max_threads() const;
+    void change_pool_threads(int threads);
+    int chunk_load_style() const;
+    void set_chunk_load_style(int id);
 };
 
 } // namespace Cubed

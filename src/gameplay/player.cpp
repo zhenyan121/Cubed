@@ -247,7 +247,7 @@ void Player::update_front_vec(float offset_x, float offset_y) {
 }
 
 void Player::check_player_chunk_transition() {
-    ChunkPos cur_pos = m_world.chunk_pos(m_player_pos.x, m_player_pos.z);
+    ChunkPos cur_pos = m_world.get_chunk_pos(m_player_pos.x, m_player_pos.z);
     if (cur_pos != m_player_chunk_pos) {
         m_world.need_gen();
         m_player_chunk_pos = cur_pos;
@@ -372,11 +372,11 @@ void Player::update_move(float delta_time) {
 
     if (is_fly) {
         if (m_move_state.up) {
-            m_y_speed = 7.5f;
+            m_y_speed = m_fly_y_speed;
         }
 
         if (m_move_state.down) {
-            m_y_speed = -7.5f;
+            m_y_speed = -m_fly_y_speed;
         }
 
         if (!m_move_state.down && !m_move_state.up) {
@@ -544,6 +544,7 @@ float& Player::max_speed() { return m_max_speed; }
 float& Player::acceleration() { return m_acceleration; }
 float& Player::deceleration() { return m_deceleration; }
 float& Player::g() { return m_g; }
+float& Player::fly_y_speed() { return m_fly_y_speed; }
 unsigned Player::place_block() const { return m_place_block; };
 Gait& Player::gait() { return m_gait; }
 GameMode& Player::game_mode() { return m_game_mode; }

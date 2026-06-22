@@ -1,7 +1,9 @@
 #pragma once
 #include "Cubed/gameplay/cave_path.hpp"
 
+#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
+
 namespace Cubed {
 class CaveCarver {
     using CaveHashMap = tbb::concurrent_hash_map<unsigned, CavePath>;
@@ -17,11 +19,13 @@ public:
 
     int cave_sum() const;
     float& cave_probability();
+    std::shared_mutex& path_mutex();
 
 private:
     CaveHashMap m_paths;
     unsigned m_seed = 0;
     Random m_random;
     float m_cave_probability = 0.035f;
+    std::shared_mutex m_path_mutex;
 };
 } // namespace Cubed

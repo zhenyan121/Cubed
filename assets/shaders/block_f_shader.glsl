@@ -25,6 +25,10 @@ uniform float minRadius;
 uniform float maxRadius;
 uniform bool enablePBR;
 uniform bool flipY;
+
+uniform int renderDistance;
+uniform vec3 skyColor;
+
 const vec2 poissonDisk32[32] = vec2[](
     vec2(-0.975402, -0.071138),
     vec2(-0.920347, -0.411420),
@@ -341,8 +345,17 @@ void main(void) {
     vec3 specular = spec * sunlightColor * specularStrength;
 
     float shadow = ShadowCalculation(FragPosLightSpace, norm, lightDir);  
-  
+    
+    // fog
+    float dist = length(cameraPos - vert_pos);
+    vec4 fogColor = vec4(skyColor, 1.0);
+    float fogStart = renderDistance * 16 * 0.9;
+    float fogEnd   = renderDistance * 16;
+
+    float fogFactor = smoothstep(fogEnd, fogStart, dist);
     color = vec4((ambient + (1.0 - shadow) * (diffuse)) * objectColor.rgb + (1.0-shadow) * specular * objectColor.rgb, objectColor.a);
+    
+    color = mix(fogColor, color, fogFactor);
     //color = vec4(normal * 0.5 + 0.5, 1.0);
     //color = vec4(tangent * 0.5 + 0.5, 1.0);;
     //color = vec4(norm * 0.5 + 0.5, 1.0);

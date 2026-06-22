@@ -5,3 +5,4 @@ leak:libdecor-gtk.so
 leak:libgtk-3.so
 leak:libwayland-client.so
 leak:libglfw.so
+leak:libEGL_nvidia.so

@@ -4,7 +4,7 @@
 
 namespace Cubed {
 RiverWorm::RiverWorm() {}
-
+RiverWorm::~RiverWorm() {}
 RiverWorm::RiverHashMap& RiverWorm::paths() { return m_paths; }
 
 void RiverWorm::init(unsigned world_seed) {
@@ -46,11 +46,13 @@ void RiverWorm::try_to_add_path(const ChunkPos& chunk_pos,
 
 void RiverWorm::cleanup_finished_rivers() {
     std::vector<unsigned> finished_keys;
+
     for (const auto& pair : m_paths) {
         if (pair.second.is_finished()) {
             finished_keys.push_back(pair.first);
         }
     }
+
     for (const auto& key : finished_keys) {
         m_paths.erase(key);
     }
@@ -58,4 +60,6 @@ void RiverWorm::cleanup_finished_rivers() {
 
 int RiverWorm::river_sum() const { return m_paths.size(); }
 float& RiverWorm::river_probability() { return m_probability; }
+std::shared_mutex& RiverWorm::paths_mutex() { return m_paths_mutex; }
+
 } // namespace Cubed

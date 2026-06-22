@@ -34,6 +34,7 @@ private:
 
     float m_max_speed = m_max_walk_speed;
     float m_y_speed = 0.0f;
+    float m_fly_y_speed = 7.5f;
     bool can_up = true;
 
     float space_on_time = 0.0f;
@@ -99,6 +100,7 @@ public:
     float& acceleration();
     float& deceleration();
     float& g();
+    float& fly_y_speed();
 
     unsigned place_block() const;
 

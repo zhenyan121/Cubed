@@ -22,7 +22,6 @@ uniform float ambientStrength;
 uniform vec3 sunlightColor;
 uniform vec3 ambientColor;
 uniform vec3 sunlightDir;
-uniform vec3 cameraPos;
 uniform bool shader_on;
 uniform float specularStrength;
 

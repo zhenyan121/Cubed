@@ -4,7 +4,9 @@
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
+#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
+
 namespace Cubed {
 
 class RiverWorm {
@@ -12,6 +14,7 @@ class RiverWorm {
 
 public:
     RiverWorm();
+    ~RiverWorm();
     RiverHashMap& paths();
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
@@ -21,12 +24,14 @@ public:
 
     int river_sum() const;
     float& river_probability();
+    std::shared_mutex& paths_mutex();
 
 private:
     RiverHashMap m_paths;
     unsigned m_seed = 0;
     Random m_random;
     float m_probability = 0.01f;
+    std::shared_mutex m_paths_mutex;
 };
 
 }; // namespace Cubed

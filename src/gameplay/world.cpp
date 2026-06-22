@@ -5,10 +5,11 @@
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 
-#include <execution>
 #include <glm/gtc/constants.hpp>
 #include <numbers>
+#include <utility>
 using namespace std::chrono;
+using namespace std::chrono_literals;
 
 namespace Cubed {
 
@@ -22,6 +23,9 @@ World::World() {}
 World::~World() {
     stop_gen_thread();
     stop_server_thread();
+    wait_all_chunk_tasks();
+    stop_thread_pool();
+
     m_chunks.clear();
     {
         std::lock_guard lk(m_delete_vbo_mutex);
@@ -36,6 +40,12 @@ World::~World() {
             glDeleteVertexArrays(1, &x);
         }
         m_pending_delete_vao.clear();
+    }
+}
+
+void World::wait_all_chunk_tasks() {
+    for (auto& [pos, task] : new_chunks) {
+        task.future.get();
     }
 }
 
@@ -77,10 +87,10 @@ void World::init_world() {
     m_cave_carcer.init(ChunkGenerator::seed());
     m_river_worm.init(ChunkGenerator::seed());
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
+    start_thread_pool();
+
     auto t1 = std::chrono::system_clock::now();
 
-    Logger::info("Max Support Thread is {}",
-                 std::thread::hardware_concurrency());
     // init players
     m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
 
@@ -102,210 +112,7 @@ void World::init_chunks() {
     }
 }
 
-/*
-void World::init_chunks() {
-
-    int dis_x = PRE_LOAD_DISTANCE;
-    int dis_z = PRE_LOAD_DISTANCE;
-    for (int x = 0; x < dis_x; x++) {
-        for (int z = 0; z < dis_z; z++) {
-            int nx = x - dis_x / 2;
-            int nz = z - dis_z / 2;
-            ChunkPos pos{nx, nz};
-            auto it = m_chunks.find(pos);
-            if (it == m_chunks.end()) {
-                m_chunks.emplace(pos, Chunk(*this, pos));
-            }
-        }
-    }
-    ChunkHashMap temp_neighbor;
-    for (int x = 0; x < dis_x + 2; x++) {
-        for (int z = 0; z < dis_z + 2; z++) {
-            int nx = x - (dis_x + 2) / 2;
-            int nz = z - (dis_z + 2) / 2;
-            ChunkPos pos{nx, nz};
-            auto it = m_chunks.find(pos);
-            if (it == m_chunks.end()) {
-                auto it = temp_neighbor.find(pos);
-                if (it == temp_neighbor.end()) {
-                    temp_neighbor.emplace(pos, Chunk(*this, pos));
-                }
-            }
-        }
-    }
-    for (auto& [pos, chunk] : m_chunks) {
-        chunk.gen_phase_one();
-        m_cave_carcer.try_to_add_path(pos, chunk.seed());
-    }
-    for (auto& [pos, chunk] : temp_neighbor) {
-        chunk.gen_phase_one();
-        m_cave_carcer.try_to_add_path(pos, chunk.seed());
-    }
-
-    std::array<const Chunk*, 8> neighbor_chunks;
-    for (auto& [pos, chunks] : m_chunks) {
-        for (int i = 0; i < 8; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                auto it = temp_neighbor.find(neighbor_pos);
-                if (it == temp_neighbor.end()) {
-                    neighbor_chunks[i] = nullptr;
-                    ASSERT_MSG(false, "Neighbor Chunk is nullptr");
-                } else {
-                    neighbor_chunks[i] = &it->second;
-                }
-                continue;
-            }
-            neighbor_chunks[i] = &it->second;
-        }
-        chunks.gen_phase_two(neighbor_chunks);
-    }
-    for (auto& [pos, chunks] : temp_neighbor) {
-        for (int i = 0; i < 8; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                auto it = temp_neighbor.find(neighbor_pos);
-                if (it == temp_neighbor.end()) {
-                    neighbor_chunks[i] = nullptr;
-                } else {
-                    neighbor_chunks[i] = &it->second;
-                }
-                continue;
-            }
-            neighbor_chunks[i] = &it->second;
-        }
-        chunks.gen_phase_two(neighbor_chunks);
-    }
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_three();
-    }
-    for (auto& [pos, chunks] : temp_neighbor) {
-        chunks.gen_phase_three();
-    }
-
-    for (int i = 0; i < 4; i++) {
-        for (auto& [pos, chunks] : temp_neighbor) {
-            std::array<std::optional<HeightMapArray>, 8>
-                neighbor_chunk_heightmap;
-            std::array<BiomeType, 8> neighbor_biome;
-            for (int i = 0; i < 4; i++) {
-                auto neighbor_pos = pos + CHUNK_DIR[i];
-                auto it = m_chunks.find(neighbor_pos);
-                if (it == m_chunks.end()) {
-                    auto it = temp_neighbor.find(neighbor_pos);
-                    if (it == temp_neighbor.end()) {
-                        neighbor_chunk_heightmap[i] = std::nullopt;
-                        neighbor_biome[i] = BiomeType::NONE;
-                    } else {
-                        neighbor_chunk_heightmap[i] =
-                            it->second.get_heightmap();
-                        neighbor_biome[i] = it->second.biome();
-                    }
-
-                    continue;
-                }
-                neighbor_chunk_heightmap[i] = it->second.get_heightmap();
-                neighbor_biome[i] = it->second.biome();
-            }
-            chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
-        }
-        for (auto& [pos, chunks] : m_chunks) {
-            std::array<std::optional<HeightMapArray>, 8>
-                neighbor_chunk_heightmap;
-            std::array<BiomeType, 8> neighbor_biome;
-            for (int i = 0; i < 8; i++) {
-
-                auto neighbor_pos = pos + CHUNK_DIR[i];
-                auto it = m_chunks.find(neighbor_pos);
-                if (it == m_chunks.end()) {
-                    auto it = temp_neighbor.find(neighbor_pos);
-                    if (it == temp_neighbor.end()) {
-                        neighbor_chunk_heightmap[i] = std::nullopt;
-                        neighbor_biome[i] = BiomeType::NONE;
-                        ASSERT_MSG(false, "Neighbor Chunk is nullptr");
-                    } else {
-                        neighbor_chunk_heightmap[i] =
-                            it->second.get_heightmap();
-                        neighbor_biome[i] = it->second.biome();
-                    }
-
-                    continue;
-                }
-                neighbor_chunk_heightmap[i] = it->second.get_heightmap();
-                neighbor_biome[i] = it->second.biome();
-            }
-            chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
-        }
-    }
-
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_five();
-    }
-    for (auto& [pos, chunks] : temp_neighbor) {
-        chunks.gen_phase_five();
-    }
-    std::array<std::optional<std::vector<BlockType>>, 4> neighbor_block;
-    for (auto& [pos, chunks] : m_chunks) {
-        for (int i = 0; i < 4; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = m_chunks.find(neighbor_pos);
-            if (it == m_chunks.end()) {
-                auto it = temp_neighbor.find(neighbor_pos);
-                if (it == temp_neighbor.end()) {
-                    neighbor_block[i] = std::nullopt;
-                    ASSERT_MSG(false, "Neighbor Chunk is nullptr");
-                } else {
-                    neighbor_block[i] = it->second.get_chunk_blocks();
-                }
-
-                continue;
-            }
-            neighbor_block[i] = it->second.get_chunk_blocks();
-        }
-        chunks.gen_phase_six(neighbor_block);
-    }
-    for (auto& [pos, chunks] : m_chunks) {
-        chunks.gen_phase_seven();
-    }
-
-    std::atomic<int> sync{0};
-    sync.store(1, std::memory_order_release);
-    sync.load(std::memory_order_acquire);
-
-    m_cave_carcer.cleanup_finished_caves();
-
-    std::vector<ChunkRenderData> pending_gen_data;
-    pending_gen_data.reserve(m_chunks.size());
-    for (auto& [pos, chunk] : m_chunks) {
-        ChunkRenderData data;
-        data.chunk = &chunk;
-        for (int i = 0; i < 4; i++) {
-            auto it = m_chunks.find(pos + CHUNK_DIR[i]);
-            if (it != m_chunks.end()) {
-                data.neighbor_block[i] = &(it->second.get_chunk_blocks());
-            } else {
-                data.neighbor_block[i] = nullptr;
-            }
-        }
-        pending_gen_data.emplace_back(std::move(data));
-    }
-    std::for_each(std::execution::par, pending_gen_data.begin(),
-                  pending_gen_data.end(), [](ChunkRenderData& data) {
-                      if (!data.chunk) {
-                          return;
-                      }
-                      data.chunk->gen_vertex_data(data.neighbor_block);
-                  });
-    for (auto& chunk_map : m_chunks) {
-        auto& [chunk_pos, chunk] = chunk_map;
-        chunk.upload_to_gpu();
-    }
-}
-*/
-
-ChunkPos World::chunk_pos(int world_x, int world_z) {
+ChunkPos World::get_chunk_pos(int world_x, int world_z) {
     int chunk_x, chunk_z;
     if (world_x < 0) {
         chunk_x = (world_x + 1) / CHUNK_SIZE - 1;
@@ -325,13 +132,14 @@ ChunkPos World::chunk_pos(int world_x, int world_z) {
 #pragma region ChunkGenerate
 
 void World::gen_chunks_internal() {
+    // Logger::info("gen_chunks_internal");
     m_chunk_gen_fraction = 0.0f;
     m_chunk_gen_finished = false;
+
     ChunkPosSet required_chunks;
     ChunkPairVector temp_neighbor;
-    std::vector<ChunkPos> need_gen_temp_chunks_pos;
-    compute_required_chunks(required_chunks, temp_neighbor,
-                            need_gen_temp_chunks_pos);
+
+    compute_required_chunks(required_chunks, temp_neighbor);
 
     ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
 
@@ -348,256 +156,36 @@ void World::gen_chunks_internal() {
     }
 
     m_chunk_gen_fraction = 0.1f;
-
-    ChunkPairVector new_chunks;
-    ChunkHashMap new_temp_chunks;
     for (auto& pos : need_gen_chunks_pos) {
-        new_chunks.push_back({pos, Chunk(*this, pos)});
+        new_chunks.emplace(pos, Chunk(*this, pos));
     }
-    for (auto& pos : need_gen_temp_chunks_pos) {
-        new_temp_chunks.emplace(pos, Chunk(*this, pos));
-    }
-    ConstChunkMap new_chunks_neighbor;
-    //  affected neighbor
-    ChunkPtrUpdateList affected_neighbor;
-
-    build_neighbor_context_for_new_chunks(new_chunks_neighbor,
-                                          affected_neighbor, new_chunks);
-
-    //  build new chunk, but the neighbor in m_chunks also need to re-build
-
-    std::for_each(std::execution::par, new_chunks.begin(), new_chunks.end(),
-                  [this](std::pair<ChunkPos, Chunk>& new_chunk) {
-                      auto& [pos, chunk] = new_chunk;
-                      chunk.gen_phase_one();
-                      m_cave_carcer.try_to_add_path(pos, chunk.seed());
-                      m_river_worm.try_to_add_path(pos, chunk.seed());
-                  });
-
-    std::for_each(new_temp_chunks.begin(), new_temp_chunks.end(),
-                  [](std::pair<const ChunkPos, Chunk>& new_chunk) {
-                      auto& [pos, chunk] = new_chunk;
-                      chunk.gen_phase_one();
-                  });
-    // precompute path to ensure the continuity of the path
-    std::for_each(std::execution::par, temp_neighbor.begin(),
-                  temp_neighbor.end(),
-                  [this](std::pair<ChunkPos, Chunk>& new_chunk) {
-                      auto& [pos, chunk] = new_chunk;
-                      chunk.gen_phase_one();
-                      m_cave_carcer.try_to_add_path(pos, chunk.seed());
-                      m_river_worm.try_to_add_path(pos, chunk.seed());
-                  });
-
-    m_chunk_gen_fraction = 0.2f;
-
-    /*
-    std::array<const Chunk*, 8> neighbor_chunks;
-    for (auto& [pos, chunks] : new_chunks) {
-        for (int i = 0; i < 8; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = new_chunks_neighbor.find(neighbor_pos);
-            if (it == new_chunks_neighbor.end()) {
-                neighbor_chunks[i] = nullptr;
-                // ASSERT_MSG(false, "Cant Find Neighbot");
-                continue;
-            }
-            neighbor_chunks[i] = it->second;
+    auto t1 = system_clock::now();
+    {
+        std::scoped_lock lock{m_cave_carcer.path_mutex(),
+                              m_river_worm.paths_mutex()};
+        auto pool_ptr = m_gen_thread_pool.load();
+        if (!pool_ptr) {
+            return;
         }
-        chunks.gen_phase_two(neighbor_chunks);
-    }
-    */
-
-    /*
-    for (auto& [pos, chunks] : temp_neighbor) {
-        for (int i = 0; i < 8; i++) {
-            auto neighbor_pos = pos + CHUNK_DIR[i];
-            auto it = new_chunks_neighbor.find(neighbor_pos);
-            if (it == new_chunks_neighbor.end()) {
-                neighbor_chunks[i] = nullptr;
-                continue;
-            }
-            neighbor_chunks[i] = it->second;
-        }
-        chunks.gen_phase_two(neighbor_chunks);
-    }
-    */
-
-    m_chunk_gen_fraction = 0.3f;
-
-    std::for_each(std::execution::par, new_chunks.begin(), new_chunks.end(),
-                  [](std::pair<ChunkPos, Chunk>& pair) {
-                      auto& [pos, chunks] = pair;
-                      chunks.gen_phase_three();
-                  });
-
-    for (auto& [pos, chunk] : new_temp_chunks) {
-        chunk.gen_phase_three();
-    }
-    // for (auto& [pos, chunks] : temp_neighbor) {
-    //     chunks.gen_phase_three();
-    // }
-
-    /*
-    for (int i = 0; i < 4; i++) {
-        for (auto& [pos, chunks] : temp_neighbor) {
-            std::array<std::optional<HeightMapArray>, 8>
-                neighbor_chunk_heightmap;
-            // std::lock_guard lk(m_chunks_mutex);
-            std::array<BiomeType, 8> neighbor_biome;
-            for (int i = 0; i < 8; i++) {
-                auto neighbor_pos = pos + CHUNK_DIR[i];
-                auto it = new_chunks_neighbor.find(neighbor_pos);
-                if (it == new_chunks_neighbor.end()) {
-                    neighbor_chunk_heightmap[i] = std::nullopt;
-                    neighbor_biome[i] = BiomeType::NONE;
-                    continue;
-                }
-                neighbor_chunk_heightmap[i] = it->second->get_heightmap();
-                neighbor_biome[i] = it->second->biome();
-            }
-
-            chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
-        }
-        for (auto& [pos, chunks] : new_chunks) {
-            std::array<std::optional<HeightMapArray>, 8>
-                neighbor_chunk_heightmap;
-            // std::lock_guard lk(m_chunks_mutex);
-            std::array<BiomeType, 8> neighbor_biome;
-            for (int i = 0; i < 8; i++) {
-                auto neighbor_pos = pos + CHUNK_DIR[i];
-                auto it = new_chunks_neighbor.find(neighbor_pos);
-                if (it == new_chunks_neighbor.end()) {
-                    neighbor_chunk_heightmap[i] = std::nullopt;
-                    neighbor_biome[i] = BiomeType::NONE;
-                    ASSERT_MSG(false, "Cant Find Neighbot");
-                    continue;
-                }
-                neighbor_chunk_heightmap[i] = it->second->get_heightmap();
-                neighbor_biome[i] = it->second->biome();
-            }
-
-            chunks.gen_phase_four(neighbor_chunk_heightmap, neighbor_biome);
-        }
-    }
-    */
-    m_chunk_gen_fraction = 0.4f;
-
-    for (auto& [pos, chunks] : new_chunks) {
-        chunks.gen_phase_five();
-    }
-    m_chunk_gen_fraction = 0.45f;
-    for (auto& [pos, chunk] : new_temp_chunks) {
-        chunk.gen_phase_five();
-    }
-    m_chunk_gen_fraction = 0.5f;
-    /*
-    for (auto& [pos, chunks] : temp_neighbor) {
-        chunks.gen_phase_five();
-    }
-    */
-
-    std::vector<std::pair<Chunk*, OptionalBlockVectorArray>>
-        new_chunks_surface_blend_data(new_chunks.size());
-    for (size_t idx = 0; idx < new_chunks.size(); idx++) {
-        auto& [pos, chunk] = new_chunks[idx];
-        new_chunks_surface_blend_data[idx].first = &chunk;
-        {
-            // std::lock_guard lk(m_chunks_mutex);
-            for (int i = 0; i < 4; i++) {
-                auto neighbor_pos = pos + CHUNK_DIR[i];
-                auto it = new_chunks_neighbor.find(neighbor_pos);
-                if (it == new_chunks_neighbor.end()) {
-                    auto it = new_temp_chunks.find(neighbor_pos);
-                    if (it == new_temp_chunks.end()) {
-                        new_chunks_surface_blend_data[idx].second[i] =
-                            std::nullopt;
-                        Logger::warn(
-                            "Can't find neighbor for chunk surface blend");
-                        continue;
-                    }
-                    new_chunks_surface_blend_data[idx].second[i] =
-                        it->second.get_chunk_blocks();
-                    continue;
-                }
-                new_chunks_surface_blend_data[idx].second[i] =
-                    it->second->get_chunk_blocks();
-            }
-        }
+        parallel_do(*pool_ptr, temp_neighbor.begin(), temp_neighbor.end(),
+                    pool_ptr->thread_sum(),
+                    [this](std::pair<ChunkPos, Chunk>& new_chunk) {
+                        auto& [pos, chunk] = new_chunk;
+                        chunk.gen_phase_one();
+                        m_cave_carcer.try_to_add_path(pos, chunk.seed());
+                        m_river_worm.try_to_add_path(pos, chunk.seed());
+                    });
+        m_cave_carcer.cleanup_finished_caves();
+        m_river_worm.cleanup_finished_rivers();
     }
 
-    std::for_each(
-        std::execution::par, new_chunks_surface_blend_data.begin(),
-        new_chunks_surface_blend_data.end(),
-        [](std::pair<Chunk*, OptionalBlockVectorArray>& new_chunk_data) {
-            auto& [chunk, neighbor_data] = new_chunk_data;
-            chunk->gen_phase_six(neighbor_data);
-        });
-
-    m_chunk_gen_fraction = 0.55f;
-    std::for_each(std::execution::par, new_chunks.begin(), new_chunks.end(),
-                  [](std::pair<ChunkPos, Chunk>& new_chunk) {
-                      auto& [pos, chunk] = new_chunk;
-                      chunk.gen_phase_seven();
-                  });
-
-    m_chunk_gen_fraction = 0.6f;
-
-    std::vector<std::pair<Chunk*, OptionalBlockVectorArray>>
-        new_chunk_vertices_data(new_chunks.size());
-    for (size_t idx = 0; idx < new_chunks.size(); idx++) {
-        auto& [pos, chunk] = new_chunks[idx];
-        new_chunk_vertices_data[idx].first = &chunk;
-        for (int i = 0; i < 4; i++) {
-            auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
-            if (it != new_chunks_neighbor.end()) {
-                new_chunk_vertices_data[idx].second[i] =
-                    (it->second->get_chunk_blocks());
-            } else {
-                new_chunk_vertices_data[idx].second[i] = std::nullopt;
-            }
-        }
-    }
-
-    std::for_each(
-        std::execution::par, new_chunk_vertices_data.begin(),
-        new_chunk_vertices_data.end(),
-        [](std::pair<Chunk*, OptionalBlockVectorArray>& new_chunk_data) {
-            auto& [chunk, neighbor_data] = new_chunk_data;
-            chunk->gen_vertex_data(neighbor_data);
-        });
-
-    m_chunk_gen_fraction = 0.7f;
-
-    build_neighbor_context_for_affected_neighbors(affected_neighbor,
-                                                  new_chunks_neighbor);
-
-    m_chunk_gen_fraction = 0.8f;
-    OptionalBlockVectorArray neighbor_block;
-    for (auto& [pos, chunk] : affected_neighbor) {
-        for (int i = 0; i < 4; i++) {
-            auto it = new_chunks_neighbor.find(pos + CHUNK_DIR[i]);
-            if (it != new_chunks_neighbor.end()) {
-                neighbor_block[i] = (it->second->get_chunk_blocks());
-            } else {
-                neighbor_block[i] = std::nullopt;
-            }
-        }
-        chunk->gen_vertex_data(neighbor_block);
-        chunk->need_upload();
-    }
-
+    auto t2 = system_clock::now();
+    Logger::info("Temp Neighbor Add Path Consum {}",
+                 duration_cast<milliseconds>(t2 - t1));
     m_chunk_gen_fraction = 0.9f;
 
-    {
-        std::lock_guard lk(m_new_chunk_queue_mutex);
-        for (auto& x : new_chunks) {
-            m_new_chunk_queue.emplace_back(std::move(x));
-        }
-    }
-    m_cave_carcer.cleanup_finished_caves();
-    m_river_worm.cleanup_finished_rivers();
     m_chunk_gen_fraction = 1.0f;
+    submit_new_chunks();
     m_chunk_gen_finished = true;
 }
 
@@ -606,15 +194,14 @@ void World::sync_player_pos(glm::vec3& player_pos) {
     player_pos = m_gen_player_pos;
 }
 
-void World::compute_required_chunks(
-    ChunkPosSet& required_chunks, ChunkPairVector& temp_neighbor,
-    std::vector<ChunkPos>& need_gen_temp_chunks_pos) {
+void World::compute_required_chunks(ChunkPosSet& required_chunks,
+                                    ChunkPairVector& temp_neighbor) {
     glm::vec3 player_pos;
     sync_player_pos(player_pos);
 
     int x = std::floor(player_pos.x);
     int z = std::floor(player_pos.z);
-    auto [chunk_x, chunk_z] = chunk_pos(x, z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(x, z);
     int radius = m_rendering_distance;
     int r2 = radius * radius;
     required_chunks.reserve(radius * radius);
@@ -626,20 +213,6 @@ void World::compute_required_chunks(
             }
         }
     }
-    int new_radius = radius + 1;
-    int new_r2 = new_radius * new_radius;
-    for (int dx = -new_radius; dx <= new_radius; ++dx) {
-        for (int dz = -new_radius; dz <= new_radius; ++dz) {
-            if (dx * dx + dz * dz <= new_r2) {
-                int nx = chunk_x + dx;
-                int nz = chunk_z + dz;
-                auto it = required_chunks.find({nx, nz});
-                if (it == required_chunks.end()) {
-                    need_gen_temp_chunks_pos.push_back({nx, nz});
-                }
-            }
-        }
-    }
     int max_path_len = std::max(CavePath::step_max(), RiverPath::step_max());
     radius = max_path_len / 2;
     r2 = radius * radius;
@@ -647,10 +220,6 @@ void World::compute_required_chunks(
         for (int dz = -radius; dz <= radius; ++dz) {
             if (dx * dx + dz * dz <= r2) {
                 ChunkPos pos{chunk_x + dx, chunk_z + dz};
-                auto it = required_chunks.find(pos);
-                if (it != required_chunks.end()) {
-                    continue;
-                }
                 temp_neighbor.emplace_back(pos, Chunk(*this, pos));
             }
         }
@@ -677,37 +246,71 @@ void World::sync_and_collect_missing_chunks(
     }
 }
 
-void World::build_neighbor_context_for_new_chunks(
-    ConstChunkMap& new_chunks_neighbor, ChunkPtrUpdateList& affected_neighbor,
-    const ChunkPairVector& new_chunks) {
-    {
-        std::lock_guard lk(m_chunks_mutex);
-        for (auto& [pos, chunk] : new_chunks) {
-            for (auto& dir : CHUNK_DIR) {
-                auto it = m_chunks.find(pos + dir);
-                if (it != m_chunks.end()) {
-                    new_chunks_neighbor.insert({it->first, &(it->second)});
-                    affected_neighbor.push_back({it->first, &(it->second)});
-                }
+void World::submit_new_chunks() {
+    using enum ChunkLoadStyle;
+    std::lock_guard lock(m_new_chunk_mutex);
+    auto pool_ptr = m_gen_thread_pool.load();
+    if (!pool_ptr) {
+        return;
+    }
+    switch (m_chunk_load_style) {
+    case RANDOM:
+        for (auto& [pos, task] : new_chunks) {
+            if (!task.future.valid()) {
+                task.future =
+                    pool_ptr->enqueue([&task]() { task.chunk.gen_chunk(); });
+            }
+        }
+        break;
+    case CENTER: {
+        std::vector<std::pair<ChunkPos, PendingChunk*>> tasks;
+        for (auto& [pos, task] : new_chunks) {
+            if (!task.future.valid()) {
+                tasks.emplace_back(pos, &task);
+            }
+        }
+        glm::vec3 player_pos;
+        sync_player_pos(player_pos);
+        auto dist2 = [player_pos](ChunkPos chunk_pos) {
+            ChunkPos player_chunk_pos =
+                get_chunk_pos(player_pos.x, player_pos.z);
+            float dx = player_chunk_pos.x - chunk_pos.x;
+            float dz = player_chunk_pos.z - chunk_pos.z;
+            return dx * dx + dz * dz;
+        };
+
+        std::sort(tasks.begin(), tasks.end(),
+                  [&dist2](const auto& a, const auto& b) {
+                      return dist2(a.first) < dist2(b.first);
+                  });
+        for (auto& [pos, task] : tasks) {
+            if (!task->future.valid()) {
+                task->future =
+                    pool_ptr->enqueue([task]() { task->chunk.gen_chunk(); });
             }
         }
     }
-    for (auto& [pos, chunk] : new_chunks) {
-        new_chunks_neighbor.insert({pos, &chunk});
     }
 }
 
-void World::build_neighbor_context_for_affected_neighbors(
-    ChunkPtrUpdateList& affected_neighbor, ConstChunkMap& new_chunks_neighbor) {
-    std::lock_guard lk(m_chunks_mutex);
-    for (auto& [pos, chunk] : affected_neighbor) {
-        for (auto& dir : CHUNK_DIR) {
-            auto it = m_chunks.find(pos + dir);
-            if (it != m_chunks.end()) {
-                new_chunks_neighbor.insert({it->first, &(it->second)});
+void World::poll_finished_chunks() {
+    m_new_finished_chunk.clear();
+    std::lock_guard lock(m_new_chunk_mutex);
+    std::erase_if(
+        new_chunks, [&](std::pair<const ChunkPos, PendingChunk>& pair) {
+            auto& pending = pair.second;
+            if (!pending.future.valid()) {
+                return false;
             }
-        }
-    }
+            if (pending.future.wait_for(0ms) != std::future_status::ready) {
+                return false;
+            }
+            pending.future.get();
+
+            m_new_finished_chunk.emplace_back(pair.first,
+                                              std::move(pending.chunk));
+            return true;
+        });
 }
 
 #pragma endregion
@@ -754,6 +357,24 @@ void World::stop_server_thread() {
     }
 }
 
+void World::stop_thread_pool() {
+    auto pool_ptr = m_gen_thread_pool.load();
+    if (pool_ptr) {
+        pool_ptr->stop();
+    }
+    m_gen_thread_pool.store(nullptr);
+    Logger::info("Thread Pool Stopped");
+}
+
+void World::start_thread_pool() {
+    int max_thread = std::thread::hardware_concurrency();
+    if (m_pool_threads == 0) {
+        change_pool_threads(max_thread - RESERVED_THREADS);
+    } else {
+        change_pool_threads(m_pool_threads);
+    }
+}
+
 void World::serever_run(std::stop_token stoken) {
     Logger::info("Server Thread Started!");
     while (!stoken.stop_requested()) {
@@ -767,10 +388,12 @@ void World::serever_run(std::stop_token stoken) {
 }
 
 void World::need_gen() {
+
     if (!m_could_gen) {
         Logger::warn("It is generating or consuming new chunks");
         return;
     }
+
     m_could_gen = false;
     {
         std::lock_guard lk(m_gen_player_pos_mutex);
@@ -778,11 +401,12 @@ void World::need_gen() {
     }
 
     m_need_gen_chunk = true;
+
     m_gen_cv.notify_one();
 }
 
 int World::get_block(const glm::ivec3& block_pos) const {
-    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
     std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -800,7 +424,7 @@ int World::get_block(const glm::ivec3& block_pos) const {
 }
 
 bool World::is_solid(const glm::ivec3& block_pos) const {
-    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
     std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -822,7 +446,7 @@ bool World::is_solid(const glm::ivec3& block_pos) const {
 }
 
 bool World::can_pass_block(const glm::ivec3& block_pos) const {
-    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
     std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -840,21 +464,21 @@ bool World::can_pass_block(const glm::ivec3& block_pos) const {
 }
 
 BlockType World::get_block_tpye(const glm::ivec3& block_pos) const {
-    auto [chunk_x, chunk_z] = chunk_pos(block_pos.x, block_pos.z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
     std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {
-        Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
-                      block_pos.z);
+        // Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+        //               block_pos.z);
         return 0;
     }
     const auto& chunk_blocks = it->second.get_chunk_blocks();
     auto [x, y, z] = Chunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
-        Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
-                      block_pos.z);
+        // Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+        //               block_pos.z);
         return 0;
     }
     return chunk_blocks[Chunk::index(x, y, z)];
@@ -867,7 +491,7 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
     world_y = block_pos.y;
     world_z = block_pos.z;
 
-    auto [chunk_x, chunk_z] = chunk_pos(world_x, world_z);
+    auto [chunk_x, chunk_z] = get_chunk_pos(world_x, world_z);
     std::lock_guard lk(m_chunks_mutex);
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
@@ -890,7 +514,7 @@ void World::set_block(const glm::ivec3& block_pos, unsigned id) {
     for (const auto& dir : NEIGHBOR_DIRS) {
         glm::ivec3 neighbor = block_pos + dir;
 
-        auto [cx, cz] = chunk_pos(neighbor.x, neighbor.z);
+        auto [cx, cz] = get_chunk_pos(neighbor.x, neighbor.z);
         auto it = m_chunks.find({cx, cz});
         if (it != m_chunks.end()) {
             it->second.mark_dirty();
@@ -918,16 +542,9 @@ void World::update(float delta_time) {
         m_pending_delete_vao.clear();
     }
 
-    {
-        std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
-        m_new_chunk.clear();
-        for (auto& x : m_new_chunk_queue) {
-            m_new_chunk.emplace_back(std::move(x));
-        }
-        m_new_chunk_queue.clear();
-    }
+    poll_finished_chunks();
 
-    for (auto& x : m_new_chunk) {
+    for (auto& x : m_new_finished_chunk) {
         x.second.upload_to_gpu();
     }
 
@@ -936,7 +553,7 @@ void World::update(float delta_time) {
         std::lock_guard lk(m_chunks_mutex);
         bool consumed = false;
 
-        for (auto& x : m_new_chunk) {
+        for (auto& x : m_new_finished_chunk) {
             m_chunks.insert_or_assign(x.first, std::move(x.second));
             consumed = true;
         }
@@ -1008,35 +625,23 @@ void World::rebuild_world() {
     }
     m_is_rebuilding = true;
     stop_gen_thread();
+    stop_thread_pool();
     m_cave_carcer.reload(ChunkGenerator::seed());
     m_river_worm.reload(ChunkGenerator::seed());
     {
-        std::scoped_lock lk(m_chunks_mutex, m_new_chunk_queue_mutex);
+        std::scoped_lock lk(m_chunks_mutex);
         m_chunks.clear();
-        m_new_chunk_queue.clear();
+        m_new_finished_chunk.clear();
     }
     m_could_gen = true;
     ChunkGenerator::reload();
+    start_thread_pool();
     start_gen_thread();
     need_gen();
 
     m_is_rebuilding = false;
 }
 
-float World::chunk_gen_fraction() const { return m_chunk_gen_fraction.load(); }
-
-int World::rendering_distance() const { return m_rendering_distance.load(); }
-
-void World::rendering_distance(int rendering_distance) {
-    m_rendering_distance = rendering_distance;
-}
-
-CaveCarver& World::cave_carcer() { return m_cave_carcer; }
-RiverWorm& World::river_worm() { return m_river_worm; }
-std::vector<glm::vec4>& World::planes() { return m_planes; }
-std::vector<ChunkRenderSnapshot>& World::render_snapshots() {
-    return m_render_snapshots;
-};
 /*
 glm::vec3 World::sunlight_dir() const {
     float t = static_cast<float>(m_day_tick) / DAY_TIME;
@@ -1071,6 +676,21 @@ glm::vec3 World::sunlight_dir() const {
     return glm::normalize(-dir);
 }
 
+float World::chunk_gen_fraction() const { return m_chunk_gen_fraction.load(); }
+
+int World::rendering_distance() const { return m_rendering_distance.load(); }
+
+void World::rendering_distance(int rendering_distance) {
+    m_rendering_distance = rendering_distance;
+}
+
+CaveCarver& World::cave_carcer() { return m_cave_carcer; }
+RiverWorm& World::river_worm() { return m_river_worm; }
+std::vector<glm::vec4>& World::planes() { return m_planes; }
+std::vector<ChunkRenderSnapshot>& World::render_snapshots() {
+    return m_render_snapshots;
+};
+
 TickType World::game_tick() const { return m_game_ticks.load(); }
 TickType World::day_tick() const { return m_day_tick.load(); }
 void World::day_tick(TickType tick) {
@@ -1082,4 +702,34 @@ void World::per_tick_time(int ms) { m_per_tick_time = ms; }
 
 bool World::is_tick_running() const { return m_tick_running.load(); }
 void World::tick_running(bool run) { m_tick_running = run; }
+int World::pool_threads() const { return m_pool_threads.load(); }
+int World::max_threads() const { return m_max_threads.load(); }
+void World::change_pool_threads(int threads) {
+    m_max_threads = std::thread::hardware_concurrency();
+    if (m_max_threads < 1) {
+        Logger::warn("Can't Get Max Support Threads, Set Max Threads to 4");
+        m_max_threads = 4;
+    }
+    int used_thread = std::clamp(threads, 1, m_max_threads.load());
+    Logger::info("Create New Thread Pool Use {} Threads", used_thread);
+    m_gen_thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+    m_pool_threads = used_thread;
+}
+int World::chunk_load_style() const {
+    return std::to_underlying(m_chunk_load_style.load());
+}
+void World::set_chunk_load_style(int id) {
+    using enum ChunkLoadStyle;
+
+    switch (id) {
+    case std::to_underlying(RANDOM):
+        m_chunk_load_style = RANDOM;
+        return;
+    case std::to_underlying(CENTER):
+        m_chunk_load_style = CENTER;
+        return;
+    }
+    Logger::error("Can,t Find Chunk Load Style Id {}, Nothing Will Do", id);
+}
+
 } // namespace Cubed

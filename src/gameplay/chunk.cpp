@@ -8,8 +8,8 @@
 
 namespace Cubed {
 
-Chunk::Chunk(World& world, ChunkPos chunk_pos)
-    : m_chunk_pos(chunk_pos), m_world(world) {
+Chunk::Chunk(World& world, ChunkPos chunk_pos, bool temp_chunk)
+    : m_temp_chunk(temp_chunk), m_chunk_pos(chunk_pos), m_world(world) {
     for (int i = 0; i < VERTEX_DATA_SUM; i++) {
         m_vertex_data.emplace_back(m_world);
     }
@@ -299,7 +299,7 @@ void Chunk::gen_vertices(const OptionalBlockVectorArray& neighbor_block) {
                         int world_nz = world_z + DIR[face].z;
 
                         auto [neighbor_x, neighbor_z] =
-                            World::chunk_pos(world_nx, world_nz);
+                            World::get_chunk_pos(world_nx, world_nz);
 
                         auto is_culled =
                             [&](const std::optional<std::vector<BlockType>>&
@@ -455,6 +455,42 @@ void Chunk::gen_cross_plane_vertices(int world_x, int world_y, int world_z,
     }
 }
 
+void Chunk::gen_chunk() {
+    if (m_gening.exchange(true))
+        return;
+    m_gening = true;
+    if (m_blocks.size() != 0) {
+        Logger::warn(
+            "Request Generator Chunk {} {} ,but the Blocks size is Not 0",
+            m_chunk_pos.x, m_chunk_pos.z);
+    }
+    std::vector<Chunk> neighbor;
+    for (int i = 0; i < 4; i++) {
+        neighbor.emplace_back(m_world, m_chunk_pos + CHUNK_DIR[i], true);
+    }
+    for (auto& chunk : neighbor) {
+        chunk.gen_phase_one();
+        chunk.gen_phase_three();
+        chunk.gen_phase_five();
+        chunk.gen_phase_seven();
+    }
+    gen_phase_one();
+    gen_phase_three();
+    gen_phase_five();
+
+    OptionalBlockVectorArray neightbor_blocks;
+    for (int i = 0; i < 4; i++) {
+        neightbor_blocks[i] = neighbor[i].get_chunk_blocks();
+    }
+    gen_phase_six(neightbor_blocks);
+    gen_phase_seven();
+    for (int i = 0; i < 4; i++) {
+        neightbor_blocks[i] = neighbor[i].get_chunk_blocks();
+    }
+    gen_vertex_data(neightbor_blocks);
+}
 // Logger::info("Cross Sum {}", m_cross_vertices_sum.load());
+
+bool Chunk::is_temp_chunk() const { return m_temp_chunk.load(); }
 
 } // namespace Cubed
