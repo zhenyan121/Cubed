@@ -430,7 +430,7 @@ void DevPanel::show_settings_tab_item() {
         }
         if (ImGui::Button("ReloadTexture")) {
             Config::get().set("texture.aniso", m_config.aniso);
-            m_app.texture_manager().hot_reload();
+            m_app.texture_manager().need_reload();
             m_config.is_reload = true;
         }
         if (!m_config.is_reload) {

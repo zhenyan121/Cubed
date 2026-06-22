@@ -12,7 +12,7 @@ private:
     GLuint m_texture_array = 0;
     GLuint m_cross_plane_array = 0;
     GLuint m_ui_array = 0;
-    GLuint m_pbr_texture_array = 0;
+    GLuint m_normal_texture_array = 0;
     GLfloat m_max_aniso = 0.0f;
 
     int m_aniso = 1;
@@ -29,6 +29,7 @@ private:
     void init_block();
     void init_ui();
     void init_block_status();
+    void hot_reload();
 
 public:
     TextureManager();
@@ -43,7 +44,7 @@ public:
     const std::vector<GLuint>& item_textures() const;
     // Must call after MapTable::init_map() and glfwMakeContextCurrent(window);
     void init_texture();
-    void hot_reload();
+
     void need_reload();
     void update();
     int max_aniso() const;

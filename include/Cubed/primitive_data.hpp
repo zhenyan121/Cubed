@@ -63,12 +63,12 @@ constexpr float TEX_COORDS[6][6][2] = {
      {0.0f, 0.0f},  // top front
      {0.0f, 1.0f}}, // bottom front
     // ===== back (z = -1) =====
-    {{1.0f, 1.0f},  // bottom left
-     {0.0f, 1.0f},  // bottom right
-     {0.0f, 0.0f},  // top right
-     {0.0f, 0.0f},  // top right
-     {1.0f, 0.0f},  // top left
-     {1.0f, 1.0f}}, // bottom left
+    {{0.0f, 1.0f},  // bottom left
+     {0.0f, 0.0f},  // top left
+     {1.0f, 0.0f},  // top right
+     {1.0f, 0.0f},  // top right
+     {1.0f, 1.0f},  // bottom right
+     {0.0f, 1.0f}}, // bottom left
     // ===== left (x = -1) =====
     {{1.0f, 1.0f},  // bottom back
      {0.0f, 1.0f},  // bottom front
@@ -152,12 +152,12 @@ constexpr float TANGENTS[6][6][3] = {
      {0.0f, 0.0f, -1.0f},
      {0.0f, 0.0f, -1.0f}},
     // ===== back (z = -1) =====
-    {{-1.0f, 0.0f, 0.0f},
-     {-1.0f, 0.0f, 0.0f},
-     {-1.0f, 0.0f, 0.0f},
-     {-1.0f, 0.0f, 0.0f},
-     {-1.0f, 0.0f, 0.0f},
-     {-1.0f, 0.0f, 0.0f}},
+    {{1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f},
+     {1.0f, 0.0f, 0.0f}},
     // ===== left (x = -1) =====
     {{0.0f, 0.0f, 1.0f},
      {0.0f, 0.0f, 1.0f},

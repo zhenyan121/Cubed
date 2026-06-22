@@ -39,7 +39,7 @@ void TextureManager::delet_texture() {
     glDeleteTextures(1, &m_texture_array);
     glDeleteTextures(1, &m_block_status_array);
     glDeleteTextures(1, &m_cross_plane_array);
-    glDeleteBuffers(1, &m_pbr_texture_array);
+    glDeleteTextures(1, &m_normal_texture_array);
     for (auto& id : m_item_textures) {
         glDeleteTextures(1, &id);
     }
@@ -57,7 +57,9 @@ GLuint TextureManager::get_cross_plane_array() const {
 }
 GLuint TextureManager::get_ui_array() const { return m_ui_array; }
 
-GLuint TextureManager::get_pbr_texture() const { return m_pbr_texture_array; }
+GLuint TextureManager::get_pbr_texture() const {
+    return m_normal_texture_array;
+}
 
 const std::vector<GLuint>& TextureManager::item_textures() const {
     return m_item_textures;
@@ -181,7 +183,7 @@ void TextureManager::load_pbr_texture(unsigned id) {
     image_data[4] = (Tools::load_image_data(path + "/top_n.png", false));
     image_data[5] = (Tools::load_image_data(path + "/base_n.png", false));
 
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_pbr_texture_array);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_normal_texture_array);
     for (int i = 0; i < 6; i++) {
         unsigned char* data = image_data[i];
         bool is_fallback = false;
@@ -213,8 +215,8 @@ void TextureManager::init_block() {
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, CROSS_PLANE_SIZE,
                  CROSS_PLANE_SIZE, BlockManager::cross_plane_sum(), 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, nullptr);
-    glGenTextures(1, &m_pbr_texture_array);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_pbr_texture_array);
+    glGenTextures(1, &m_normal_texture_array);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_normal_texture_array);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, BLOCK_NORMAL_SIZE,
                  BLOCK_NORMAL_SIZE, BlockManager::sums() * 6, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, nullptr);
@@ -228,6 +230,8 @@ void TextureManager::init_block() {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     if (m_aniso >= 1) {
         glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY,
@@ -246,12 +250,12 @@ void TextureManager::init_block() {
                         static_cast<GLfloat>(m_aniso));
     }
 
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_pbr_texture_array);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_normal_texture_array);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
                     GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     if (m_aniso >= 1) {
         glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY,
