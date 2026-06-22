@@ -7,7 +7,9 @@
 #include "Cubed/gameplay/builders/plain_builder.hpp"
 #include "Cubed/gameplay/builders/river_builder.hpp"
 #include "Cubed/gameplay/builders/snowy_plain_builder.hpp"
+#include "Cubed/gameplay/cave_path.hpp"
 #include "Cubed/gameplay/chunk.hpp"
+#include "Cubed/gameplay/river.path.hpp"
 #include "Cubed/gameplay/tree.hpp"
 #include "Cubed/gameplay/world.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
@@ -15,6 +17,84 @@
 #include "Cubed/tools/math_tools.hpp"
 #include "Cubed/tools/perlin_noise.hpp"
 namespace Cubed {
+
+namespace {
+template <typename F>
+void carve_worm(const std::vector<PathPoint>& points, const ChunkPos& chunk_pos,
+                F&& on_hit) {
+    const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
+    const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
+    const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
+    const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
+    const int CHUNK_MIN_Y = 0;
+    const int CHUNK_MAX_Y = SIZE_Y - 1;
+    for (const auto& point : points) {
+
+        const glm::vec3& center = point.pos;
+        float rad_xz = point.rad_xz;
+        float rad_y = point.rad_y;
+
+        if (center.x + rad_xz < CHUNK_MIN_X ||
+            center.x - rad_xz > CHUNK_MAX_X ||
+            center.z + rad_xz < CHUNK_MIN_Z ||
+            center.z - rad_xz > CHUNK_MAX_Z || center.y + rad_y < CHUNK_MIN_Y ||
+            center.y - rad_y > CHUNK_MAX_Y) {
+            continue;
+        }
+
+        int min_x = static_cast<int>(std::floor(center.x - rad_xz));
+        int max_x = static_cast<int>(std::floor(center.x + rad_xz));
+        int min_z = static_cast<int>(std::floor(center.z - rad_xz));
+        int max_z = static_cast<int>(std::floor(center.z + rad_xz));
+        int min_y = static_cast<int>(std::floor(center.y - rad_y));
+        int max_y = static_cast<int>(std::floor(center.y + rad_y));
+
+        min_x = std::max(min_x, CHUNK_MIN_X);
+        max_x = std::min(max_x, CHUNK_MAX_X);
+        min_z = std::max(min_z, CHUNK_MIN_Z);
+        max_z = std::min(max_z, CHUNK_MAX_Z);
+        min_y = std::max(min_y, CHUNK_MIN_Y);
+        max_y = std::min(max_y, CHUNK_MAX_Y);
+
+        glm::vec3 right_raw =
+            glm::cross(point.tangent, glm::vec3(0.0f, 1.0f, 0.0f));
+        if (glm::dot(right_raw, right_raw) < 1e-6f)
+            right_raw = glm::cross(point.tangent, glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::vec3 right = glm::normalize(right_raw);
+        glm::vec3 up = glm::normalize(glm::cross(point.tangent, right));
+
+        float inv_a2 = 1.0f / (point.rad_xz * point.rad_xz);
+        float inv_b2 = 1.0f / (point.rad_y * point.rad_y);
+
+        for (int wy = min_y; wy <= max_y; ++wy) {
+            if (wy == 0)
+                continue;
+            float dy = static_cast<float>(wy) - point.pos.y;
+
+            float vy_contrib = dy * up.y;
+            float vy2 = vy_contrib * vy_contrib * inv_b2;
+            if (vy2 >= 1.0f)
+                continue;
+
+            for (int wx = min_x; wx <= max_x; ++wx) {
+                float dx = static_cast<float>(wx) - point.pos.x;
+                for (int wz = min_z; wz <= max_z; ++wz) {
+                    float dz = static_cast<float>(wz) - point.pos.z;
+                    glm::vec3 to_point(dx, dy, dz);
+
+                    float h = glm::dot(to_point, right);
+                    float v = glm::dot(to_point, up);
+
+                    if (h * h * inv_a2 + v * v * inv_b2 > 1.0f)
+                        continue;
+                    int x = wx - CHUNK_MIN_X;
+                    on_hit(x, wy, wz - CHUNK_MIN_Z);
+                }
+            }
+        }
+    }
+}
+} // namespace
 
 using enum BiomeType;
 
@@ -642,94 +722,27 @@ void ChunkGenerator::make_biome_builder() {
 
 void ChunkGenerator::ocean_build() { m_biome_builder->ocean_water_build(); }
 
-void ChunkGenerator::carve_worm(
-    const std::vector<PathPoint>& points, const ChunkPos& chunk_pos,
-    std::function<void(int /*x*/, int /*y*/, int /*z*/)> on_hit) {
-    const int CHUNK_MIN_X = chunk_pos.x * CHUNK_SIZE;
-    const int CHUNK_MIN_Z = chunk_pos.z * CHUNK_SIZE;
-    const int CHUNK_MAX_X = CHUNK_MIN_X + SIZE_X - 1;
-    const int CHUNK_MAX_Z = CHUNK_MIN_Z + SIZE_Z - 1;
-    const int CHUNK_MIN_Y = 0;
-    const int CHUNK_MAX_Y = SIZE_Y - 1;
-    for (const auto& point : points) {
-
-        const glm::vec3& center = point.pos;
-        float rad_xz = point.rad_xz;
-        float rad_y = point.rad_y;
-
-        if (center.x + rad_xz < CHUNK_MIN_X ||
-            center.x - rad_xz > CHUNK_MAX_X ||
-            center.z + rad_xz < CHUNK_MIN_Z ||
-            center.z - rad_xz > CHUNK_MAX_Z || center.y + rad_y < CHUNK_MIN_Y ||
-            center.y - rad_y > CHUNK_MAX_Y) {
-            continue;
-        }
-
-        int min_x = static_cast<int>(std::floor(center.x - rad_xz));
-        int max_x = static_cast<int>(std::floor(center.x + rad_xz));
-        int min_z = static_cast<int>(std::floor(center.z - rad_xz));
-        int max_z = static_cast<int>(std::floor(center.z + rad_xz));
-        int min_y = static_cast<int>(std::floor(center.y - rad_y));
-        int max_y = static_cast<int>(std::floor(center.y + rad_y));
-
-        min_x = std::max(min_x, CHUNK_MIN_X);
-        max_x = std::min(max_x, CHUNK_MAX_X);
-        min_z = std::max(min_z, CHUNK_MIN_Z);
-        max_z = std::min(max_z, CHUNK_MAX_Z);
-        min_y = std::max(min_y, CHUNK_MIN_Y);
-        max_y = std::min(max_y, CHUNK_MAX_Y);
-
-        glm::vec3 right_raw =
-            glm::cross(point.tangent, glm::vec3(0.0f, 1.0f, 0.0f));
-        if (glm::dot(right_raw, right_raw) < 1e-6f)
-            right_raw = glm::cross(point.tangent, glm::vec3(1.0f, 0.0f, 0.0f));
-        glm::vec3 right = glm::normalize(right_raw);
-        glm::vec3 up = glm::normalize(glm::cross(point.tangent, right));
-
-        float inv_a2 = 1.0f / (point.rad_xz * point.rad_xz);
-        float inv_b2 = 1.0f / (point.rad_y * point.rad_y);
-
-        for (int wy = min_y; wy <= max_y; ++wy) {
-            if (wy == 0)
-                continue;
-            float dy = static_cast<float>(wy) - point.pos.y;
-
-            float vy_contrib = dy * up.y;
-            float vy2 = vy_contrib * vy_contrib * inv_b2;
-            if (vy2 >= 1.0f)
-                continue;
-
-            for (int wx = min_x; wx <= max_x; ++wx) {
-                float dx = static_cast<float>(wx) - point.pos.x;
-                for (int wz = min_z; wz <= max_z; ++wz) {
-                    float dz = static_cast<float>(wz) - point.pos.z;
-                    glm::vec3 to_point(dx, dy, dz);
-
-                    float h = glm::dot(to_point, right);
-                    float v = glm::dot(to_point, up);
-
-                    if (h * h * inv_a2 + v * v * inv_b2 > 1.0f)
-                        continue;
-                    int x = wx - CHUNK_MIN_X;
-                    on_hit(x, wy, wz - CHUNK_MIN_Z);
-                }
-            }
-        }
-    }
-}
-
 void ChunkGenerator::generate_cave() {
-    auto& cave_carver = m_chunk.world().cave_carcer();
-    auto& paths = cave_carver.paths();
     const auto& chunk_pos = m_chunk.chunk_pos();
     auto& blocks = m_chunk.blocks();
-    {
-        std::shared_lock lock(cave_carver.path_mutex());
-        for (auto& [id, path] : paths) {
+    auto& carver = m_chunk.world().cave_carcer();
+
+    int search_r = carver.search_radius();
+    for (int dx = -search_r; dx <= search_r; dx++) {
+        for (int dz = -search_r; dz <= search_r; dz++) {
+            ChunkPos origin_pos{chunk_pos.x + dx, chunk_pos.z + dz};
+            auto origin = carver.get_origin(origin_pos);
+            if (!origin.exists)
+                continue;
+
+            // Deterministically reconstruct this path (lightweight: only
+            // compute points, no storage).
+            CavePath path{origin.seed, carver.world_seed(), origin.pos};
 
             carve_worm(path.points(), chunk_pos,
                        [&](int x, int y, int z) -> void {
                            int idx = Chunk::index(x, y, z);
+                           m_chunk.has_cave() = true;
                            if (blocks[idx] == 7)
                                return;
                            if (y < WORLD_SIZE_Y - 1 &&
@@ -737,30 +750,34 @@ void ChunkGenerator::generate_cave() {
                                return;
                            blocks[idx] = 0;
                        });
-            if (!m_chunk.is_temp_chunk()) {
-                path.clear_chunk(chunk_pos);
-            }
         }
     }
 }
 
 void ChunkGenerator::generate_river() {
+    if ((m_chunk.biome() == BiomeType::DESERT) ||
+        (m_chunk.biome() == BiomeType::OCEAN)) {
 
+        return;
+    }
     auto& river_worm = m_chunk.world().river_worm();
-    auto& paths = river_worm.paths();
+
     const auto& chunk_pos = m_chunk.chunk_pos();
     auto& blocks = m_chunk.blocks();
     bool is_river = false;
-    {
-        std::shared_lock lock(river_worm.paths_mutex());
-        for (auto& [id, path] : paths) {
-            if ((m_chunk.biome() == BiomeType::DESERT) ||
-                (m_chunk.biome() == BiomeType::OCEAN)) {
-                if (!m_chunk.is_temp_chunk()) {
-                    path.clear_chunk(chunk_pos);
-                }
+    int search_r = river_worm.search_radius();
+
+    for (int dx = -search_r; dx <= search_r; dx++) {
+        for (int dz = -search_r; dz <= search_r; dz++) {
+            ChunkPos origin_pos{chunk_pos.x + dx, chunk_pos.z + dz};
+            auto origin = river_worm.get_origin(origin_pos);
+            if (!origin.exists)
                 continue;
-            }
+
+            // Deterministically reconstruct this path (lightweight: only
+            // compute points, no storage).
+            RiverPath path{origin.seed, river_worm.world_seed(), origin.pos};
+
             carve_worm(path.points(), chunk_pos,
                        [&](int x, int y, int z) -> void {
                            int idx = Chunk::index(x, y, z);
@@ -774,9 +791,6 @@ void ChunkGenerator::generate_river() {
                            }
                            blocks[idx] = 7;
                        });
-            if (!m_chunk.is_temp_chunk()) {
-                path.clear_chunk(chunk_pos);
-            }
         }
     }
 

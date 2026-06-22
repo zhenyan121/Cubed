@@ -10,6 +10,15 @@
 #include <mutex>
 namespace Cubed {
 
+struct ChunkInfo {
+    ChunkPos pos{0, 0};
+    unsigned seed{0};
+    BiomeType biome{BiomeType::NONE};
+    unsigned first_random{0};
+    bool has_cave_start{false};
+    bool has_cave{false};
+};
+
 class World;
 // if want to use, do init_chunk(), gen_vertex_data() and
 class Chunk {
@@ -25,6 +34,8 @@ private:
     std::atomic<bool> m_is_on_gen_vertex_data{false};
     std::atomic<bool> m_gening{false};
     std::atomic<bool> m_temp_chunk{false};
+
+    bool m_has_cave{false};
 
     std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
@@ -50,7 +61,7 @@ private:
     unsigned m_seed = 0;
 
     BiomeConditions m_conditions;
-
+    ChunkInfo m_info;
     void clear_dirty();
     void gen_vertices(const OptionalBlockVectorArray& neighbor_block);
     void gen_cross_plane_vertices(int world_x, int world_y, int world_z,
@@ -129,6 +140,7 @@ public:
     void set_chunk_block(int index, unsigned id);
     // ensure thread safe!
     void gen_chunk();
+
     bool is_temp_chunk() const;
     ChunkPos chunk_pos() const;
     BiomeType biome() const;
@@ -138,6 +150,8 @@ public:
     World& world();
     unsigned seed() const;
     BiomeConditions& conditions();
+    ChunkInfo get_info() const;
+    bool& has_cave();
 };
 
 } // namespace Cubed

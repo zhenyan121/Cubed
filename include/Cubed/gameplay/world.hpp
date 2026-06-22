@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
@@ -67,7 +68,7 @@ private:
 
     std::atomic<TickType> m_day_tick = 6000;
 
-    mutable std::mutex m_chunks_mutex;
+    mutable std::shared_mutex m_chunks_mutex;
     std::mutex m_gen_signal_mutex;
     std::mutex m_new_chunk_mutex;
     std::mutex m_delete_vbo_mutex;
@@ -83,7 +84,6 @@ private:
     std::atomic<bool> m_could_gen{true};
     std::atomic<bool> m_tick_running{true};
     std::atomic<int> m_rendering_distance{24};
-    std::atomic<float> m_chunk_gen_fraction{0.0f};
     std::atomic<int> m_pool_threads{0};
     std::atomic<int> m_max_threads{1};
     std::atomic<TickType> m_game_ticks{0};
@@ -100,8 +100,7 @@ private:
 
     void gen_chunks_internal();
     void sync_player_pos(glm::vec3& player_pos);
-    void compute_required_chunks(ChunkPosSet& required_chunks,
-                                 ChunkPairVector& temp_neighbor);
+    void compute_required_chunks(ChunkPosSet& required_chunks);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
 
@@ -118,7 +117,7 @@ public:
 
     const std::optional<LookBlock>&
     get_look_block_pos(const std::string& name) const;
-    const Chunk* get_chunk(const ChunkPos& pos) const;
+    // const Chunk* get_chunk(const ChunkPos& pos) const;
 
     Player& get_player(const std::string& name);
     void init_world();
@@ -139,7 +138,6 @@ public:
 
     void rebuild_world();
 
-    float chunk_gen_fraction() const;
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
     void start_gen_thread();
@@ -169,6 +167,7 @@ public:
     void change_pool_threads(int threads);
     int chunk_load_style() const;
     void set_chunk_load_style(int id);
+    ChunkInfo get_chunk_info(const glm::vec3& world_pos) const;
 };
 
 } // namespace Cubed

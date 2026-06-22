@@ -2,7 +2,9 @@
 
 #include "Cubed/app.hpp"
 #include "Cubed/config.hpp"
+#include "Cubed/gameplay/cave_path.hpp"
 #include "Cubed/gameplay/player.hpp"
+#include "Cubed/gameplay/river.path.hpp"
 #include "Cubed/tools/log.hpp"
 
 #include <imgui.h>
@@ -33,8 +35,8 @@ constexpr int AMPLITUDE_MAX = 80;
 constexpr float TREE_FREQ_MIM = 0.001f;
 constexpr float TREE_FREQ_MAX = 0.3f;
 
-constexpr float PATH_PROBABILITY_MIN = 0.005f;
-constexpr float PATH_PROBABILITY_MAX = 0.1f;
+// constexpr float PATH_PROBABILITY_MIN = 0.005f;
+// constexpr float PATH_PROBABILITY_MAX = 0.1f;
 constexpr float RADIUS_XZ_MIN = 1.0f;
 constexpr float RADIUS_XZ_MAX = 50.0f;
 constexpr float RADIUS_Y_MIN = 1.0f;
@@ -291,11 +293,11 @@ void DevPanel::show_time_table_bar() {
 }
 
 void DevPanel::show_cave_table_bar() {
-    auto& cave_carcer = m_app.world().cave_carcer();
+    // auto& cave_carcer = m_app.world().cave_carcer();
 
-    ImGui::Text("Total Cave Sum %d", cave_carcer.cave_sum());
-    ImGui::SliderFloat("Cave Probability", &cave_carcer.cave_probability(),
-                       PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
+    // ImGui::Text("Total Cave Sum %d", cave_carcer.cave_sum());
+    // ImGui::SliderFloat("Cave Probability", &cave_carcer.cave_probability(),
+    //                   PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
     ImGui::SliderFloat("Radius XZ Min", &CavePath::radius_xz_min(),
                        RADIUS_XZ_MIN, RADIUS_XZ_MAX);
     ImGui::SliderFloat("Radius XZ Max", &CavePath::radius_xz_max(),
@@ -315,11 +317,11 @@ void DevPanel::show_cave_table_bar() {
 }
 
 void DevPanel::show_river_table_bar() {
-    auto& river_wrom = m_app.world().river_worm();
+    // auto& river_wrom = m_app.world().river_worm();
 
-    ImGui::Text("Total River Sum %d", river_wrom.river_sum());
-    ImGui::SliderFloat("River Probability", &river_wrom.river_probability(),
-                       PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
+    // ImGui::Text("Total River Sum %d", river_wrom.river_sum());
+    // ImGui::SliderFloat("River Probability", &river_wrom.river_probability(),
+    //                   PATH_PROBABILITY_MIN, PATH_PROBABILITY_MAX);
     ImGui::SliderFloat("Radius XZ Min##river", &RiverPath::radius_xz_min(),
                        RADIUS_XZ_MIN, RADIUS_XZ_MAX);
     ImGui::SliderFloat("Radius XZ Max##river", &RiverPath::radius_xz_max(),
@@ -336,6 +338,20 @@ void DevPanel::show_river_table_bar() {
                      PATH_STEP_MAX);
     ImGui::SliderInt("Step Max##river", &RiverPath::step_max(), PATH_STEP_MIN,
                      PATH_STEP_MAX);
+}
+
+void DevPanel::show_chunk_table_bar() {
+    auto& world = m_app.world();
+    auto& player = world.get_player("TestPlayer");
+    auto info = world.get_chunk_info(player.get_player_pos());
+
+    ImGui::Text("Chunk X: %d Z: %d Info", info.pos.x, info.pos.z);
+    ImGui::Text("Seed: %u", info.seed);
+    ImGui::Text("%s", ("Biome " + get_biome_str(info.biome)).c_str());
+    ImGui::Text("First Random %u", info.first_random);
+    ImGui::Text("%s",
+                std::format("Has Cave Start {}", info.has_cave_start).c_str());
+    ImGui::Text("%s", std::format("Has Cave {}", info.has_cave).c_str());
 }
 
 void DevPanel::show_settings_tab_item() {
@@ -505,13 +521,15 @@ void DevPanel::show_world_tab_item() {
                 m_app.world().stop_gen_thread();
             }
         }
-        ImGui::Text("Chunk Build Progress\n");
-        ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
+        // ImGui::Text("Chunk Build Progress\n");
+        // ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
+        show_chunk_table_bar();
         if (ImGui::BeginTabBar("World Settings")) {
             if (ImGui::BeginTabItem("Time")) {
                 show_time_table_bar();
                 ImGui::EndTabItem();
             }
+            /*
             if (ImGui::BeginTabItem("Cave")) {
                 show_cave_table_bar();
                 ImGui::EndTabItem();
@@ -519,11 +537,12 @@ void DevPanel::show_world_tab_item() {
             if (ImGui::BeginTabItem("River")) {
                 show_river_table_bar();
                 ImGui::EndTabItem();
-            }
+            }*/
             if (ImGui::BeginTabItem("Biome")) {
                 show_biome_table_bar();
                 ImGui::EndTabItem();
             }
+
             ImGui::EndTabBar();
         }
         ImGui::EndTabItem();

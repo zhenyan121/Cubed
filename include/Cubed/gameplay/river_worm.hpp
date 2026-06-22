@@ -1,37 +1,32 @@
 #pragma once
 #include "Cubed/gameplay/chunk_pos.hpp"
-#include "Cubed/gameplay/river.path.hpp"
+#include "Cubed/gameplay/path.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
-#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
-
 namespace Cubed {
 
 class RiverWorm {
-    using RiverHashMap = tbb::concurrent_hash_map<unsigned, RiverPath>;
 
 public:
     RiverWorm();
     ~RiverWorm();
-    RiverHashMap& paths();
+
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
-    void add_path(const glm::vec3& pos, unsigned chunk_seed);
-    void try_to_add_path(const ChunkPos& pos, unsigned chunk_seed);
-    void cleanup_finished_rivers();
 
-    int river_sum() const;
-    float& river_probability();
-    std::shared_mutex& paths_mutex();
+    PathOrigin get_origin(const ChunkPos& origin_chunk) const;
+    int search_radius() const;
+    unsigned world_seed() const;
+
+    float river_probability() const;
+    bool has_origin_fast(const ChunkPos& pos) const;
 
 private:
-    RiverHashMap m_paths;
-    unsigned m_seed = 0;
+    std::atomic<unsigned> m_world_seed{0};
     Random m_random;
-    float m_probability = 0.01f;
-    std::shared_mutex m_paths_mutex;
+    std::atomic<float> m_probability{0.01f};
 };
 
 }; // namespace Cubed

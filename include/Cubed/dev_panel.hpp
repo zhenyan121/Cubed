@@ -55,6 +55,7 @@ private:
     void show_time_table_bar();
     void show_cave_table_bar();
     void show_river_table_bar();
+    void show_chunk_table_bar();
     void show_settings_tab_item();
     void show_world_tab_item();
     void show_player_tab_item();

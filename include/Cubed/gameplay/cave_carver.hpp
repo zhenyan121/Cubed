@@ -1,31 +1,25 @@
 #pragma once
-#include "Cubed/gameplay/cave_path.hpp"
+#include "Cubed/constants.hpp"
+#include "Cubed/gameplay/path.hpp"
 
-#include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
 
 namespace Cubed {
 class CaveCarver {
-    using CaveHashMap = tbb::concurrent_hash_map<unsigned, CavePath>;
 
 public:
     CaveCarver();
-    CaveHashMap& paths();
+
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
-    void add_path(const glm::vec3& pos, unsigned chunk_seed);
-    void try_to_add_path(const ChunkPos& pos, unsigned chunk_seed);
-    void cleanup_finished_caves();
-
-    int cave_sum() const;
-    float& cave_probability();
-    std::shared_mutex& path_mutex();
+    bool has_origin_fast(const ChunkPos& pos) const;
+    float cave_probability() const;
+    PathOrigin get_origin(const ChunkPos& origin_chunk) const;
+    int search_radius() const;
+    unsigned world_seed() const;
 
 private:
-    CaveHashMap m_paths;
-    unsigned m_seed = 0;
-    Random m_random;
-    float m_cave_probability = 0.035f;
-    std::shared_mutex m_path_mutex;
+    std::atomic<unsigned> m_world_seed{0};
+    std::atomic<float> m_cave_probability{DEFAULT_CAVE_PROBABILITY};
 };
 } // namespace Cubed

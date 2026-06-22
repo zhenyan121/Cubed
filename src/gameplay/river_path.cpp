@@ -1,4 +1,3 @@
-#include "Cubed/constants.hpp"
 #include "Cubed/gameplay/river.path.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/math_tools.hpp"
@@ -24,15 +23,10 @@ RiverPath::RiverPath(unsigned int chunk_seed, unsigned world_seed,
     m_points.reserve(m_step + 1);
     m_points.push_back(m_start_path_point);
     collect_path_points();
-    precompute_chunk_coverage();
 }
 
 void RiverPath::collect_path_points() {
     for (int i = 0; i < m_step; i++) {
-
-        m_yaw = std::fmod(m_yaw, 360.0f);
-        if (m_yaw < 0.0f)
-            m_yaw += 360.0f;
 
         float dx = std::cos(glm::radians(m_pitch)) *
                    std::sin(glm::radians(m_yaw)) * m_step_len;
@@ -60,33 +54,7 @@ void RiverPath::collect_path_points() {
     }
 }
 
-void RiverPath::precompute_chunk_coverage() {
-    for (const auto& point : m_points) {
-        float rad = point.rad_xz;
-        const glm::vec3& center = point.pos;
-
-        int min_cx =
-            static_cast<int>(std::floor((center.x - rad) / CHUNK_SIZE));
-        int max_cx =
-            static_cast<int>(std::floor((center.x + rad) / CHUNK_SIZE));
-        int min_cz =
-            static_cast<int>(std::floor((center.z - rad) / CHUNK_SIZE));
-        int max_cz =
-            static_cast<int>(std::floor((center.z + rad) / CHUNK_SIZE));
-
-        for (int cx = min_cx; cx <= max_cx; ++cx)
-            for (int cz = min_cz; cz <= max_cz; ++cz)
-                m_pending_chunks.insert(
-                    std::make_pair(ChunkPos{cx, cz}, false));
-    }
-}
-
-void RiverPath::clear_chunk(const ChunkPos& pos) {
-    m_pending_chunks.erase(pos);
-}
 const std::vector<PathPoint>& RiverPath::points() const { return m_points; }
-bool RiverPath::is_finished() const { return m_pending_chunks.empty(); }
-
 float& RiverPath::radius_xz_min() { return m_radius_xz_min; }
 float& RiverPath::radius_xz_max() { return m_radius_xz_max; }
 float& RiverPath::radius_y_min() { return m_radius_y_min; }
@@ -95,4 +63,5 @@ float& RiverPath::delta_angle_min() { return m_delta_angle_min; }
 float& RiverPath::delta_angle_max() { return m_delta_angle_max; }
 int& RiverPath::step_min() { return m_step_min; }
 int& RiverPath::step_max() { return m_step_max; }
+float RiverPath::step_len() { return m_step_len; }
 } // namespace Cubed

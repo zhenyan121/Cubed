@@ -1,6 +1,5 @@
 #include "Cubed/gameplay/cave_path.hpp"
 
-#include "Cubed/constants.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/math_tools.hpp"
 
@@ -21,15 +20,12 @@ CavePath::CavePath(unsigned int chunk_seed, unsigned world_seed,
     m_points.reserve(m_step + 1);
     m_points.push_back(m_start_path_point);
     collect_path_points();
-    precompute_chunk_coverage();
 }
 
 void CavePath::collect_path_points() {
+
     for (int i = 0; i < m_step; i++) {
 
-        m_yaw = std::fmod(m_yaw, 360.0f);
-        if (m_yaw < 0.0f)
-            m_yaw += 360.0f;
         m_pitch = std::clamp(m_pitch, -90.0f, 90.0f);
 
         float dx = std::cos(glm::radians(m_pitch)) *
@@ -58,30 +54,7 @@ void CavePath::collect_path_points() {
     }
 }
 
-void CavePath::precompute_chunk_coverage() {
-    for (const auto& point : m_points) {
-        float rad = point.rad_xz;
-        const glm::vec3& center = point.pos;
-
-        int min_cx =
-            static_cast<int>(std::floor((center.x - rad) / CHUNK_SIZE));
-        int max_cx =
-            static_cast<int>(std::floor((center.x + rad) / CHUNK_SIZE));
-        int min_cz =
-            static_cast<int>(std::floor((center.z - rad) / CHUNK_SIZE));
-        int max_cz =
-            static_cast<int>(std::floor((center.z + rad) / CHUNK_SIZE));
-
-        for (int cx = min_cx; cx <= max_cx; ++cx)
-            for (int cz = min_cz; cz <= max_cz; ++cz)
-                m_pending_chunks.insert(
-                    std::make_pair(ChunkPos{cx, cz}, false));
-    }
-}
-
-void CavePath::clear_chunk(const ChunkPos& pos) { m_pending_chunks.erase(pos); }
 const std::vector<PathPoint>& CavePath::points() const { return m_points; }
-bool CavePath::is_finished() const { return m_pending_chunks.empty(); }
 
 float& CavePath::radius_xz_min() { return m_radius_xz_min; }
 float& CavePath::radius_xz_max() { return m_radius_xz_max; }
@@ -91,5 +64,5 @@ float& CavePath::delta_angle_min() { return m_delta_angle_min; }
 float& CavePath::delta_angle_max() { return m_delta_angle_max; }
 int& CavePath::step_min() { return m_step_min; }
 int& CavePath::step_max() { return m_step_max; }
-
+int CavePath::step_len() { return m_step_len; }
 } // namespace Cubed
