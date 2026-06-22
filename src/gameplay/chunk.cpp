@@ -501,9 +501,17 @@ void Chunk::gen_chunk() {
     m_info.biome = m_biome;
     m_info.pos = m_chunk_pos;
     m_info.seed = m_seed;
+    Random r(m_seed);
+    unsigned first = r.engine()();
+    m_info.first_random = first;
+    r.init(m_seed);
+    m_info.has_cave_start = r.random_bool(DEFAULT_CAVE_PROBABILITY);
+    m_info.has_cave = m_has_cave;
 }
 // Logger::info("Cross Sum {}", m_cross_vertices_sum.load());
 
 bool Chunk::is_temp_chunk() const { return m_temp_chunk.load(); }
+
+bool& Chunk::has_cave() { return m_has_cave; }
 
 } // namespace Cubed

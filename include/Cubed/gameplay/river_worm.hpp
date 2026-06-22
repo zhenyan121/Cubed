@@ -10,7 +10,8 @@
 namespace Cubed {
 
 class RiverWorm {
-    using RiverHashMap = tbb::concurrent_hash_map<unsigned, RiverPath>;
+    using RiverHashMap =
+        tbb::concurrent_hash_map<ChunkPos, RiverPath, ChunkPos::TBBHash>;
 
 public:
     RiverWorm();
@@ -18,7 +19,8 @@ public:
     RiverHashMap& paths();
     void init(unsigned world_seed);
     void reload(unsigned world_seed);
-    void add_path(const glm::vec3& pos, unsigned chunk_seed);
+    void add_path(const glm::vec3& pos, unsigned chunk_seed,
+                  ChunkPos chunk_pos);
     void try_to_add_path(const ChunkPos& pos, unsigned chunk_seed);
     void cleanup_finished_rivers();
 

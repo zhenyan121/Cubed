@@ -730,6 +730,7 @@ void ChunkGenerator::generate_cave() {
             carve_worm(path.points(), chunk_pos,
                        [&](int x, int y, int z) -> void {
                            int idx = Chunk::index(x, y, z);
+                           m_chunk.has_cave() = true;
                            if (blocks[idx] == 7)
                                return;
                            if (y < WORLD_SIZE_Y - 1 &&

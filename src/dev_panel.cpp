@@ -338,6 +338,20 @@ void DevPanel::show_river_table_bar() {
                      PATH_STEP_MAX);
 }
 
+void DevPanel::show_chunk_table_bar() {
+    auto& world = m_app.world();
+    auto& player = world.get_player("TestPlayer");
+    auto info = world.get_chunk_info(player.get_player_pos());
+
+    ImGui::Text("Chunk X: %d Z: %d Info", info.pos.x, info.pos.z);
+    ImGui::Text("Seed: %u", info.seed);
+    ImGui::Text("%s", ("Biome " + get_biome_str(info.biome)).c_str());
+    ImGui::Text("First Random %u", info.first_random);
+    ImGui::Text("%s",
+                std::format("Has Cave Start {}", info.has_cave_start).c_str());
+    ImGui::Text("%s", std::format("Has Cave {}", info.has_cave).c_str());
+}
+
 void DevPanel::show_settings_tab_item() {
     if (ImGui::BeginTabItem("settings")) {
         if (ImGui::SliderFloat("FOV", &m_config.fov, 1.0f, 140.0f)) {
@@ -507,6 +521,7 @@ void DevPanel::show_world_tab_item() {
         }
         ImGui::Text("Chunk Build Progress\n");
         ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
+        show_chunk_table_bar();
         if (ImGui::BeginTabBar("World Settings")) {
             if (ImGui::BeginTabItem("Time")) {
                 show_time_table_bar();
@@ -524,6 +539,7 @@ void DevPanel::show_world_tab_item() {
                 show_biome_table_bar();
                 ImGui::EndTabItem();
             }
+
             ImGui::EndTabBar();
         }
         ImGui::EndTabItem();

@@ -14,6 +14,9 @@ struct ChunkInfo {
     ChunkPos pos{0, 0};
     unsigned seed{0};
     BiomeType biome{BiomeType::NONE};
+    unsigned first_random{0};
+    bool has_cave_start{false};
+    bool has_cave{false};
 };
 
 class World;
@@ -31,6 +34,8 @@ private:
     std::atomic<bool> m_is_on_gen_vertex_data{false};
     std::atomic<bool> m_gening{false};
     std::atomic<bool> m_temp_chunk{false};
+
+    bool m_has_cave{false};
 
     std::atomic<BiomeType> m_biome = BiomeType::PLAIN;
     std::mutex m_vertexs_data_mutex;
@@ -135,6 +140,7 @@ public:
     void set_chunk_block(int index, unsigned id);
     // ensure thread safe!
     void gen_chunk();
+
     bool is_temp_chunk() const;
     ChunkPos chunk_pos() const;
     BiomeType biome() const;
@@ -145,6 +151,7 @@ public:
     unsigned seed() const;
     BiomeConditions& conditions();
     ChunkInfo get_info() const;
+    bool& has_cave();
 };
 
 } // namespace Cubed
