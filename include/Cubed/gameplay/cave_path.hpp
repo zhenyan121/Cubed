@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Cubed/gameplay/chunk_pos.hpp"
 #include "Cubed/gameplay/path_point.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
@@ -9,8 +8,6 @@
 namespace Cubed {
 
 class CavePath {
-    using ChunkPosSet =
-        tbb::concurrent_hash_map<ChunkPos, bool, ChunkPos::TBBHash>;
 
 public:
     CavePath(unsigned int chunk_seed, unsigned world_seed,

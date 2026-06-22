@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Cubed/gameplay/chunk_pos.hpp"
 #include "Cubed/gameplay/path_point.hpp"
 #include "Cubed/tools/cubed_random.hpp"
 
@@ -9,8 +8,6 @@
 
 namespace Cubed {
 class RiverPath {
-    using ChunkPosSet =
-        tbb::concurrent_hash_map<ChunkPos, bool, ChunkPos::TBBHash>;
 
 public:
     RiverPath(unsigned int chunk_seed, unsigned world_seed,
@@ -46,8 +43,6 @@ private:
     Random m_random;
 
     std::vector<PathPoint> m_points;
-    ChunkPosSet m_pending_chunks;
     void collect_path_points();
-    void precompute_chunk_coverage();
 };
 } // namespace Cubed

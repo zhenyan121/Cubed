@@ -63,6 +63,9 @@ void VertexData::upload() {
     glEnableVertexAttribArray(5);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Release memory
+    m_vertices.clear();
 }
 void VertexData::update_sum() { m_sum = m_vertices.size(); }
 } // namespace Cubed

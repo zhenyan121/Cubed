@@ -7,11 +7,7 @@ namespace Cubed {
 RiverWorm::RiverWorm() {}
 RiverWorm::~RiverWorm() {}
 
-void RiverWorm::init(unsigned world_seed) {
-    m_world_seed = world_seed;
-
-    m_random.init(m_world_seed);
-}
+void RiverWorm::init(unsigned world_seed) { m_world_seed = world_seed; }
 
 void RiverWorm::reload(unsigned world_seed) {
 

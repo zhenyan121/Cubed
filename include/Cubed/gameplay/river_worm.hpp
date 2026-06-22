@@ -1,7 +1,6 @@
 #pragma once
 #include "Cubed/gameplay/chunk_pos.hpp"
 #include "Cubed/gameplay/path.hpp"
-#include "Cubed/tools/cubed_random.hpp"
 
 #include <glm/glm.hpp>
 #include <tbb/concurrent_hash_map.h>
@@ -25,7 +24,6 @@ public:
 
 private:
     std::atomic<unsigned> m_world_seed{0};
-    Random m_random;
     std::atomic<float> m_probability{0.01f};
 };
 
