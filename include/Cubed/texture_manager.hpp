@@ -12,7 +12,7 @@ private:
     GLuint m_texture_array = 0;
     GLuint m_cross_plane_array = 0;
     GLuint m_ui_array = 0;
-    GLuint m_pbr_texture_array = 0;
+    GLuint m_normal_texture_array = 0;
     GLfloat m_max_aniso = 0.0f;
 
     int m_aniso = 1;

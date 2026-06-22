@@ -25,6 +25,18 @@ class Chunk {
 private:
     using OptionalBlockVectorArray =
         std::array<std::optional<std::vector<BlockType>>, 4>;
+
+    struct FaceKey {
+        BlockType block_id = 0;
+        int face = -1; // 0-5, used to index NORMALS/TANGENTS/TEX_COORDS
+
+        bool valid() const { return block_id != 0; }
+        bool operator==(const FaceKey& o) const {
+            return block_id == o.block_id && face == o.face;
+        }
+        bool operator!=(const FaceKey& o) const { return !(*this == o); }
+    };
+
     static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUNK_SIZE;
@@ -66,6 +78,8 @@ private:
     void gen_vertices(const OptionalBlockVectorArray& neighbor_block);
     void gen_cross_plane_vertices(int world_x, int world_y, int world_z,
                                   BlockType id);
+    void emit_quad(int axis, int face_dir, int layer, int i, int j, int w,
+                   int h, int u_axis, int v_axis, FaceKey key);
 
 public:
     Chunk(World& world, ChunkPos chunk_pos, bool temp_chunk = false);
