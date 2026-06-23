@@ -31,15 +31,11 @@ template <typename T> constexpr uint16_t get_packet_id() {
 }
 
 template <typename T> Packet make_packet(const T& msg) {
-    std::string body;
-
-    if (!msg.SerializeToString(&body)) {
-        return {};
-    }
-
     uint16_t cmd = get_packet_id<T>();
 
-    uint32_t total_len = HEADER_LEN + body.size();
+    uint32_t body_len = static_cast<uint32_t>(msg.ByteSizeLong());
+
+    uint32_t total_len = HEADER_LEN + body_len;
 
     auto packet = std::make_shared<std::vector<uint8_t>>(total_len);
 
@@ -48,10 +44,12 @@ template <typename T> Packet make_packet(const T& msg) {
 
     std::memcpy(packet->data(), &total_len_net, sizeof(total_len_net));
 
-    std::memcpy(packet->data() + sizeof(total_len_net), &cmd_net,
-                sizeof(cmd_net));
+    std::memcpy(packet->data() + 4, &cmd_net, sizeof(cmd_net));
 
-    std::memcpy(packet->data() + HEADER_LEN, body.data(), body.size());
+    if (!msg.SerializeToArray(packet->data() + HEADER_LEN,
+                              static_cast<int>(body_len))) {
+        return {};
+    }
 
     return packet;
 }
