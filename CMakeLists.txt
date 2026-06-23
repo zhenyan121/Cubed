@@ -166,8 +166,14 @@ else()
     )
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIR})
-
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/third_party/asio/include
+)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    ASIO_STANDALONE
+    ASIO_NO_DEPRECATED
+)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         glfw                                   
