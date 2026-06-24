@@ -12,14 +12,25 @@ void NetworkServer::stop() {
     if (m_stopped.exchange(true)) {
         return;
     }
-    for (auto& [key, s] : m_session) {
-        if (s) {
-            s->close();
-        }
-    }
 
     m_io.stop();
-    m_session.clear();
+
+    std::vector<std::shared_ptr<Session>> sessions;
+
+    {
+        std::lock_guard lock(m_session_mutex);
+
+        for (auto& [id, s] : m_session) {
+            sessions.push_back(s);
+        }
+
+        m_session.clear();
+    }
+
+    for (auto& s : sessions) {
+        s->close();
+    }
+
     if (m_net_thread.joinable()) {
         m_net_thread.join();
     }
@@ -27,22 +38,36 @@ void NetworkServer::stop() {
 }
 
 asio::awaitable<void> NetworkServer::listen() {
-    tcp::acceptor acceptor(m_io, tcp::endpoint(tcp::v4(), m_port));
-    while (true) {
-        tcp::socket socket =
-            co_await acceptor.async_accept(asio::use_awaitable);
-        if (m_stopped) {
-            break;
+
+    try {
+        tcp::acceptor acceptor(m_io, tcp::endpoint(tcp::v4(), m_port));
+        while (true) {
+            tcp::socket socket =
+                co_await acceptor.async_accept(asio::use_awaitable);
+
+            std::shared_ptr<Session> s =
+                std::make_shared<Session>(std::move(socket), m_world);
+            {
+                std::lock_guard lock(m_session_mutex);
+                m_session.emplace(s->uuid(), s);
+            }
+            s->start();
         }
-        std::shared_ptr<Session> s =
-            std::make_shared<Session>(std::move(socket), m_world);
-        s->start();
-        m_session.emplace(s->uuid(), s);
+    } catch (const std::exception& e) {
+        if (!m_stopped) {
+            Logger::error("accept error {}", e.what());
+        }
+    } catch (...) {
+        Logger::error("Network Server: Unkown Error");
     }
+
     co_return;
 }
 
 void NetworkServer::net_run() {
+    if (m_net_thread.joinable()) {
+        return;
+    }
     m_net_thread = std::thread([this]() {
         asio::co_spawn(m_io, listen(), asio::detached);
         m_io.run();

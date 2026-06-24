@@ -24,7 +24,7 @@ public:
     ServerWorld();
     ~ServerWorld();
     void player_join(std::string_view name, std::string_view uuid);
-    void player_exit(const std::string& name);
+    void handle_player_exit(const std::string& name);
     void init_world();
     void need_gen(std::optional<std::string> uuid);
     void update();
@@ -81,20 +81,18 @@ private:
         std::future<void> future;
     };
     using ChunkHashMap =
-        std::unordered_map<ChunkPos, ServerChunk, ChunkPos::Hash>;
-    using PlayerHashMap =
-        tbb::concurrent_unordered_map<std::string, ServerPlayer>;
+        tbb::concurrent_unordered_map<ChunkPos, ServerChunk, ChunkPos::Hash>;
+    using PlayerHashMap = std::unordered_map<std::string, ServerPlayer>;
     using PendingChunkHashMap =
         std::unordered_map<ChunkPos, PendingChunk, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
-    using PlayerSessionMap =
-        tbb::concurrent_hash_map<std::string, std::shared_ptr<Session>>;
-    using session_acc = PlayerSessionMap::accessor;
-    using session_cacc = PlayerSessionMap::const_accessor;
+    using PlayerUUIDMap = tbb::concurrent_hash_map<std::string, std::string>;
+    using uuid_acc = PlayerUUIDMap::accessor;
+    using uuid_cacc = PlayerUUIDMap::const_accessor;
+    // key = uuid
     PlayerHashMap m_players;
     ChunkHashMap m_chunks;
-    // Can only be used in the gen thread
-    PendingChunkHashMap new_chunks;
+    PendingChunkHashMap m_new_chunks;
     std::vector<std::pair<ChunkPos, ServerChunk>> m_new_finished_chunk;
 
     CaveCarver m_cave_carcer;
@@ -119,8 +117,9 @@ private:
 
     std::shared_mutex m_chunks_mutex;
     std::shared_mutex m_new_chunk_mutex;
+    std::shared_mutex m_player_mutex;
     std::mutex m_need_gen_queue_mutex;
-    std::condition_variable m_gen_cv;
+    std::condition_variable_any m_gen_cv;
 
     std::deque<std::string> m_need_gen_queue;
 
@@ -128,9 +127,7 @@ private:
 
     std::atomic<ChunkLoadStyle> m_chunk_load_style{ChunkLoadStyle::RANDOM};
 
-    // key = uuid
-    PlayerSessionMap m_player_session;
-    tbb::concurrent_hash_map<std::string, std::string> m_uuid_to_name;
+    PlayerUUIDMap m_uuid_to_name;
     void init_chunks();
 
     void gen_chunks_internal(std::optional<std::string> uuid);

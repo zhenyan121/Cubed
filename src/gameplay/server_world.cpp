@@ -24,7 +24,8 @@ ServerWorld::~ServerWorld() {
 }
 
 void ServerWorld::wait_all_chunk_tasks() {
-    for (auto& [pos, task] : new_chunks) {
+    std::lock_guard lock(m_new_chunk_mutex);
+    for (auto& [pos, task] : m_new_chunks) {
         task.future.get();
     }
 }
@@ -71,9 +72,11 @@ void ServerWorld::gen_chunks_internal(std::optional<std::string> uuid) {
 
         return;
     }
-
-    for (auto& pos : need_gen_chunks_pos) {
-        new_chunks.emplace(pos, ServerChunk(*this, pos));
+    {
+        std::lock_guard lock(m_new_chunk_mutex);
+        for (auto& pos : need_gen_chunks_pos) {
+            m_new_chunks.emplace(pos, ServerChunk(*this, pos));
+        }
     }
 
     submit_new_chunks(uuid);
@@ -109,7 +112,7 @@ void ServerWorld::sync_and_collect_missing_chunks(
     std::lock_guard lk(m_chunks_mutex);
     for (auto it = m_chunks.begin(); it != m_chunks.end();) {
         if (required_chunks.find(it->first) == required_chunks.end()) {
-            it = m_chunks.erase(it);
+            it = m_chunks.unsafe_erase(it);
         } else {
             ++it;
         }
@@ -131,7 +134,7 @@ void ServerWorld::submit_new_chunks(const std::optional<std::string>& uuid) {
     }
     switch (m_chunk_load_style) {
     case RANDOM:
-        for (auto& [pos, task] : new_chunks) {
+        for (auto& [pos, task] : m_new_chunks) {
             if (!task.future.valid()) {
                 task.future =
                     pool_ptr->enqueue([&task]() { task.chunk.gen_chunk(); });
@@ -140,7 +143,7 @@ void ServerWorld::submit_new_chunks(const std::optional<std::string>& uuid) {
         break;
     case CENTER: {
         std::vector<std::pair<ChunkPos, PendingChunk*>> tasks;
-        for (auto& [pos, task] : new_chunks) {
+        for (auto& [pos, task] : m_new_chunks) {
             if (!task.future.valid()) {
                 tasks.emplace_back(pos, &task);
             }
@@ -177,7 +180,7 @@ void ServerWorld::poll_finished_chunks() {
     m_new_finished_chunk.clear();
     std::lock_guard lock(m_new_chunk_mutex);
     std::erase_if(
-        new_chunks, [&](std::pair<const ChunkPos, PendingChunk>& pair) {
+        m_new_chunks, [&](std::pair<const ChunkPos, PendingChunk>& pair) {
             auto& pending = pair.second;
             if (!pending.future.valid()) {
                 return false;
@@ -200,9 +203,9 @@ void ServerWorld::start_gen_thread() {
         while (!token.stop_requested()) {
             std::unique_lock<std::mutex> lk(m_need_gen_queue_mutex);
 
-            m_gen_cv.wait(lk, [this](std::stop_token token) {
+            m_gen_cv.wait(lk, token, [this]() {
                 return m_need_gen_chunk.load() || !m_gen_running ||
-                       !m_need_gen_queue.empty() || token.stop_requested();
+                       !m_need_gen_queue.empty();
             });
             if (!m_gen_running) {
                 break;
@@ -330,10 +333,9 @@ void ServerWorld::hot_reload() {
 }
 
 void ServerWorld::rebuild_world() {
-    if (m_is_rebuilding) {
+    if (m_is_rebuilding.exchange(true)) {
         return;
     }
-    m_is_rebuilding = true;
     stop_gen_thread();
     stop_thread_pool();
     m_cave_carcer.reload(ChunkGenerator::seed());
@@ -343,22 +345,40 @@ void ServerWorld::rebuild_world() {
         m_chunks.clear();
         m_new_finished_chunk.clear();
     }
+    {
+        std::lock_guard lock(m_new_chunk_mutex);
+        m_new_chunks.clear();
+    }
     m_could_gen = true;
     ChunkGenerator::reload();
     start_thread_pool();
     start_gen_thread();
     need_gen(std::nullopt);
-
     m_is_rebuilding = false;
 }
 
-void ServerWorld::update() { poll_finished_chunks(); }
+void ServerWorld::update() {
+    poll_finished_chunks();
+    {
+        std::lock_guard lk(m_chunks_mutex);
+        bool consumed = false;
+
+        for (auto& x : m_new_finished_chunk) {
+            m_chunks.emplace(x.first, std::move(x.second));
+            consumed = true;
+        }
+        if (consumed) {
+            m_could_gen = true;
+        }
+    }
+}
 
 void ServerWorld::sync_player_pos(const std::string& uuid, float x, float y,
                                   float z) {
+    std::lock_guard lock(m_player_mutex);
     auto it = m_players.find(uuid);
     if (it == m_players.end()) {
-        Logger::warn("Player {} is not in this Server", it->first);
+        Logger::warn("Player {} is not in this Server", uuid);
         return;
     }
     it->second.update_pos(x, y, z);
@@ -367,31 +387,36 @@ void ServerWorld::sync_player_pos(const std::string& uuid, float x, float y,
 void ServerWorld::handle_player_login(const std::string& name,
                                       std::shared_ptr<Session> session) {
     std::string uuid = generate_uuid();
-    player_join(name, uuid);
-    m_player_session.emplace(uuid, session);
+    Logger::info("Player {} (uuid {}) join the world", name, uuid);
+    {
+        std::lock_guard lock(m_player_mutex);
+        m_players.emplace(std::piecewise_construct,
+                          std::forward_as_tuple(std::string(uuid)),
+                          std::forward_as_tuple(name, uuid, *this, session));
+    }
     m_uuid_to_name.emplace(uuid, name);
     LoginRsp rsp;
     rsp.set_success(true);
     rsp.set_uuid(uuid);
-    session->send(make_packet(name));
+    session->send(make_packet(rsp));
 }
 
-void ServerWorld::player_join(std::string_view name, std::string_view uuid) {
-    Logger::info("Player {} (uuid {}) join the world", name, uuid);
-    m_players.emplace(std::piecewise_construct,
-                      std::forward_as_tuple(std::string(uuid)),
-                      std::forward_as_tuple(name, uuid, *this));
-}
+void ServerWorld::handle_player_exit(const std::string& uuid) {
+    {
+        std::lock_guard lock(m_player_mutex);
+        auto it = m_players.find(uuid);
+        if (it != m_players.end()) {
 
-void ServerWorld::player_exit(const std::string& name) {
-    auto it = m_players.find(name);
-    if (it == m_players.end()) {
-        Logger::error("Player {} isn't in Server", it->first);
+            m_players.erase(it);
+        } else {
+            Logger::error("Player {} isn't in Server", uuid);
+        }
     }
-    m_players.unsafe_erase(it);
+    m_uuid_to_name.erase(uuid);
 }
 
 glm::vec3 ServerWorld::get_player_pos(const std::string& uuid) const {
+    std::shared_lock lock(m_player_mutex);
     auto it = m_players.find(uuid);
     if (it == m_players.end()) {
         Logger::error("Can't find player uuid {}", uuid);
@@ -437,9 +462,10 @@ void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
     }
     std::shared_ptr<Session> s;
     {
-        session_cacc cacc;
-        if (m_player_session.find(cacc, uuid)) {
-            s = cacc->second;
+        std::shared_lock lock(m_player_mutex);
+        auto it = m_players.find(uuid);
+        if (it != m_players.end()) {
+            s = it->second.get_session();
         }
     }
     if (!s) {
@@ -462,10 +488,13 @@ void ServerWorld::handle_block_change(const BlockChangeReq& req) {
     pos->set_y(y);
     pos->set_z(z);
     rsp.set_block(req.block());
-
-    for (auto& [uuid, session] : m_player_session) {
-        if (session) {
-            session->send(make_packet(rsp));
+    {
+        std::shared_lock lock(m_player_mutex);
+        for (auto& [uuid, player] : m_players) {
+            auto session = player.get_session();
+            if (session) {
+                session->send(make_packet(rsp));
+            }
         }
     }
 }

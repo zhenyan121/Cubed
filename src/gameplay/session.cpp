@@ -88,7 +88,15 @@ asio::awaitable<void> Session::read_loop() {
             }
         }
     } catch (const asio::system_error& e) {
-        Logger::warn("Catch Asio Error {}", e.what());
+        auto ec = e.code();
+
+        if (ec == asio::error::eof || ec == asio::error::operation_aborted) {
+
+            Logger::info("Client disconnected");
+        } else {
+            Logger::warn("Asio Error {}", e.what());
+        }
+
         close();
     } catch (...) {
         Logger::error("Unknow Error");

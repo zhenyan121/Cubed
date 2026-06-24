@@ -25,6 +25,7 @@ private:
     int m_port = 25530;
     std::atomic<bool> m_stopped{false};
     ServerWorld m_world;
+    std::mutex m_session_mutex;
     asio::awaitable<void> listen();
     void net_run();
 };
