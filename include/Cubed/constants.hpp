@@ -25,7 +25,7 @@ constexpr float DEFAULT_G = 22.5f;
 constexpr int SIZE_X = CHUNK_SIZE;
 constexpr int SIZE_Y = WORLD_SIZE_Y;
 constexpr int SIZE_Z = CHUNK_SIZE;
-constexpr int RESERVED_THREADS = 3;
+constexpr int RESERVED_THREADS = 5;
 
 constexpr float DEFAULT_CAVE_PROBABILITY = 0.035f;
 

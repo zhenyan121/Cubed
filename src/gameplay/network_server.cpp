@@ -20,8 +20,8 @@ void NetworkServer::stop() {
 
     m_io.stop();
     m_session.clear();
-    if (m_server.joinable()) {
-        m_server.join();
+    if (m_net_thread.joinable()) {
+        m_net_thread.join();
     }
     Logger::info("Server Stopped!");
 }
@@ -42,12 +42,17 @@ asio::awaitable<void> NetworkServer::listen() {
     co_return;
 }
 
-void NetworkServer::run() {
-    m_server = std::thread([this]() {
+void NetworkServer::net_run() {
+    m_net_thread = std::thread([this]() {
         asio::co_spawn(m_io, listen(), asio::detached);
         m_io.run();
     });
     Logger::info("Server Started!");
+}
+
+void NetworkServer::start_server() {
+    m_world.init_world();
+    net_run();
 }
 
 int NetworkServer::port() const { return m_port; }

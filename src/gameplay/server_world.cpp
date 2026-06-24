@@ -47,17 +47,9 @@ void ServerWorld::init_world() {
     Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
 
     start_server_thread();
-
-    Logger::info("TestPlayer Create Finish");
 }
 
-void ServerWorld::init_chunks() {
-    hot_reload();
-    while (!m_chunk_gen_finished) {
-        // Logger::info("World Spawn: {:.2f}%", m_chunk_gen_fraction.load());
-        std::this_thread::sleep_for(std::chrono::microseconds(200));
-    }
-}
+void ServerWorld::init_chunks() { hot_reload(); }
 
 void ServerWorld::gen_chunks_internal(std::optional<std::string> uuid) {
     // Logger::info("gen_chunks_internal");
@@ -304,7 +296,7 @@ void ServerWorld::need_gen(std::optional<std::string> uuid) {
     m_gen_cv.notify_one();
 }
 
-void ServerWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
+bool ServerWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
 
     int world_x, world_y, world_z;
     world_x = block_pos.x;
@@ -316,17 +308,18 @@ void ServerWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
     auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
 
     if (it == m_chunks.end()) {
-        return;
+        return false;
     }
 
     auto [x, y, z] = ServerChunk::world_to_block(world_x, world_y, world_z,
                                                  chunk_x, chunk_z);
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
-        return;
+        return false;
     }
 
     it->second.set_chunk_block(ServerChunk::index(x, y, z), id);
+    return true;
 }
 
 void ServerWorld::hot_reload() {
@@ -454,6 +447,27 @@ void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
         return;
     }
     s->send(make_packet(rsq));
+}
+
+void ServerWorld::handle_block_change(const BlockChangeReq& req) {
+    float x = req.pos().x();
+    float y = req.pos().y();
+    float z = req.pos().z();
+    if (!set_block(glm::ivec3(x, y, z), req.block())) {
+        return;
+    }
+    BlockChangeRsp rsp;
+    auto* pos = rsp.mutable_pos();
+    pos->set_x(x);
+    pos->set_y(y);
+    pos->set_z(z);
+    rsp.set_block(req.block());
+
+    for (auto& [uuid, session] : m_player_session) {
+        if (session) {
+            session->send(make_packet(rsp));
+        }
+    }
 }
 
 int ServerWorld::rendering_distance() const {

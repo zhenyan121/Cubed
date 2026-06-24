@@ -80,6 +80,12 @@ asio::awaitable<void> Session::read_loop() {
                         req.uuid(), ChunkPos(req.pos().x(), req.pos().z()));
                 }
             }
+            if (cmd_id == to_num(PacketEnum::BLOCK_CHANGE_REQ)) {
+                BlockChangeReq req;
+                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                    m_server_world.handle_block_change(req);
+                }
+            }
         }
     } catch (const asio::system_error& e) {
         Logger::warn("Catch Asio Error {}", e.what());

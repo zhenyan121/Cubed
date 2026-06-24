@@ -7,6 +7,7 @@
 #include "Cubed/gameplay/server_chunk.hpp"
 #include "Cubed/gameplay/server_player.hpp"
 #include "Cubed/tools/thread_pool.hpp"
+#include "world/block_change.pb.h"
 
 #include <future>
 #include <shared_mutex>
@@ -63,7 +64,7 @@ public:
     int chunk_load_style() const;
     void set_chunk_load_style(int id);
 
-    void set_block(const glm::ivec3& block_pos, unsigned id);
+    bool set_block(const glm::ivec3& block_pos, unsigned id);
 
     void sync_player_pos(const std::string& uuid, float x, float y, float z);
     void handle_player_login(const std::string& player_name,
@@ -71,6 +72,7 @@ public:
     glm::vec3 get_player_pos(const std::string& uuid) const;
 
     void handle_chunk_req(const std::string& uuid, ChunkPos pos);
+    void handle_block_change(const BlockChangeReq& req);
 
 private:
     enum class ChunkLoadStyle { RANDOM, CENTER };

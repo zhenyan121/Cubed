@@ -15,6 +15,8 @@ enum class PacketEnum {
     PLAYER_POS = 2002,
     CHUNK_DATA_REQ = 3001,
     CHUNK_DATA_RSP = 3002,
+    BLOCK_CHANGE_REQ = 3003,
+    BLOCK_CHANGE_RSP = 3004,
     PING = 9001,
     PONG = 9002
 
@@ -39,6 +41,10 @@ template <typename T> constexpr uint16_t get_packet_id() {
         return to_num(CHUNK_DATA_REQ);
     } else if constexpr (is_same_v<U, ChunkDataRsp>) {
         return to_num(CHUNK_DATA_RSP);
+    } else if constexpr (is_same_v<U, BlockChangeReq>) {
+        return to_num(BLOCK_CHANGE_REQ);
+    } else if constexpr (is_same_v<U, BlockChangeRsp>) {
+        return to_num(BLOCK_CHANGE_RSP);
     } else if constexpr (is_same_v<U, Ping>) {
         return to_num(PING);
     } else if (is_same_v<U, Pong>) {

@@ -9,3 +9,4 @@ import "auth/auth.proto";
 import "system/ping.proto";
 import "system/pong.proto";
 import "world/chunk_data.proto";
+import "world/block_change.proto";

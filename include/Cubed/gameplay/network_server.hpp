@@ -11,16 +11,21 @@ public:
     NetworkServer(int port = 25530);
     ~NetworkServer();
     void stop();
-    void run();
+
+    // Run in another thread after initialization is complete
+    void start_server();
+
     int port() const;
+
     std::unordered_map<std::string, std::shared_ptr<Session>> m_session;
 
 private:
     asio::io_context m_io;
-    std::thread m_server;
+    std::thread m_net_thread;
     int m_port = 25530;
     std::atomic<bool> m_stopped{false};
     ServerWorld m_world;
     asio::awaitable<void> listen();
+    void net_run();
 };
 } // namespace Cubed
