@@ -437,6 +437,7 @@ void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
             return;
         }
         rsq.set_chunk_seed(it->second.seed());
+        rsq.set_biome_type(std::to_underlying(it->second.biome()));
         auto* blocks = rsq.mutable_chunk_blocks();
         auto& chunk_blocks = it->second.get_chunk_blocks();
         blocks->Assign(chunk_blocks.begin(), chunk_blocks.end());

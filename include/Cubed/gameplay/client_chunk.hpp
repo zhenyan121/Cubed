@@ -4,6 +4,7 @@
 #include "Cubed/gameplay/block.hpp"
 #include "Cubed/gameplay/chunk_pos.hpp"
 #include "Cubed/gameplay/vertex_data.hpp"
+#include "world/chunk_data.pb.h"
 
 #include <atomic>
 #include <glad/glad.h>
@@ -34,9 +35,13 @@ public:
     ClientChunk(ClientChunk&&) noexcept;
     ClientChunk& operator=(ClientChunk&&) noexcept;
 
+    static int index(int x, int y, int z);
+    static int index(const glm::vec3& pos);
+
     BiomeType get_biome() const;
     ChunkPos get_chunk_pos() const;
     const std::vector<BlockType>& get_chunk_blocks() const;
+    void receive_chunk(const ChunkDataRsp& data);
     void gen_vertex_data(const OptionalBlockVectorArray& neighbor_block);
     void upload_to_gpu();
 
@@ -85,6 +90,7 @@ private:
     static constexpr int SIZE_X = CHUNK_SIZE;
     static constexpr int SIZE_Y = WORLD_SIZE_Y;
     static constexpr int SIZE_Z = CHUNK_SIZE;
+    static constexpr int BLOCK_SIZE = SIZE_X * SIZE_Y * SIZE_Z;
     static constexpr int VERTEX_DATA_SUM = 5;
     std::atomic<bool> m_dirty{false};
     std::atomic<bool> m_need_upload{true};

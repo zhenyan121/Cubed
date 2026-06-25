@@ -1,6 +1,9 @@
 #pragma once
+#include "Cubed/tools/cubed_assert.hpp"
+
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Cubed {
@@ -76,5 +79,33 @@ ForestParams& forest_params();
 DesertParams& desert_params();
 MountainParams& mountain_params();
 RiverParams& river_params();
+
+inline BiomeType get_biome(int id) {
+    using enum BiomeType;
+    auto to = std::to_underlying<BiomeType>;
+    if (id == to(PLAIN)) {
+        return PLAIN;
+    }
+    if (id == to(FOREST)) {
+        return FOREST;
+    }
+    if (id == to(DESERT)) {
+        return DESERT;
+    }
+    if (id == to(MOUNTAIN)) {
+        return MOUNTAIN;
+    }
+    if (id == to(RIVER)) {
+        return RIVER;
+    }
+    if (id == to(SNOWY_PLAIN)) {
+        return SNOWY_PLAIN;
+    }
+    if (id == to(OCEAN)) {
+        return OCEAN;
+    }
+    ASSERT_MSG(false, "Unknown Biome Id");
+    throw std::invalid_argument("Unknown Biome Id");
+}
 
 } // namespace Cubed
