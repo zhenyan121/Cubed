@@ -74,6 +74,12 @@ asio::awaitable<void> NetworkClient::read_loop() {
                     m_world.receive_chunk(rsp);
                 }
             }
+            case to_num(PacketEnum::BLOCK_CHANGE_RSP): {
+                BlockChangeRsp rsp;
+                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                    m_world.receive_block_change(rsp);
+                }
+            }
             }
         }
     } catch (const asio::system_error& e) {

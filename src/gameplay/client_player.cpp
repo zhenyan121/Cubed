@@ -278,7 +278,7 @@ void ClientPlayer::update_lookup_block() {
     if (m_look_block != std::nullopt) {
         if (Input::get_input_state().mouse_state.left) {
             if (m_world.is_solid(m_look_block->pos)) {
-                m_world.set_block(m_look_block->pos, 0);
+                m_world.report_block_change(m_look_block->pos, 0);
             }
             Input::get_input_state().mouse_state.left = false;
         }
@@ -296,7 +296,7 @@ void ClientPlayer::update_lookup_block() {
                                             static_cast<float>(z + 1)}};
                 AABB player_box = get_aabb();
                 if (!player_box.intersects(block_box)) {
-                    m_world.set_block(near_pos, m_place_block);
+                    m_world.report_block_change(near_pos, m_place_block);
                 }
             }
             Input::get_input_state().mouse_state.right = false;

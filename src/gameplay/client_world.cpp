@@ -49,6 +49,143 @@ ClientWorld::get_look_block_pos(const std::string& name) const {
 
 ClientPlayer& ClientWorld::get_player() { return m_player; }
 
+int ClientWorld::get_block(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
+    std::shared_lock lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return 0;
+    }
+
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        return 0;
+    }
+    return chunk_blocks[ClientChunk::index(x, y, z)];
+}
+bool ClientWorld::is_solid(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
+    std::shared_lock lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return false;
+    }
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        return false;
+    }
+    auto id = chunk_blocks[ClientChunk::index(x, y, z)];
+    if (BlockManager::is_gas(id) || BlockManager::is_liquid(id)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+bool ClientWorld::can_pass_block(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
+    std::shared_lock lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return true;
+    }
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        return true;
+    }
+    auto id = chunk_blocks[ClientChunk::index(x, y, z)];
+    return BlockManager::is_passable(id);
+}
+BlockType ClientWorld::get_block_tpye(const glm::ivec3& block_pos) const {
+    auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
+    std::shared_lock lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        // Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+        //               block_pos.z);
+        return 0;
+    }
+    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        // Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
+        //               block_pos.z);
+        return 0;
+    }
+    return chunk_blocks[ClientChunk::index(x, y, z)];
+}
+void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
+    int world_x, world_y, world_z;
+    world_x = block_pos.x;
+    world_y = block_pos.y;
+    world_z = block_pos.z;
+
+    auto [chunk_x, chunk_z] = get_chunk_pos(world_x, world_z);
+    std::lock_guard lk(m_chunks_mutex);
+    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+
+    if (it == m_chunks.end()) {
+        return;
+    }
+
+    auto [x, y, z] = ClientChunk::world_to_block(world_x, world_y, world_z,
+                                                 chunk_x, chunk_z);
+    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+        z >= CHUNK_SIZE) {
+        return;
+    }
+
+    it->second.set_chunk_block(ClientChunk::index(x, y, z), id);
+
+    static const glm::ivec3 NEIGHBOR_DIRS[] = {
+        {1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
+
+    for (const auto& dir : NEIGHBOR_DIRS) {
+        glm::ivec3 neighbor = block_pos + dir;
+
+        auto [cx, cz] = get_chunk_pos(neighbor.x, neighbor.z);
+        auto it = m_chunks.find({cx, cz});
+        if (it != m_chunks.end()) {
+            it->second.mark_dirty();
+        }
+    }
+}
+void ClientWorld::push_delete_vbo(GLuint vbo) {
+    std::lock_guard lk(m_delete_vbo_mutex);
+    m_pending_delete_vbo.push_back(vbo);
+}
+void ClientWorld::push_delete_vao(GLuint vao) {
+    std::lock_guard lk(m_delete_vao_mutex);
+    m_pending_delete_vao.push_back(vao);
+}
+
+void ClientWorld::report_block_change(const glm::ivec3& pos,
+                                      unsigned id) const {
+    BlockChangeReq req;
+    req.set_uuid(m_player.get_uuid());
+    req.set_block(id);
+    auto* p = req.mutable_pos();
+    p->set_x(pos.x);
+    p->set_y(pos.y);
+    p->set_z(pos.z);
+    m_client->send(make_packet(req));
+}
+
+void ClientWorld::receive_block_change(const BlockChangeRsp& rsp) {
+    glm::vec3 pos{rsp.pos().x(), rsp.pos().y(), rsp.pos().z()};
+    set_block(pos, rsp.block());
+}
+
 void ClientWorld::init() {
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
 
