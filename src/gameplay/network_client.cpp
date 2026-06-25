@@ -80,7 +80,8 @@ asio::awaitable<void> NetworkClient::read_loop() {
             } break;
             case to_num(PacketEnum::CHUNK_DATA_RSP): {
                 ChunkDataRsp rsp;
-                Logger::info("Client: Receive Chunk Data rsp");
+                Logger::info("Client: Receive Chunk Data rsp, size {}mb",
+                             body_data.size() / 1024.0f / 1024);
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_chunk(rsp);
                 }

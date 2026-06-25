@@ -86,7 +86,7 @@ private:
     // player is tow block tall, the pos is the lower pos
 
     glm::vec3 m_player_pos{0.0f, 255.0f, 0.0f};
-    ChunkPos m_player_chunk_pos{0, 0};
+    ChunkPos m_last_chunk_pos{0, 0};
 
     glm::vec3 m_front{0, 0, -1};
     glm::vec3 m_right{0, 0, 0};
@@ -112,5 +112,6 @@ private:
     void update_x_move(glm::vec3& player_pos);
     void update_y_move(glm::vec3& player_pos);
     void update_z_move(glm::vec3& player_pos);
+    void update_player_chunk();
 };
 } // namespace Cubed

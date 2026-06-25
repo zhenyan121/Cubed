@@ -390,6 +390,7 @@ void ClientPlayer::update_move(float delta_time) {
         std::lock_guard lock(m_player_pos_mutex);
         m_player_pos = player_pos;
     }
+    update_player_chunk();
 }
 
 void ClientPlayer::update_x_move(glm::vec3& player_pos) {
@@ -495,6 +496,21 @@ void ClientPlayer::update_z_move(glm::vec3& player_pos) {
                 }
             }
         }
+    }
+}
+
+void ClientPlayer::update_player_chunk() {
+    float x, z;
+    {
+        std::shared_lock lock(m_player_pos_mutex);
+        x = m_player_pos.x;
+        z = m_player_pos.z;
+    }
+    ChunkPos chunk_pos = get_chunk_pos(x, z);
+    float dist = distance2(chunk_pos, m_last_chunk_pos);
+    if (dist > 2) {
+        m_world.request_chunk();
+        m_last_chunk_pos = chunk_pos;
     }
 }
 

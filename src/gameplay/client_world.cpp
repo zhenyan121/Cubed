@@ -197,7 +197,6 @@ void ClientWorld::init(std::string_view player_name,
     m_client = client;
     // timer
     register_timer("player_pos", 2, [this]() { report_player_pos(); });
-    // register_timer("chunk_request", 20, [this]() { request_chunk(); });
     LoginReq req;
     req.set_name(m_player.get_name());
     while (!client->is_connected()) {
@@ -261,6 +260,10 @@ void ClientWorld::report_player_pos() {
 }
 
 void ClientWorld::request_chunk() {
+    if (m_requesting_chunk.exchange(true)) {
+        Logger::warn("It is requesting new chunk!");
+        return;
+    }
     ChunkPosSet required_chunks;
 
     glm::vec3 player_pos = m_player.get_player_pos();
@@ -310,6 +313,7 @@ void ClientWorld::request_chunk() {
         p->set_z(pos.z);
         m_client->send(make_packet(req));
     }
+    m_requesting_chunk = false;
 }
 
 void ClientWorld::receive_chunk(const ChunkDataRsp& data) {
@@ -318,7 +322,6 @@ void ClientWorld::receive_chunk(const ChunkDataRsp& data) {
     {
         std::lock_guard lock(m_pending_queue_mutex);
         m_pending_queue.emplace_back(std::move(chunk));
-        Logger::info("ClientWorld Add a new pending chunk");
     }
 }
 

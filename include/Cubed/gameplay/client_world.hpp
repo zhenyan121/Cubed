@@ -40,7 +40,7 @@ public:
     void stop_client_thread();
 
     void hot_reload();
-
+    void request_chunk();
     std::vector<glm::vec4>& planes();
     std::vector<ChunkRenderSnapshot>& render_snapshots();
     glm::vec3 sunlight_dir() const;
@@ -76,6 +76,7 @@ private:
     std::atomic<int> m_rendering_distance{24};
     std::atomic<TickType> m_game_ticks{0};
     std::atomic<TickType> m_day_tick{6000};
+    std::atomic<bool> m_requesting_chunk{false};
     std::shared_ptr<NetworkClient> m_client;
     void client_run(std::stop_token token);
 
@@ -83,7 +84,6 @@ private:
 
     void report_player_pos();
 
-    void request_chunk();
     void set_block(const glm::ivec3& pos, unsigned id);
 };
 } // namespace Cubed
