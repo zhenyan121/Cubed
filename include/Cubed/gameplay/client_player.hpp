@@ -13,7 +13,7 @@ enum class Gait { WALK = 0, RUN };
 class ClientWorld;
 class ClientPlayer {
 public:
-    ClientPlayer(ClientWorld& world);
+    ClientPlayer(ClientWorld& world, const std::string& name);
     ~ClientPlayer();
     AABB get_aabb() const;
     const glm::vec3& get_front() const;
@@ -98,7 +98,6 @@ private:
                   glm::ivec3& block_pos, glm::vec3& normal,
                   float distance = 4.0f);
 
-    void check_player_chunk_transition();
     void update_direction();
     void update_lookup_block();
     void update_move(float delta_time);
