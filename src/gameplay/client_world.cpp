@@ -185,6 +185,11 @@ void ClientWorld::receive_block_change(const BlockChangeRsp& rsp) {
     set_block(pos, rsp.block());
 }
 
+void ClientWorld::receive_time(const UpdateTime& rsp) {
+    m_game_ticks = rsp.game_tick();
+    m_day_tick = rsp.day_tick();
+}
+
 void ClientWorld::init(std::string_view player_name,
                        std::shared_ptr<NetworkClient> client) {
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
@@ -195,7 +200,11 @@ void ClientWorld::init(std::string_view player_name,
 
     LoginReq req;
     req.set_name(m_player.get_name());
+    while (!client->is_connected()) {
+        std::this_thread::sleep_for(milliseconds(200));
+    }
     // request login
+    Logger::info("Send Login Request");
     m_client->send(make_packet(req));
 }
 
@@ -384,4 +393,32 @@ void ClientWorld::update(float delta_time) {
     }
 }
 
+glm::vec3 ClientWorld::sunlight_dir() const {
+    float altitude = sin((m_day_tick - 6 * PER_HOUR) /
+                         static_cast<float>(DAY_TIME / 2) * std::numbers::pi) *
+                     90.0f;
+
+    float t = static_cast<float>(m_day_tick) / DAY_TIME;
+    float azimuth = 90.0f - 360.0f * (t - 0.25f);
+
+    float alt = glm::radians(altitude);
+    float az = glm::radians(azimuth);
+    glm::vec3 dir;
+    dir.x = cos(alt) * sin(az);
+    dir.y = sin(alt);
+    dir.z = cos(alt) * cos(az);
+
+    return glm::normalize(-dir);
+}
+int ClientWorld::rendering_distance() const {
+    return m_rendering_distance.load();
+}
+
+void ClientWorld::rendering_distance(int rendering_distance) {
+    m_rendering_distance = rendering_distance;
+}
+std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() {
+    return m_render_snapshots;
+};
+std::vector<glm::vec4>& ClientWorld::planes() { return m_planes; }
 } // namespace Cubed

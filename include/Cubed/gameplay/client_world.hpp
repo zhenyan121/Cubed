@@ -32,6 +32,8 @@ public:
     // void rebuild_world();
     void report_block_change(const glm::ivec3& pos, unsigned id) const;
     void receive_block_change(const BlockChangeRsp& rsp);
+    void receive_time(const UpdateTime& rsp);
+
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
     void start_client_thread(std::string_view uuid);
@@ -72,6 +74,8 @@ private:
     tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     std::atomic<bool> m_game_running{false};
     std::atomic<int> m_rendering_distance{24};
+    std::atomic<TickType> m_game_ticks{0};
+    std::atomic<TickType> m_day_tick{6000};
     std::shared_ptr<NetworkClient> m_client;
     void client_run(std::stop_token token);
 

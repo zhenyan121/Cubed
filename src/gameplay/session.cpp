@@ -58,6 +58,7 @@ asio::awaitable<void> Session::read_loop() {
                 co_await asio::async_read(m_socket, asio::buffer(body_data),
                                           asio::use_awaitable);
             }
+            Logger::info("Session: Receive cmd {}", cmd_id);
             constexpr auto& to_num = std::to_underlying<PacketEnum>;
             if (cmd_id == to_num(PacketEnum::LOGIN_REQ)) {
                 LoginReq req;

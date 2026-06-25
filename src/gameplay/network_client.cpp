@@ -16,16 +16,24 @@ void NetworkClient::start(std::string ip, int port) {
         asio::co_spawn(self->m_strand, self->connect(ip, port), asio::detached);
         self->m_io.run();
     });
+    Logger::info("NetworkClient Started");
 }
 
+bool NetworkClient::is_connected() const { return m_connected.load(); }
+
 asio::awaitable<void> NetworkClient::connect(std::string ip, int port) {
+    Logger::info("Connect Begin");
     try {
         auto ex = co_await asio::this_coro::executor;
         tcp::resolver resolver(ex);
         auto eps = co_await resolver.async_resolve(ip, std::to_string(port),
                                                    asio::use_awaitable);
+        Logger::info("Resolve Success");
         co_await async_connect(m_socket, eps, asio::use_awaitable);
+        Logger::info("Connect Success, Server ip {} port {}", ip, port);
         asio::co_spawn(m_strand, read_loop(), asio::detached);
+        Logger::info("NetworkClient Read Loop Started");
+        m_connected = true;
         co_return;
 
     } catch (const std::exception& e) {
@@ -56,6 +64,7 @@ asio::awaitable<void> NetworkClient::read_loop() {
                 co_await asio::async_read(m_socket, asio::buffer(body_data),
                                           asio::use_awaitable);
             }
+            Logger::info("Client: Receive cmd {}", cmd_id);
             constexpr auto& to_num = std::to_underlying<PacketEnum>;
             switch (cmd_id) {
             case to_num(PacketEnum::LOGIN_RSP): {
@@ -67,19 +76,19 @@ asio::awaitable<void> NetworkClient::read_loop() {
                         Logger::error("Connected Server Fail");
                     }
                 }
-            }
+            } break;
             case to_num(PacketEnum::CHUNK_DATA_RSP): {
                 ChunkDataRsp rsp;
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_chunk(rsp);
                 }
-            }
+            } break;
             case to_num(PacketEnum::BLOCK_CHANGE_RSP): {
                 BlockChangeRsp rsp;
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_block_change(rsp);
                 }
-            }
+            } break;
             }
         }
     } catch (const asio::system_error& e) {
@@ -104,6 +113,9 @@ asio::awaitable<void> NetworkClient::read_loop() {
 }
 
 void NetworkClient::send(std::shared_ptr<std::vector<uint8_t>> packet) {
+    if (m_closed.load()) {
+        return;
+    }
     asio::post(m_strand, [self = shared_from_this(),
                           packet = std::move(packet)]() mutable {
         bool idle = self->m_write_queue.empty();
@@ -115,6 +127,9 @@ void NetworkClient::send(std::shared_ptr<std::vector<uint8_t>> packet) {
 }
 
 void NetworkClient::do_write() {
+    if (m_closed.load()) {
+        return;
+    }
 
     auto self = shared_from_this();
     asio::async_write(
@@ -142,6 +157,17 @@ void NetworkClient::close() {
     m_socket.shutdown(tcp::socket::shutdown_both, ec);
 
     m_socket.close(ec);
+    Logger::info("NetworkClient Closed");
+    m_connected = false;
+    m_io.stop();
+}
+
+void NetworkClient::stop() {
+    close();
+
+    if (m_net_thread.joinable()) {
+        m_net_thread.join();
+    }
 }
 
 } // namespace Cubed

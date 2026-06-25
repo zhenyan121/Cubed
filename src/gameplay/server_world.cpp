@@ -32,6 +32,16 @@ void ServerWorld::wait_all_chunk_tasks() {
     }
 }
 
+void ServerWorld::send_time() {
+    UpdateTime rsp;
+    rsp.set_day_tick(m_day_tick);
+    rsp.set_game_tick(m_game_ticks);
+
+    for (auto& [uuid, player] : m_players) {
+        player.get_session()->send(make_packet(rsp));
+    }
+}
+
 void ServerWorld::init_world() {
     m_cave_carcer.init(ChunkGenerator::seed());
     m_river_worm.init(ChunkGenerator::seed());
@@ -270,12 +280,17 @@ void ServerWorld::stop_thread_pool() {
 void ServerWorld::serever_run(std::stop_token stoken) {
     Logger::info("Server Thread Started!");
     while (!stoken.stop_requested()) {
-        std::this_thread::sleep_for(milliseconds(m_per_tick_time));
+        auto t1 = system_clock::now();
+
         if (m_tick_running) {
             ++m_game_ticks;
             m_day_tick = (m_day_tick + 1) % DAY_TIME;
         }
         update();
+        auto t2 = system_clock::now();
+        auto dt = duration_cast<microseconds>(t2 - t1);
+        auto st = std::max(dt, milliseconds(m_per_tick_time) - dt);
+        std::this_thread::sleep_for(st);
     }
     Logger::info("Server Thread Stopped!");
 }
@@ -372,6 +387,10 @@ void ServerWorld::update() {
         if (consumed) {
             m_could_gen = true;
         }
+    }
+    send_time();
+    for (auto& [id, timer] : m_timers) {
+        timer.update();
     }
 }
 

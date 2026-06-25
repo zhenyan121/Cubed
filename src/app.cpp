@@ -13,7 +13,11 @@ namespace Cubed {
 
 App::App() {}
 
-App::~App() {}
+App::~App() {
+    if (m_client) {
+        m_client->stop();
+    }
+}
 void App::cursor_position_callback(GLFWwindow* window, double xpos,
                                    double ypos) {
     ImGuiIO& io = ImGui::GetIO();

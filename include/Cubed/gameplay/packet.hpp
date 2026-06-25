@@ -17,6 +17,7 @@ enum class PacketEnum {
     CHUNK_DATA_RSP = 3002,
     BLOCK_CHANGE_REQ = 3003,
     BLOCK_CHANGE_RSP = 3004,
+    UPDATE_TIME = 3005,
     PING = 9001,
     PONG = 9002
 
@@ -45,6 +46,8 @@ template <typename T> constexpr uint16_t get_packet_id() {
         return to_num(BLOCK_CHANGE_REQ);
     } else if constexpr (is_same_v<U, BlockChangeRsp>) {
         return to_num(BLOCK_CHANGE_RSP);
+    } else if constexpr (is_same_v<U, UpdateTime>) {
+        return to_num(UPDATE_TIME);
     } else if constexpr (is_same_v<U, Ping>) {
         return to_num(PING);
     } else if (is_same_v<U, Pong>) {

@@ -32,9 +32,11 @@ void NetworkServer::stop() {
     }
 
     if (m_net_thread.joinable()) {
+        Logger::info("Server join thread={}, current={}", m_net_thread.get_id(),
+                     std::this_thread::get_id());
         m_net_thread.join();
     }
-    Logger::info("Server Stopped!");
+    Logger::info("Server Net Thread Stopped!");
 }
 
 asio::awaitable<void> NetworkServer::listen() {

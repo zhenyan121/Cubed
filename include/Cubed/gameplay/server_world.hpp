@@ -73,6 +73,12 @@ public:
 
     void handle_chunk_req(const std::string& uuid, ChunkPos pos);
     void handle_block_change(const BlockChangeReq& req);
+    template <typename Fn>
+    void register_timer(std::string_view id, TickType threshold, Fn&& f) {
+        m_timers.emplace(std::piecewise_construct,
+                         std::forward_as_tuple(std::string(id)),
+                         std::forward_as_tuple(threshold, std::forward<Fn>(f)));
+    }
 
 private:
     enum class ChunkLoadStyle { RANDOM, CENTER };
@@ -128,6 +134,7 @@ private:
     std::atomic<ChunkLoadStyle> m_chunk_load_style{ChunkLoadStyle::RANDOM};
 
     PlayerUUIDMap m_uuid_to_name;
+    tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     void init_chunks();
 
     void gen_chunks_internal(std::optional<std::string> uuid);
@@ -139,5 +146,7 @@ private:
     void submit_new_chunks(const std::optional<std::string>& uuid);
     void poll_finished_chunks();
     void wait_all_chunk_tasks();
+
+    void send_time();
 };
 } // namespace Cubed

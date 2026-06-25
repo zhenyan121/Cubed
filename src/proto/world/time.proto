@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message UpdateTime {
+    int64 game_tick = 1;
+    int64 day_tick = 2;
+}
