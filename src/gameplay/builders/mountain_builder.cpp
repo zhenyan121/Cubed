@@ -1,7 +1,7 @@
 #include "Cubed/gameplay/builders/mountain_builder.hpp"
 
-#include "Cubed/gameplay/chunk.hpp"
 #include "Cubed/gameplay/chunk_generator.hpp"
+#include "Cubed/gameplay/server_chunk.hpp"
 namespace Cubed {
 MountainBuilder::MountainBuilder(ChunkGenerator& chunk_generator)
     : m_chunk_generator(chunk_generator) {}
@@ -19,7 +19,7 @@ void MountainBuilder::build_blocks() {
         for (int z = 0; z < CHUNK_SIZE; z++) {
             int height = static_cast<int>(m_heightmap[x][z]);
             for (int y = 5; y <= height; y++) {
-                m_blocks[Chunk::index(x, y, z)] = 3;
+                m_blocks[ServerChunk::index(x, y, z)] = 3;
             }
         }
     }
