@@ -37,28 +37,24 @@ const std::string& Session::uuid() const { return m_uuid; }
 asio::awaitable<void> Session::read_loop() {
     try {
         while (true) {
-            std::array<char, HEADER_LEN> header;
-            co_await asio::async_read(m_socket, asio::buffer(header),
+            std::array<char, HEADER_LEN> header_buffer;
+            co_await asio::async_read(m_socket, asio::buffer(header_buffer),
                                       asio::use_awaitable);
 
-            uint32_t total_len_net;
-            std::memcpy(&total_len_net, header.data(), sizeof(total_len_net));
-            uint32_t total_len = ntohl(total_len_net);
+            auto header = decode_packet_header(header_buffer);
+            uint32_t total_len = HEADER_LEN + header.compressed_size;
 
-            uint16_t cmd_id_net;
-            std::memcpy(&cmd_id_net, header.data() + 4, sizeof(cmd_id_net));
-            uint16_t cmd_id = ntohs(cmd_id_net);
             if (total_len < HEADER_LEN || total_len > MAX_PACKET_SIZE) {
 
                 throw std::runtime_error("invalid packet length");
             }
-            uint32_t body_len = total_len - HEADER_LEN;
-            std::vector<uint8_t> body_data(body_len);
-            if (body_len > 0) {
+            std::vector<uint8_t> body_data(header.compressed_size);
+            if (header.compressed_size > 0) {
                 co_await asio::async_read(m_socket, asio::buffer(body_data),
                                           asio::use_awaitable);
             }
             constexpr auto& to_num = std::to_underlying<PacketEnum>;
+            auto cmd_id = header.cmd;
             if (cmd_id == to_num(PacketEnum::LOGIN_REQ)) {
                 LoginReq req;
                 Logger::info("Session: Receive Login req");
