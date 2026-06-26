@@ -10,6 +10,16 @@
 #include <tbb/concurrent_unordered_map.h>
 namespace Cubed {
 
+struct OtherPlayerInfo {
+    std::string name;
+    glm::vec3 pos;
+};
+
+struct RenderPlayerData {
+    std::string name;
+    glm::vec3 pos;
+};
+
 class ClientWorld {
 public:
     ClientWorld();
@@ -34,6 +44,8 @@ public:
     void receive_block_change(const BlockChangeRsp& rsp);
     void receive_time(const UpdateTime& rsp);
 
+    void receive_other_player(const PlayerInfoRsp& rsp);
+
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
     void start_client_thread(std::string_view uuid);
@@ -42,7 +54,8 @@ public:
     void hot_reload();
     void request_chunk();
     std::vector<glm::vec4>& planes();
-    std::vector<ChunkRenderSnapshot>& render_snapshots();
+    const std::vector<ChunkRenderSnapshot>& render_snapshots() const;
+    const std::vector<RenderPlayerData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(const ChunkDataRsp& data);
     template <typename Fn>
@@ -58,7 +71,9 @@ private:
         tbb::concurrent_unordered_map<ChunkPos, ClientChunk, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
     using ChunkPosVector = std::vector<ChunkPos>;
+    using OtherPlayerHashMap = std::unordered_map<std::string, OtherPlayerInfo>;
     ClientPlayer m_player;
+    OtherPlayerHashMap m_other_players;
     ChunkHashMap m_chunks;
     std::vector<glm::vec4> m_planes;
     std::jthread m_client_thread;
@@ -68,12 +83,17 @@ private:
     std::mutex m_delete_vao_mutex;
     std::mutex m_pending_upload_queue_mutex;
     std::mutex m_pending_chunk_data_queue_mutex;
+    std::mutex m_other_players_mutex;
+
     std::deque<ClientChunk> m_pending_upload_queue;
     std::deque<ChunkDataRsp> m_pending_chunk_data_queue;
+
     std::vector<GLuint> m_pending_delete_vbo;
     std::vector<GLuint> m_pending_delete_vao;
+
     std::deque<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
+    std::vector<RenderPlayerData> m_render_player_data;
     tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     std::atomic<bool> m_game_running{false};
     std::atomic<int> m_rendering_distance{24};

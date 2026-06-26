@@ -34,6 +34,7 @@ Renderer::~Renderer() {
         glDeleteBuffers(1, &m_sky_vbo);
         glDeleteBuffers(1, &m_ui_vbo);
         glDeleteBuffers(1, &m_text_vbo);
+        glDeleteBuffers(1, &m_player_vbo);
         glBindVertexArray(0);
         glDeleteVertexArrays(NUM_VAO, m_vao.data());
         glDeleteFramebuffers(1, &m_fbo);
@@ -88,7 +89,9 @@ void Renderer::init() {
                      "shaders/billboard_f_shader.glsl"};
     Shader water_shader{"water", "shaders/water_v_shader.glsl",
                         "shaders/water_f_shader.glsl"};
-
+    Shader player_shader{"player", "shaders/player_v_shader.glsl",
+                         "shaders/player_f_shader.glsl"};
+    m_shaders.insert({player_shader.hash(), std::move(player_shader)});
     m_shaders.insert({world_shader.hash(), std::move(world_shader)});
     m_shaders.insert({outline_shader.hash(), std::move(outline_shader)});
     m_shaders.insert({sky_shdaer.hash(), std::move(sky_shdaer)});
@@ -102,6 +105,7 @@ void Renderer::init() {
     m_shaders.insert({depth_shader.hash(), std::move(depth_shader)});
     m_shaders.insert({billboard.hash(), std::move(billboard)});
     m_shaders.insert({water_shader.hash(), std::move(water_shader)});
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -167,6 +171,15 @@ void Renderer::init() {
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
+    glBindVertexArray(m_vao[5]);
+    glGenBuffers(1, &m_player_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_player_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTICES_PLAYER), VERTICES_PLAYER,
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
     init_quad();
     init_text();
     hot_reload();
@@ -217,7 +230,7 @@ void Renderer::render() {
     render_sky();
     render_world();
     render_outline();
-
+    render_player();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glDisable(GL_DEPTH_TEST);
@@ -927,6 +940,26 @@ void Renderer::render_world() {
     DebugCollector::get().report(
         "rendered_chunk", "Rendered Chunk: " + std::to_string(rendered_sum));
 }
+
+void Renderer::render_player() {
+    auto& shader = get_shader("player");
+    shader.use();
+    m_v_mat = m_camera.get_camera_lookat();
+
+    auto& players = m_world.render_player_data();
+
+    for (auto& player : players) {
+        m_m_mat = glm::translate(glm::mat4(1.0f),
+                                 player.pos + glm::vec3(-0.5f, 0.0f, -0.5f));
+        m_mv_mat = m_v_mat * m_m_mat;
+        shader.set_loc("mv_matrix", m_mv_mat);
+        shader.set_loc("proj_matrix", m_p_mat);
+        glBindVertexArray(m_vao[5]);
+        glEnable(GL_DEPTH_TEST);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+}
+
 #pragma endregion
 void Renderer::render_dev_panel() {
     glDisable(GL_DEPTH_TEST);

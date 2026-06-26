@@ -77,7 +77,7 @@ asio::awaitable<void> Session::read_loop() {
             }
             if (cmd_id == to_num(PacketEnum::CHUNK_DATA_REQ)) {
                 ChunkDataReq req;
-                Logger::info("Session: Receive Chunk Data req");
+                // Logger::info("Session: Receive Chunk Data req");
                 if (req.ParseFromArray(body_data.data(), body_data.size())) {
                     m_server_world.handle_chunk_req(
                         req.uuid(), ChunkPos(req.pos().x(), req.pos().z()));

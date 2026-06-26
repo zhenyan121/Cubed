@@ -190,13 +190,23 @@ void ClientWorld::receive_time(const UpdateTime& rsp) {
     m_day_tick = rsp.day_tick();
 }
 
+void ClientWorld::receive_other_player(const PlayerInfoRsp& rsp) {
+    {
+        std::lock_guard lock(m_other_players_mutex);
+        m_other_players[rsp.uuid()].name = rsp.name();
+        m_other_players[rsp.uuid()].pos =
+            glm::vec3{rsp.pos().x(), rsp.pos().y(), rsp.pos().z()};
+        // Logger::info("Player {} pos Update", rsp.name());
+    }
+}
+
 void ClientWorld::init(std::string_view player_name,
                        std::shared_ptr<NetworkClient> client) {
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     m_player.init(player_name);
     m_client = client;
     // timer
-    register_timer("player_pos", 2, [this]() { report_player_pos(); });
+    register_timer("player_pos", 1, [this]() { report_player_pos(); });
     LoginReq req;
     req.set_name(m_player.get_name());
     while (!client->is_connected()) {
@@ -450,6 +460,13 @@ void ClientWorld::update(float delta_time) {
             }
         }
     }
+    m_render_player_data.clear();
+    {
+        std::lock_guard lock(m_other_players_mutex);
+        for (auto& [uuid, player] : m_other_players) {
+            m_render_player_data.emplace_back(player.name, player.pos);
+        }
+    }
 }
 
 glm::vec3 ClientWorld::sunlight_dir() const {
@@ -476,8 +493,11 @@ int ClientWorld::rendering_distance() const {
 void ClientWorld::rendering_distance(int rendering_distance) {
     m_rendering_distance = rendering_distance;
 }
-std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() {
+const std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() const {
     return m_render_snapshots;
 };
+const std::vector<RenderPlayerData>& ClientWorld::render_player_data() const {
+    return m_render_player_data;
+}
 std::vector<glm::vec4>& ClientWorld::planes() { return m_planes; }
 } // namespace Cubed

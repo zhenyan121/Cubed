@@ -400,13 +400,40 @@ void ServerWorld::update() {
 
 void ServerWorld::sync_player_pos(const std::string& uuid, float x, float y,
                                   float z) {
-    std::lock_guard lock(m_player_mutex);
-    auto it = m_players.find(uuid);
-    if (it == m_players.end()) {
-        Logger::warn("Player {} is not in this Server", uuid);
-        return;
+    std::string name;
+    {
+        std::lock_guard lock(m_player_mutex);
+        auto it = m_players.find(uuid);
+        if (it == m_players.end()) {
+            Logger::warn("Player {} is not in this Server", uuid);
+            return;
+        }
+        it->second.update_pos(x, y, z);
+        name = it->second.get_name();
     }
-    it->second.update_pos(x, y, z);
+
+    // update other player pos;
+    std::vector<std::shared_ptr<Session>> other;
+    {
+        std::shared_lock lock(m_player_mutex);
+        for (auto& [o_uuid, player] : m_players) {
+            if (o_uuid == uuid) {
+                continue;
+            }
+            other.emplace_back(player.get_session());
+        }
+    }
+
+    for (auto& session : other) {
+        PlayerInfoRsp rsp;
+        rsp.set_uuid(uuid);
+        rsp.set_name(name);
+        auto* pos = rsp.mutable_pos();
+        pos->set_x(x);
+        pos->set_y(y);
+        pos->set_z(z);
+        session->send(make_packet(rsp));
+    }
 }
 
 void ServerWorld::handle_player_login(const std::string& name,

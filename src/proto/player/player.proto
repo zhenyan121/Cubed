@@ -6,3 +6,9 @@ message PlayerPos {
     string uuid = 1;
     Vec3 pos = 2;
 }
+
+message PlayerInfoRsp {
+    string uuid = 1;
+    string name = 2;
+    Vec3 pos = 3;
+}

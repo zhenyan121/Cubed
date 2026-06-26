@@ -272,6 +272,55 @@ constexpr float CROSS_TANGENTS[2][6][3] = {
      {-0.7071f, 0.0f, 0.7071f}}};
 
 #pragma endregion
+
+#pragma region Player
+
+constexpr float VERTICES_PLAYER[6][6][3] = {
+    // ===== front (z = +1) =====
+    {{0.0f, 0.0f, 1.0f},  // bottom left
+     {0.0f, 2.0f, 1.0f},  // top left
+     {1.0f, 2.0f, 1.0f},  // top right
+     {1.0f, 2.0f, 1.0f},  // top right
+     {1.0f, 0.0f, 1.0f},  // bottom right
+     {0.0f, 0.0f, 1.0f}}, // bottom left
+    // ===== right (x = +1) =====
+    {{1.0f, 0.0f, 1.0f},  // bottom front
+     {1.0f, 0.0f, 0.0f},  // bottom back
+     {1.0f, 2.0f, 0.0f},  // top back
+     {1.0f, 2.0f, 0.0f},  // top back
+     {1.0f, 2.0f, 1.0f},  // top front
+     {1.0f, 0.0f, 1.0f}}, // bottom front
+    // ===== back (z = -1) =====
+    {{0.0f, 0.0f, 0.0f},  // bottom left
+     {1.0f, 0.0f, 0.0f},  // bottom right
+     {1.0f, 2.0f, 0.0f},  // top right
+     {1.0f, 2.0f, 0.0f},  // top right
+     {0.0f, 2.0f, 0.0f},  // top left
+     {0.0f, 0.0f, 0.0f}}, // bottom left
+    // ===== left (x = -1) =====
+    {{0.0f, 0.0f, 0.0f},  // bottom back
+     {0.0f, 0.0f, 1.0f},  // bottom front
+     {0.0f, 2.0f, 1.0f},  // top front
+     {0.0f, 2.0f, 1.0f},  // top front
+     {0.0f, 2.0f, 0.0f},  // top back
+     {0.0f, 0.0f, 0.0f}}, // bottom back
+    // ===== top (y = +2) =====
+    {{0.0f, 2.0f, 0.0f},  // back left
+     {1.0f, 2.0f, 0.0f},  // back right
+     {1.0f, 2.0f, 1.0f},  // front right
+     {1.0f, 2.0f, 1.0f},  // front right
+     {0.0f, 2.0f, 1.0f},  // front left
+     {0.0f, 2.0f, 0.0f}}, // back left
+    // ===== bottom (y = -1) =====
+    {{0.0f, 0.0f, 1.0f}, // front left
+     {1.0f, 0.0f, 1.0f}, // front right
+     {1.0f, 0.0f, 0.0f}, // back right
+     {1.0f, 0.0f, 0.0f}, // back right
+     {0.0f, 0.0f, 0.0f}, // back left
+     {0.0f, 0.0f, 1.0f}} // front left
+};
+#pragma endregion
+
 // [-1, 1]
 constexpr float QUAD_VERTICES[] = {
     // postion        // texcoorlds

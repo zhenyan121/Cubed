@@ -81,8 +81,8 @@ asio::awaitable<void> NetworkClient::read_loop() {
             } break;
             case to_num(PacketEnum::CHUNK_DATA_RSP): {
                 ChunkDataRsp rsp;
-                Logger::info("Client: Receive Chunk Data rsp, size {}mb",
-                             body_data.size() / 1024.0f / 1024);
+                // Logger::info("Client: Receive Chunk Data rsp, size {}mb",
+                //              body_data.size() / 1024.0f / 1024);
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_chunk(rsp);
                 }
@@ -100,6 +100,12 @@ asio::awaitable<void> NetworkClient::read_loop() {
                     m_world.receive_time(rsp);
                 }
             }
+            case to_num(PacketEnum::PLAYER_INFO_RSP): {
+                PlayerInfoRsp rsp;
+                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                    m_world.receive_other_player(rsp);
+                }
+            } break;
             }
         }
     } catch (const asio::system_error& e) {

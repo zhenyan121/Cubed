@@ -122,7 +122,7 @@ private:
     GLuint m_outline_indices_vbo = 0;
     GLuint m_outline_vbo = 0;
     GLuint m_ui_vbo = 0;
-
+    GLuint m_player_vbo = 0;
     GLuint m_fbo = 0;
     GLuint m_screen_texture = 0;
     GLuint m_screen_depth_texture = 0;
@@ -174,7 +174,7 @@ private:
     2 - outline vao
     3 - ui vao
     4 - text vao
-
+    5 - player vao
     */
     std::vector<GLuint> m_vao;
     std::vector<Vertex2D> m_ui;
@@ -189,6 +189,7 @@ private:
     void render_text();
     void render_ui();
     void render_world();
+    void render_player();
     void render_underwater();
     void render_dev_panel();
 
