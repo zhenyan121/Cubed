@@ -516,57 +516,61 @@ glm::vec3 ServerWorld::get_player_pos(const std::string& uuid) const {
 
 void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
 
-    Arena arean;
-    ChunkDataRsp* rsp = Arena::Create<ChunkDataRsp>(&arean);
-    auto* rsq_pos = rsp->mutable_pos();
-    rsq_pos->set_x(pos.x);
-    rsq_pos->set_z(pos.z);
-    {
-        std::shared_lock lock(m_chunks_mutex);
-        auto it = m_chunks.find(pos);
-        if (it == m_chunks.end()) {
+    auto pool = m_gen_thread_pool.load();
+    pool->enqueue([uuid, pos, this]() {
+        Arena arean;
+        ChunkDataRsp* rsp = Arena::Create<ChunkDataRsp>(&arean);
+        auto* rsq_pos = rsp->mutable_pos();
+        rsq_pos->set_x(pos.x);
+        rsq_pos->set_z(pos.z);
+        {
+            std::shared_lock lock(m_chunks_mutex);
+            auto it = m_chunks.find(pos);
+            if (it == m_chunks.end()) {
+                return;
+            }
+            rsp->set_chunk_seed(it->second.seed());
+            rsp->set_biome_type(std::to_underlying(it->second.biome()));
+            auto* blocks = rsp->mutable_chunk_blocks();
+            auto& chunk_blocks = it->second.get_chunk_blocks();
+            blocks->Assign(chunk_blocks.begin(), chunk_blocks.end());
+            auto& neighbor_blocks = it->second.get_neightbor_blocks();
+            auto assign =
+                [](auto* nb,
+                   const std::optional<std::vector<BlockType>>& blocks) {
+                    if (!blocks) {
+                        return;
+                    }
+                    if (!nb) {
+                        return;
+                    }
+                    nb->Assign(blocks->begin(), blocks->end());
+                };
+            auto* nb1 = rsp->mutable_neighbor_blocks_1();
+            auto* nb2 = rsp->mutable_neighbor_blocks_2();
+            auto* nb3 = rsp->mutable_neighbor_blocks_3();
+            auto* nb4 = rsp->mutable_neighbor_blocks_4();
+            assign(nb1, neighbor_blocks[0]);
+            assign(nb2, neighbor_blocks[1]);
+            assign(nb3, neighbor_blocks[2]);
+            assign(nb4, neighbor_blocks[3]);
+        }
+        std::shared_ptr<Session> s;
+        {
+            std::shared_lock lock(m_player_mutex);
+            auto it = m_players.find(uuid);
+            if (it != m_players.end()) {
+                s = it->second.get_session();
+                it->second.update_sync_gametick(m_game_ticks);
+            }
+        }
+        if (!s) {
+            Logger::error("Player {} session not exist", uuid);
             return;
         }
-        rsp->set_chunk_seed(it->second.seed());
-        rsp->set_biome_type(std::to_underlying(it->second.biome()));
-        auto* blocks = rsp->mutable_chunk_blocks();
-        auto& chunk_blocks = it->second.get_chunk_blocks();
-        blocks->Assign(chunk_blocks.begin(), chunk_blocks.end());
-        auto& neighbor_blocks = it->second.get_neightbor_blocks();
-        auto assign = [](auto* nb,
-                         const std::optional<std::vector<BlockType>>& blocks) {
-            if (!blocks) {
-                return;
-            }
-            if (!nb) {
-                return;
-            }
-            nb->Assign(blocks->begin(), blocks->end());
-        };
-        auto* nb1 = rsp->mutable_neighbor_blocks_1();
-        auto* nb2 = rsp->mutable_neighbor_blocks_2();
-        auto* nb3 = rsp->mutable_neighbor_blocks_3();
-        auto* nb4 = rsp->mutable_neighbor_blocks_4();
-        assign(nb1, neighbor_blocks[0]);
-        assign(nb2, neighbor_blocks[1]);
-        assign(nb3, neighbor_blocks[2]);
-        assign(nb4, neighbor_blocks[3]);
-    }
-    std::shared_ptr<Session> s;
-    {
-        std::shared_lock lock(m_player_mutex);
-        auto it = m_players.find(uuid);
-        if (it != m_players.end()) {
-            s = it->second.get_session();
-            it->second.update_sync_gametick(m_game_ticks);
-        }
-    }
-    if (!s) {
-        Logger::error("Player {} session not exist", uuid);
-        return;
-    }
 
-    s->send(make_packet(*rsp));
+        s->send(make_packet(*rsp));
+    });
 }
 
 void ServerWorld::handle_block_change(const BlockChangeReq& req) {
