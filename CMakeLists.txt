@@ -17,11 +17,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 if(MSVC)
     add_compile_options(/utf-8)
 endif()
-
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 find_package(OpenGL REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(absl REQUIRED)
-find_package(ZLIB REQUIRED)
+find_package(zstd REQUIRED)
 
 if (UNIX AND NOT APPLE)
     find_package(Freetype REQUIRED)
@@ -208,7 +208,7 @@ target_link_libraries(${PROJECT_NAME}
         protobuf::libprotobuf
         absl::log
         absl::check
-        ZLIB::ZLIB
+        zstd::zstd
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
