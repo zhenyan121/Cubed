@@ -20,7 +20,7 @@ void NetworkClient::start(std::string ip, int port) {
 }
 
 bool NetworkClient::is_connected() const { return m_connected.load(); }
-
+bool NetworkClient::is_connect_error() const { return m_connect_error.load(); }
 asio::awaitable<void> NetworkClient::connect(std::string ip, int port) {
     Logger::info("Connect Begin");
     try {
@@ -38,6 +38,7 @@ asio::awaitable<void> NetworkClient::connect(std::string ip, int port) {
 
     } catch (const std::exception& e) {
         Logger::error("Client Error {}", e.what());
+        m_connect_error = true;
     }
 }
 

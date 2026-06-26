@@ -2,13 +2,13 @@
 
 #include "Cubed/config.hpp"
 #include "Cubed/debug_collector.hpp"
+#include "Cubed/tools/arg_parser.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
 #include "Cubed/tools/system_info.hpp"
 
 #include <exception>
 #include <imgui_impl_glfw.h>
-
 namespace Cubed {
 
 App::App() {}
@@ -33,9 +33,11 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos,
         app->m_camera.update_cursor_position_camera(xpos, ypos);
     }
 }
-void App::init() {
+void App::init(int argc, char** argv) {
+    handle_argument(argc, argv);
     m_window.init();
     m_window.imgui_init();
+
     Logger::info("Window Init Success");
 
     glfwSetWindowUserPointer(m_window.get_glfw_window(), this);
@@ -53,6 +55,7 @@ void App::init() {
     glfwSetCursorEnterCallback(m_window.get_glfw_window(),
                                cursor_enter_callback);
     glfwSetCharCallback(m_window.get_glfw_window(), char_callback);
+
     ChunkGenerator::init();
     BlockManager::init();
     m_renderer.init();
@@ -61,12 +64,13 @@ void App::init() {
     // MapTable::init_map();
     m_texture_manager.init_texture();
     Logger::info("Texture Load Success");
-
-    m_server.start_server();
+    if (!m_argument.is_client) {
+        m_server.start_server(m_argument.port);
+    }
 
     m_client = std::make_shared<NetworkClient>(m_client_world);
 
-    m_client->start("127.0.0.1", 25530);
+    m_client->start(m_argument.ip, m_argument.port);
     // init will send packet
     m_client_world.init("test", m_client);
 
@@ -74,6 +78,53 @@ void App::init() {
 
     m_camera.camera_init(&m_client_world.get_player());
     m_dev_panel.init();
+}
+
+void App::handle_argument(int argc, char** argv) {
+
+    static const std::unordered_map<std::string_view,
+                                    std::function<void(ArgParser&)>>
+        HANDLERS{
+
+            {"--client", [&](ArgParser&) { m_argument.is_client = true; }},
+
+            {"--host", [&](ArgParser&) { m_argument.is_client = false; }},
+
+            {"-p",
+             [&](ArgParser& p) {
+                 auto arg = p.require_next("-p");
+
+                 auto r =
+                     std::from_chars(arg.begin(), arg.end(), m_argument.port);
+
+                 if (r.ec != std::errc{} || r.ptr != arg.end()) {
+                     throw std::runtime_error(
+                         std::format("Invalid port: {}", arg));
+                 }
+
+                 if (m_argument.port > 65535) {
+                     throw std::runtime_error(
+                         std::format("Port {} out of range", m_argument.port));
+                 }
+             }},
+
+            {"--ip",
+             [&](ArgParser& p) {
+                 auto arg = p.require_next("--ip");
+                 m_argument.ip = arg;
+             }}
+
+        };
+    ArgParser parser(argc, argv);
+
+    while (parser.has_next()) {
+        auto arg = parser.next();
+        if (auto it = HANDLERS.find(arg); it != HANDLERS.end()) {
+            it->second(parser);
+        } else {
+            Logger::warn("Unknown argument: {}", arg);
+        }
+    }
 }
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action,
@@ -276,7 +327,7 @@ int App::start_cubed_application(int argc, char** argv) {
     App app;
 
     try {
-        app.init();
+        app.init(argc, argv);
         Logger::info("Game Init Finish Start Run...");
         app.run();
 

@@ -36,14 +36,16 @@ TextureManager::TextureManager() {}
 TextureManager::~TextureManager() { delet_texture(); }
 
 void TextureManager::delet_texture() {
-    glDeleteTextures(1, &m_texture_array);
-    glDeleteTextures(1, &m_block_status_array);
-    glDeleteTextures(1, &m_cross_plane_array);
-    glDeleteTextures(1, &m_normal_texture_array);
-    for (auto& id : m_item_textures) {
-        glDeleteTextures(1, &id);
+    if (m_init) {
+        glDeleteTextures(1, &m_texture_array);
+        glDeleteTextures(1, &m_block_status_array);
+        glDeleteTextures(1, &m_cross_plane_array);
+        glDeleteTextures(1, &m_normal_texture_array);
+        for (auto& id : m_item_textures) {
+            glDeleteTextures(1, &id);
+        }
+        Logger::info("Successfully delete all texture");
     }
-    Logger::info("Successfully delete all texture");
 }
 
 GLuint TextureManager::get_block_status_array() const {
@@ -313,6 +315,7 @@ void TextureManager::init_texture() {
     init_block();
     init_block_status();
     init_ui();
+    m_init = true;
 }
 
 void TextureManager::update() {

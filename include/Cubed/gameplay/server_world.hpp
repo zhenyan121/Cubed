@@ -112,6 +112,7 @@ private:
     std::atomic<bool> m_gen_running{false};
     std::atomic<bool> m_need_gen_chunk{false};
     std::atomic<bool> m_is_rebuilding{false};
+    std::atomic<bool> m_init{false};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<int> m_pool_threads{0};
     std::atomic<int> m_max_threads{1};

@@ -12,6 +12,12 @@ namespace Cubed {
 
 class App {
 public:
+    struct Argument {
+        bool is_client = false;
+        int port = 25530;
+        std::string ip{"127.0.0.1"};
+    };
+
     App();
     ~App();
     static void cursor_position_callback(GLFWwindow* window, double xpos,
@@ -60,9 +66,9 @@ private:
     inline static double fps_time_count = 0.0f;
     inline static int frame_count = 0;
     inline static int fps = 0;
-
-    void init();
-
+    Argument m_argument;
+    void init(int argc, char** argv);
+    void handle_argument(int argc, char** argv);
     auto init_camera();
     auto init_texture();
     auto init_world();

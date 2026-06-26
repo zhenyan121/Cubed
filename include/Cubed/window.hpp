@@ -23,6 +23,7 @@ public:
 
 private:
     bool m_mouse_enable = false;
+    bool m_imgui_init = false;
     float m_aspect;
     GLFWwindow* m_window;
     int m_width;

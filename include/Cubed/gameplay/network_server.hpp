@@ -13,7 +13,7 @@ public:
     void stop();
 
     // Run in another thread after initialization is complete
-    void start_server();
+    void start_server(int port = 25530);
 
     int port() const;
     ServerWorld& server_world();
@@ -23,6 +23,7 @@ private:
     std::thread m_net_thread;
     int m_port = 25530;
     std::atomic<bool> m_stopped{false};
+    std::atomic<bool> m_started{false};
     ServerWorld m_world;
     std::mutex m_session_mutex;
     std::unordered_map<std::string, std::shared_ptr<Session>> m_session;

@@ -99,6 +99,9 @@ private:
     bool m_water_depth_fade = true;
     bool m_pbr = true;
     bool m_flip_y = false;
+
+    bool m_init = false;
+
     int m_shadow_mode = 0;
     int m_light_cull_face = 0;
     float m_aspect = 0.0f;

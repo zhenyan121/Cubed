@@ -9,6 +9,9 @@ NetworkServer::NetworkServer(int port) : m_port(port) {}
 NetworkServer::~NetworkServer() { stop(); }
 
 void NetworkServer::stop() {
+    if (!m_started) {
+        return;
+    }
     if (m_stopped.exchange(true)) {
         return;
     }
@@ -79,9 +82,10 @@ void NetworkServer::net_run() {
     Logger::info("Server Started!");
 }
 
-void NetworkServer::start_server() {
+void NetworkServer::start_server(int port) {
     m_world.init_world();
     net_run();
+    m_started = true;
 }
 
 int NetworkServer::port() const { return m_port; }

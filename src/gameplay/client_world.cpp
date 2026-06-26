@@ -200,6 +200,9 @@ void ClientWorld::init(std::string_view player_name,
     LoginReq req;
     req.set_name(m_player.get_name());
     while (!client->is_connected()) {
+        if (client->is_connect_error()) {
+            throw std::runtime_error("Can't connect to the server");
+        }
         std::this_thread::sleep_for(milliseconds(200));
     }
     // request login

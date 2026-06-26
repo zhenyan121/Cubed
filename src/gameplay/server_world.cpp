@@ -15,6 +15,9 @@ namespace Cubed {
 ServerWorld::ServerWorld() {}
 
 ServerWorld::~ServerWorld() {
+    if (!m_init) {
+        return;
+    }
     stop_gen_thread();
     stop_server_thread();
     wait_all_chunk_tasks();
@@ -60,6 +63,7 @@ void ServerWorld::init_world() {
     Logger::info("Chunk Block Init Finish, Time Consuming: {}", d);
 
     start_server_thread();
+    m_init = true;
 }
 
 void ServerWorld::init_chunks() { hot_reload(); }

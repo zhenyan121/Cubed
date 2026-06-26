@@ -8,6 +8,7 @@ namespace Cubed {
 class TextureManager {
 private:
     bool m_need_reload = false;
+    bool m_init = false;
     GLuint m_block_status_array = 0;
     GLuint m_texture_array = 0;
     GLuint m_cross_plane_array = 0;

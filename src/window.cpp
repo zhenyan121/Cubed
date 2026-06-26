@@ -18,10 +18,14 @@ static int windowed_width = 800, windowed_height = 600;
 Window::Window(Renderer& renderer) : m_renderer(renderer) {}
 
 Window::~Window() {
+    if (m_imgui_init) {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+    }
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGui::DestroyContext();
+    }
 
     if (m_window) {
         glfwDestroyWindow(m_window);
@@ -212,6 +216,8 @@ void Window::imgui_init() {
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
     ImGui_ImplOpenGL3_Init();
+
+    m_imgui_init = true;
 }
 
 } // namespace Cubed

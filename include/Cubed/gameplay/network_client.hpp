@@ -17,6 +17,7 @@ public:
     void send(Packet packet);
     void start(std::string ip, int port = 25530);
     bool is_connected() const;
+    bool is_connect_error() const;
 
 private:
     asio::io_context m_io;
@@ -32,6 +33,7 @@ private:
 
     std::atomic<bool> m_closed{false};
     std::atomic<bool> m_connected{false};
+    std::atomic<bool> m_connect_error{false};
     // ClientWorld is managed by App
     ClientWorld& m_world;
 

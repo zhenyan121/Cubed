@@ -27,25 +27,27 @@ Renderer::Renderer(const Camera& camera, ClientWorld& world,
       m_texture_manager(texture_manager), m_world(world) {}
 
 Renderer::~Renderer() {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &m_outline_vbo);
-    glDeleteBuffers(1, &m_outline_indices_vbo);
-    glDeleteBuffers(1, &m_sky_vbo);
-    glDeleteBuffers(1, &m_ui_vbo);
-    glDeleteBuffers(1, &m_text_vbo);
-    glBindVertexArray(0);
-    glDeleteVertexArrays(NUM_VAO, m_vao.data());
-    glDeleteFramebuffers(1, &m_fbo);
-    glDeleteTextures(1, &m_screen_texture);
-    glDeleteTextures(1, &m_screen_depth_texture);
+    if (m_init) {
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glDeleteBuffers(1, &m_outline_vbo);
+        glDeleteBuffers(1, &m_outline_indices_vbo);
+        glDeleteBuffers(1, &m_sky_vbo);
+        glDeleteBuffers(1, &m_ui_vbo);
+        glDeleteBuffers(1, &m_text_vbo);
+        glBindVertexArray(0);
+        glDeleteVertexArrays(NUM_VAO, m_vao.data());
+        glDeleteFramebuffers(1, &m_fbo);
+        glDeleteTextures(1, &m_screen_texture);
+        glDeleteTextures(1, &m_screen_depth_texture);
 
-    glDeleteFramebuffers(1, &m_oit_fbo);
-    glDeleteTextures(1, &m_accum_texture);
-    glDeleteTextures(1, &m_reveal_texture);
-    glDeleteTextures(1, &m_oit_depth_texture);
+        glDeleteFramebuffers(1, &m_oit_fbo);
+        glDeleteTextures(1, &m_accum_texture);
+        glDeleteTextures(1, &m_reveal_texture);
+        glDeleteTextures(1, &m_oit_depth_texture);
 
-    glDeleteFramebuffers(1, &m_depth_map_fbo);
-    glDeleteTextures(1, &m_depth_map_texture);
+        glDeleteFramebuffers(1, &m_depth_map_fbo);
+        glDeleteTextures(1, &m_depth_map_texture);
+    }
 }
 
 void Renderer::hot_reload() {
@@ -171,6 +173,7 @@ void Renderer::init() {
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    m_init = true;
 }
 
 const Shader& Renderer::get_shader(const std::string& name) const {
