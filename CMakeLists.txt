@@ -21,6 +21,7 @@ endif()
 find_package(OpenGL REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(absl REQUIRED)
+find_package(ZLIB REQUIRED)
 
 if (UNIX AND NOT APPLE)
     find_package(Freetype REQUIRED)
@@ -207,6 +208,7 @@ target_link_libraries(${PROJECT_NAME}
         protobuf::libprotobuf
         absl::log
         absl::check
+        ZLIB::ZLIB
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

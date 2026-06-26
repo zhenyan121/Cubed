@@ -113,6 +113,7 @@ void DevPanel::show_about_table_bar() {
         ImGui::Text("Tbb");
         ImGui::Text("Asio");
         ImGui::Text("protobuf");
+        ImGui::Text("zlib");
         ImGui::Separator();
         ImGui::Text("Special Thanks");
         ImGui::Text("TANGERIME");
