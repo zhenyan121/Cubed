@@ -18,7 +18,7 @@ ClientWorld::ClientWorld() : m_player(*this) {}
 
 ClientWorld::~ClientWorld() {
     stop_client_thread();
-
+    stop_thread_pool();
     {
         std::lock_guard lock(m_chunks_mutex);
         m_chunks.clear();
@@ -215,6 +215,7 @@ void ClientWorld::init(std::string_view player_name,
         }
         std::this_thread::sleep_for(milliseconds(200));
     }
+    start_thread_pool();
     // request login
     Logger::info("Send Login Request");
     m_client->send(make_packet(req));
@@ -241,6 +242,26 @@ void ClientWorld::stop_client_thread() {
     }
     m_game_running = false;
 }
+void ClientWorld::start_thread_pool() { change_pool_threads(1); }
+void ClientWorld::stop_thread_pool() {
+    auto pool_ptr = m_thread_pool.load();
+    if (pool_ptr) {
+        pool_ptr->stop();
+    }
+    m_thread_pool.store(nullptr);
+    Logger::info("Thread Pool Stopped");
+}
+
+void ClientWorld::change_pool_threads(int threads) {
+    int m_max_threads = std::thread::hardware_concurrency();
+    if (m_max_threads < 1) {
+        Logger::warn("Can't Get Max Support Threads, Set Max Threads to 4");
+        m_max_threads = 1;
+    }
+    int used_thread = std::clamp(threads, 1, m_max_threads);
+    Logger::info("Create New Thread Pool Use {} Threads", used_thread);
+    m_thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+}
 
 void ClientWorld::hot_reload() {
     auto& config = Config::get();
@@ -251,28 +272,16 @@ void ClientWorld::hot_reload() {
 void ClientWorld::client_run(std::stop_token stoken) {
     Logger::info("Client Thread Started");
     while (!stoken.stop_requested()) {
+        auto t1 = system_clock::now();
+
         for (auto& x : m_timers) {
             x.second.update();
         }
-        // vertex data will genrator in  client thread instead of net thread;
-        std::vector<ChunkDataRsp> temp_data;
-        {
-            std::lock_guard lock(m_pending_chunk_data_queue_mutex);
-            for (auto& x : m_pending_chunk_data_queue) {
-                temp_data.emplace_back(std::move(x));
-            }
-            m_pending_chunk_data_queue.clear();
-        }
-        for (auto& x : temp_data) {
-            ClientChunk chunk{*this};
-            chunk.receive_chunk(x);
-            {
-                std::lock_guard lock(m_pending_upload_queue_mutex);
-                m_pending_upload_queue.emplace_back(std::move(chunk));
-            }
-        }
 
-        std::this_thread::sleep_for(milliseconds(DEFAULT_PER_TICK_TIME));
+        auto t2 = system_clock::now();
+        auto dt = duration_cast<microseconds>(t2 - t1);
+        auto st = std::max(dt, milliseconds(DEFAULT_PER_TICK_TIME) - dt);
+        std::this_thread::sleep_for(st);
     }
 }
 
@@ -380,11 +389,20 @@ void ClientWorld::receive_chunk(const ChunkDataRsp& data) {
             return;
         }
     }
-
-    {
-        std::lock_guard lock(m_pending_chunk_data_queue_mutex);
-        m_pending_chunk_data_queue.emplace_back(std::move(data));
+    // vertex data will genrator in  client thread pool instead of net thread;
+    auto pool = m_thread_pool.load();
+    if (!pool) {
+        Logger::error("Client Thread Pool is nullptr");
+        return;
     }
+    pool->enqueue([this, data = std::move(data)]() {
+        ClientChunk chunk{*this};
+        chunk.receive_chunk(data);
+        {
+            std::lock_guard lock(m_pending_upload_queue_mutex);
+            m_pending_upload_queue.emplace_back(std::move(chunk));
+        }
+    });
 }
 
 void ClientWorld::update(float delta_time) {

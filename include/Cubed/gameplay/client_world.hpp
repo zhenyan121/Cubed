@@ -5,6 +5,7 @@
 #include "Cubed/gameplay/client_player.hpp"
 #include "Cubed/gameplay/game_time.hpp"
 #include "Cubed/gameplay/network_client.hpp"
+#include "Cubed/tools/thread_pool.hpp"
 
 #include <deque>
 #include <tbb/concurrent_unordered_map.h>
@@ -51,6 +52,9 @@ public:
     void start_client_thread(std::string_view uuid);
     void stop_client_thread();
 
+    void start_thread_pool();
+    void stop_thread_pool();
+    void change_pool_threads(int threads);
     void hot_reload();
     void request_chunk();
     std::vector<glm::vec4>& planes();
@@ -82,11 +86,9 @@ private:
     std::mutex m_delete_vbo_mutex;
     std::mutex m_delete_vao_mutex;
     std::mutex m_pending_upload_queue_mutex;
-    std::mutex m_pending_chunk_data_queue_mutex;
     std::mutex m_other_players_mutex;
 
     std::deque<ClientChunk> m_pending_upload_queue;
-    std::deque<ChunkDataRsp> m_pending_chunk_data_queue;
 
     std::vector<GLuint> m_pending_delete_vbo;
     std::vector<GLuint> m_pending_delete_vao;
@@ -102,6 +104,9 @@ private:
     std::atomic<bool> m_requesting_chunk{false};
     std::shared_ptr<NetworkClient> m_client;
     ChunkLoadStyle m_chunk_load_style{ChunkLoadStyle::CENTER};
+
+    std::atomic<std::shared_ptr<ThreadPool>> m_thread_pool;
+
     void client_run(std::stop_token token);
 
     void set_player_pos();
