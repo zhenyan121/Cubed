@@ -949,8 +949,8 @@ void Renderer::render_player() {
     auto& players = m_world.render_player_data();
 
     for (auto& player : players) {
-        m_m_mat = glm::translate(glm::mat4(1.0f),
-                                 player.pos + glm::vec3(-0.5f, 0.0f, -0.5f));
+        m_m_mat = glm::translate(
+            glm::mat4(1.0f), player.render_pos + glm::vec3(-0.5f, 0.0f, -0.5f));
         m_mv_mat = m_v_mat * m_m_mat;
         shader.set_loc("mv_matrix", m_mv_mat);
         shader.set_loc("proj_matrix", m_p_mat);

@@ -11,14 +11,15 @@
 #include <tbb/concurrent_unordered_map.h>
 namespace Cubed {
 
-struct OtherPlayerInfo {
+struct RemotePlayerInfo {
     std::string name;
-    glm::vec3 pos;
+    glm::vec3 render_pos;
+    glm::vec3 target_pos;
 };
 
-struct RenderPlayerData {
+struct RemotePlayerRenderData {
     std::string name;
-    glm::vec3 pos;
+    glm::vec3 render_pos;
 };
 
 class ClientWorld {
@@ -45,7 +46,7 @@ public:
     void receive_block_change(const BlockChangeRsp& rsp);
     void receive_time(const UpdateTime& rsp);
 
-    void receive_other_player(const PlayerInfoRsp& rsp);
+    void receive_remote_player(const PlayerInfoRsp& rsp);
     void receive_player_logout(const LogoutRsp& rsp);
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
@@ -59,7 +60,7 @@ public:
     void request_chunk();
     std::vector<glm::vec4>& planes();
     const std::vector<ChunkRenderSnapshot>& render_snapshots() const;
-    const std::vector<RenderPlayerData>& render_player_data() const;
+    const std::vector<RemotePlayerRenderData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(ChunkDataRsp data);
     void exit();
@@ -76,7 +77,8 @@ private:
         tbb::concurrent_unordered_map<ChunkPos, ClientChunk, ChunkPos::Hash>;
     using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
     using ChunkPosVector = std::vector<ChunkPos>;
-    using OtherPlayerHashMap = std::unordered_map<std::string, OtherPlayerInfo>;
+    using OtherPlayerHashMap =
+        std::unordered_map<std::string, RemotePlayerInfo>;
     ClientPlayer m_player;
     OtherPlayerHashMap m_other_players;
     ChunkHashMap m_chunks;
@@ -96,7 +98,7 @@ private:
 
     std::deque<ChunkPos> m_dirty_queue;
     std::vector<ChunkRenderSnapshot> m_render_snapshots;
-    std::vector<RenderPlayerData> m_render_player_data;
+    std::vector<RemotePlayerRenderData> m_render_player_data;
     tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     std::atomic<bool> m_game_running{false};
     std::atomic<int> m_rendering_distance{24};

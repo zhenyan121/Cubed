@@ -100,7 +100,7 @@ asio::awaitable<void> NetworkClient::read_loop() {
             case to_num(PacketEnum::PLAYER_INFO_RSP): {
                 auto* rsp = Arena::Create<PlayerInfoRsp>(&arena);
                 if (decode_packet(*rsp, body_data, header)) {
-                    m_world.receive_other_player(*rsp);
+                    m_world.receive_remote_player(*rsp);
                 }
             } break;
             case to_num(PacketEnum::LOGOUT_RSP): {
