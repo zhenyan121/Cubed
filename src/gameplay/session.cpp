@@ -90,6 +90,12 @@ asio::awaitable<void> Session::read_loop() {
                     m_server_world.handle_block_change(req);
                 }
             }
+            if (cmd_id == to_num(PacketEnum::LOGOUT_REQ)) {
+                LogoutReq req;
+                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                    m_server_world.handle_player_exit(req.uuid());
+                }
+            }
         }
     } catch (const asio::system_error& e) {
         auto ec = e.code();

@@ -46,7 +46,7 @@ public:
     void receive_time(const UpdateTime& rsp);
 
     void receive_other_player(const PlayerInfoRsp& rsp);
-
+    void receive_player_logout(const LogoutRsp& rsp);
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
     void start_client_thread(std::string_view uuid);
@@ -62,6 +62,7 @@ public:
     const std::vector<RenderPlayerData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(const ChunkDataRsp& data);
+    void exit();
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,

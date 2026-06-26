@@ -46,15 +46,28 @@ void ServerWorld::send_time() {
 }
 
 void ServerWorld::init_world() {
+
+    register_timer("player disconnect", 5, [this]() {
+        std::vector<std::string> disconnect;
+        {
+            std::shared_lock lock(m_player_mutex);
+            for (auto& [uuid, player] : m_players) {
+                if (player.is_disconnect(m_game_ticks)) {
+                    disconnect.emplace_back(uuid);
+                }
+            }
+        }
+        for (auto& uuid : disconnect) {
+            handle_player_exit(uuid);
+        }
+    });
+
     m_cave_carcer.init(ChunkGenerator::seed());
     m_river_worm.init(ChunkGenerator::seed());
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     start_thread_pool();
 
     auto t1 = std::chrono::system_clock::now();
-
-    // init players
-    // m_players.emplace(HASH::str("TestPlayer"), Player(*this, "TestPlayer"));
 
     start_gen_thread();
     init_chunks();
@@ -409,6 +422,7 @@ void ServerWorld::sync_player_pos(const std::string& uuid, float x, float y,
             return;
         }
         it->second.update_pos(x, y, z);
+        it->second.update_sync_gametick(m_game_ticks);
         name = it->second.get_name();
     }
 
@@ -442,9 +456,9 @@ void ServerWorld::handle_player_login(const std::string& name,
     Logger::info("Player {} (uuid {}) join the world", name, uuid);
     {
         std::lock_guard lock(m_player_mutex);
-        m_players.emplace(std::piecewise_construct,
-                          std::forward_as_tuple(std::string(uuid)),
-                          std::forward_as_tuple(name, uuid, *this, session));
+        m_players.emplace(
+            std::piecewise_construct, std::forward_as_tuple(std::string(uuid)),
+            std::forward_as_tuple(name, uuid, *this, session, m_game_ticks));
     }
     m_uuid_to_name.emplace(uuid, name);
     LoginRsp rsp;
@@ -458,13 +472,29 @@ void ServerWorld::handle_player_exit(const std::string& uuid) {
         std::lock_guard lock(m_player_mutex);
         auto it = m_players.find(uuid);
         if (it != m_players.end()) {
-
+            Logger::info("Player {} Exit the Server", it->second.get_name());
             m_players.erase(it);
         } else {
             Logger::error("Player {} isn't in Server", uuid);
+            return;
         }
     }
+
     m_uuid_to_name.erase(uuid);
+
+    std::vector<std::shared_ptr<Session>> sessions;
+    {
+        std::shared_lock lock(m_player_mutex);
+        for (auto& [uuid, player] : m_players) {
+            sessions.emplace_back(player.get_session());
+        }
+    }
+
+    for (auto& s : sessions) {
+        LogoutRsp rsp;
+        rsp.set_uuid(uuid);
+        s->send(make_packet(rsp));
+    }
 }
 
 glm::vec3 ServerWorld::get_player_pos(const std::string& uuid) const {
@@ -519,6 +549,7 @@ void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
         auto it = m_players.find(uuid);
         if (it != m_players.end()) {
             s = it->second.get_session();
+            it->second.update_sync_gametick(m_game_ticks);
         }
     }
     if (!s) {

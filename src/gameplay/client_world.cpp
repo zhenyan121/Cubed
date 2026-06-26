@@ -200,6 +200,18 @@ void ClientWorld::receive_other_player(const PlayerInfoRsp& rsp) {
     }
 }
 
+void ClientWorld::receive_player_logout(const LogoutRsp& rsp) {
+    {
+        std::lock_guard lock(m_other_players_mutex);
+        int sum = m_other_players.erase(rsp.uuid());
+        if (sum == 0) {
+            Logger::warn("Player {} not find", rsp.uuid());
+        } else {
+            Logger::info("Player {} erase", rsp.uuid());
+        }
+    }
+}
+
 void ClientWorld::init(std::string_view player_name,
                        std::shared_ptr<NetworkClient> client) {
     m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
@@ -403,6 +415,12 @@ void ClientWorld::receive_chunk(const ChunkDataRsp& data) {
             m_pending_upload_queue.emplace_back(std::move(chunk));
         }
     });
+}
+
+void ClientWorld::exit() {
+    LogoutReq req;
+    req.set_uuid(m_player.get_uuid());
+    m_client->send(make_packet(req));
 }
 
 void ClientWorld::update(float delta_time) {

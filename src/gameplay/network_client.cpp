@@ -99,11 +99,17 @@ asio::awaitable<void> NetworkClient::read_loop() {
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_time(rsp);
                 }
-            }
+            } break;
             case to_num(PacketEnum::PLAYER_INFO_RSP): {
                 PlayerInfoRsp rsp;
                 if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
                     m_world.receive_other_player(rsp);
+                }
+            } break;
+            case to_num(PacketEnum::LOGOUT_RSP): {
+                LogoutRsp rsp;
+                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                    m_world.receive_player_logout(rsp);
                 }
             } break;
             }

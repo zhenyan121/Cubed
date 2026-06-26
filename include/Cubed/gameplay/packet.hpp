@@ -11,6 +11,8 @@ using Packet = std::shared_ptr<std::vector<uint8_t>>;
 enum class PacketEnum {
     LOGIN_REQ = 1001,
     LOGIN_RSP = 1002,
+    LOGOUT_REQ = 1003,
+    LOGOUT_RSP = 1004,
     PLAYER_INFO = 2001,
     PLAYER_POS = 2002,
     PLAYER_INFO_RSP = 2003,
@@ -35,6 +37,10 @@ template <typename T> constexpr uint16_t get_packet_id() {
         return to_num(LOGIN_REQ);
     } else if constexpr (is_same_v<U, LoginRsp>) {
         return to_num(LOGIN_RSP);
+    } else if constexpr (is_same_v<U, LogoutReq>) {
+        return to_num(LOGOUT_REQ);
+    } else if constexpr (is_same_v<U, LogoutRsp>) {
+        return to_num(LOGOUT_RSP);
     } else if constexpr (is_same_v<U, PlayerInfo>) {
         return to_num(PLAYER_INFO);
     } else if constexpr (is_same_v<U, PlayerPos>) {

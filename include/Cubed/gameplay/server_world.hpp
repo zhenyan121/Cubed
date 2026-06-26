@@ -24,7 +24,7 @@ public:
     ServerWorld();
     ~ServerWorld();
     void player_join(std::string_view name, std::string_view uuid);
-    void handle_player_exit(const std::string& name);
+    void handle_player_exit(const std::string& uuid);
     void init_world();
     void need_gen(std::optional<std::string> uuid);
     void update();

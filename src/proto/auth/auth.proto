@@ -9,3 +9,11 @@ message LoginRsp {
     string uuid = 2;
 }
 
+message LogoutReq {
+    string uuid = 1;
+}
+
+message LogoutRsp {
+    string uuid = 1;
+}
+
