@@ -289,17 +289,17 @@ void ClientWorld::hot_reload() {
 
 void ClientWorld::client_run(std::stop_token stoken) {
     Logger::info("Client Thread Started");
-    while (!stoken.stop_requested()) {
-        auto t1 = system_clock::now();
+    using Clock = std::chrono::steady_clock;
 
+    constexpr auto TICK = std::chrono::milliseconds(DEFAULT_PER_TICK_TIME);
+
+    auto next = Clock::now();
+    while (!stoken.stop_requested()) {
+        next += TICK;
         for (auto& x : m_timers) {
             x.second.update();
         }
-
-        auto t2 = system_clock::now();
-        auto dt = duration_cast<microseconds>(t2 - t1);
-        auto st = std::max(dt, milliseconds(DEFAULT_PER_TICK_TIME) - dt);
-        std::this_thread::sleep_for(st);
+        std::this_thread::sleep_until(next);
     }
 }
 

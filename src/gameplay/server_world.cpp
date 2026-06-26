@@ -299,18 +299,19 @@ void ServerWorld::stop_thread_pool() {
 
 void ServerWorld::serever_run(std::stop_token stoken) {
     Logger::info("Server Thread Started!");
-    while (!stoken.stop_requested()) {
-        auto t1 = system_clock::now();
 
+    using Clock = std::chrono::steady_clock;
+    constexpr auto TICK = std::chrono::milliseconds(DEFAULT_PER_TICK_TIME);
+
+    auto next = Clock::now();
+    while (!stoken.stop_requested()) {
+        next += TICK;
         if (m_tick_running) {
             ++m_game_ticks;
             m_day_tick = (m_day_tick + 1) % DAY_TIME;
         }
         update();
-        auto t2 = system_clock::now();
-        auto dt = duration_cast<microseconds>(t2 - t1);
-        auto st = std::max(dt, milliseconds(m_per_tick_time) - dt);
-        std::this_thread::sleep_for(st);
+        std::this_thread::sleep_until(next);
     }
     Logger::info("Server Thread Stopped!");
 }
