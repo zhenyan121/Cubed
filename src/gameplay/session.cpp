@@ -37,7 +37,7 @@ const std::string& Session::uuid() const { return m_uuid; }
 asio::awaitable<void> Session::read_loop() {
     try {
         while (true) {
-            std::array<char, HEADER_LEN> header_buffer;
+            std::array<uint8_t, HEADER_LEN> header_buffer;
             co_await asio::async_read(m_socket, asio::buffer(header_buffer),
                                       asio::use_awaitable);
 
@@ -58,14 +58,14 @@ asio::awaitable<void> Session::read_loop() {
             if (cmd_id == to_num(PacketEnum::LOGIN_REQ)) {
                 LoginReq req;
                 Logger::info("Session: Receive Login req");
-                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(req, body_data, header)) {
                     m_server_world.handle_player_login(req.name(),
                                                        shared_from_this());
                 }
             }
             if (cmd_id == to_num(PacketEnum::PLAYER_POS)) {
                 PlayerPos pos;
-                if (pos.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(pos, body_data, header)) {
                     m_server_world.sync_player_pos(pos.uuid(), pos.pos().x(),
                                                    pos.pos().y(),
                                                    pos.pos().z());
@@ -74,7 +74,7 @@ asio::awaitable<void> Session::read_loop() {
             if (cmd_id == to_num(PacketEnum::CHUNK_DATA_REQ)) {
                 ChunkDataReq req;
                 // Logger::info("Session: Receive Chunk Data req");
-                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(req, body_data, header)) {
                     m_server_world.handle_chunk_req(
                         req.uuid(), ChunkPos(req.pos().x(), req.pos().z()));
                 }
@@ -82,13 +82,13 @@ asio::awaitable<void> Session::read_loop() {
             if (cmd_id == to_num(PacketEnum::BLOCK_CHANGE_REQ)) {
                 BlockChangeReq req;
                 Logger::info("Session: Receive Block Change req");
-                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(req, body_data, header)) {
                     m_server_world.handle_block_change(req);
                 }
             }
             if (cmd_id == to_num(PacketEnum::LOGOUT_REQ)) {
                 LogoutReq req;
-                if (req.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(req, body_data, header)) {
                     m_server_world.handle_player_exit(req.uuid());
                 }
             }

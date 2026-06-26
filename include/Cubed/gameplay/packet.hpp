@@ -1,17 +1,20 @@
 #pragma once
+#include "Cubed/tools/compression.hpp"
 #include "packet.pb.h" // IWYU pragma: keep
 
-#include <array>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <netinet/in.h>
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-
 namespace Cubed {
-constexpr int HEADER_LEN = 12;
+constexpr size_t HEADER_LEN =
+    sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t) + sizeof(uint32_t);
+constexpr size_t PACKET_COMPRESSION_THRESHOLD = 100;
 using Packet = std::shared_ptr<std::vector<uint8_t>>;
 enum class CompressType : uint16_t {
     NONE = 0,
@@ -27,17 +30,17 @@ inline CompressType get_compress_type(uint16_t id) {
     case to(ZSTD):
         return ZSTD;
     }
-    throw std::runtime_error(std::format("Unkown CompressType {}", id));
+    throw std::runtime_error(std::format("Unknown CompressType {}", id));
 }
 
 struct PacketHeader {
-    uint16_t cmd;
-    CompressType compress_type; // 0=none 1=zlib
-    uint32_t uncompressed_size;
-    uint32_t compressed_size;
+    uint16_t cmd{};
+    CompressType compress_type{}; // 0=none 1=zlib
+    uint32_t uncompressed_size{};
+    uint32_t compressed_size{};
 };
 
-enum class PacketEnum {
+enum class PacketEnum : uint16_t {
     LOGIN_REQ = 1001,
     LOGIN_RSP = 1002,
     LOGOUT_REQ = 1003,
@@ -91,20 +94,40 @@ template <typename T> constexpr uint16_t get_packet_id() {
     } else if constexpr (is_same_v<U, Pong>) {
         return to_num(PONG);
     } else {
-        static_assert(always_false<U>::value, "Unkonw Type");
+        static_assert(always_false<U>::value, "Unknown Type");
     }
 }
 
-template <typename T> Packet make_packet(const T& msg) {
+template <typename T>
+    requires std::derived_from<T, google::protobuf::Message>
+Packet make_packet(const T& msg) {
     PacketHeader header{};
     header.cmd = get_packet_id<T>();
-    uint32_t size = static_cast<uint32_t>(msg.ByteSizeLong());
-    header.uncompressed_size = size;
-    header.compressed_size = size;
-    header.compress_type = CompressType::NONE;
+    uint32_t raw_size = static_cast<uint32_t>(msg.ByteSizeLong());
+    std::vector<uint8_t> raw(raw_size);
 
-    auto packet = std::make_shared<std::vector<uint8_t>>(
-        HEADER_LEN + header.compressed_size);
+    if (!msg.SerializeToArray(raw.data(), raw_size)) {
+        return {};
+    }
+    std::vector<uint8_t> payload;
+    if (raw_size >= PACKET_COMPRESSION_THRESHOLD) {
+        std::vector<uint8_t> compressed = compress_data(raw);
+        if (compressed.size() < raw.size()) {
+            payload = std::move(compressed);
+            header.compress_type = CompressType::ZSTD;
+        } else {
+            payload = std::move(raw);
+            header.compress_type = CompressType::NONE;
+        }
+    } else {
+        payload = std::move(raw);
+        header.compress_type = CompressType::NONE;
+    }
+    header.uncompressed_size = raw_size;
+    header.compressed_size = static_cast<uint32_t>(payload.size());
+
+    auto packet =
+        std::make_shared<std::vector<uint8_t>>(HEADER_LEN + payload.size());
 
     uint16_t cmd_net = htons(header.cmd);
     uint16_t compress_type_net =
@@ -120,16 +143,14 @@ template <typename T> Packet make_packet(const T& msg) {
                 sizeof(uncompressed_size_net));
     std::memcpy(packet->data() + 8, &compressed_size_net,
                 sizeof(compressed_size_net));
-    if (!msg.SerializeToArray(packet->data() + HEADER_LEN,
-                              static_cast<int>(size))) {
-        return {};
-    }
+    std::memcpy(packet->data() + HEADER_LEN, payload.data(), payload.size());
 
     return packet;
 }
 
-inline PacketHeader
-decode_packet_header(const std::array<char, HEADER_LEN>& header) {
+inline PacketHeader decode_packet_header(std::span<const uint8_t> header) {
+    if (header.size() < HEADER_LEN)
+        throw std::runtime_error("Invalid header");
     uint16_t cmd_net;
     uint16_t compress_type_net;
     uint32_t uncompressed_size_net;
@@ -144,6 +165,32 @@ decode_packet_header(const std::array<char, HEADER_LEN>& header) {
 
     return {ntohs(cmd_net), get_compress_type(ntohs(compress_type_net)),
             ntohl(uncompressed_size_net), ntohl(compressed_size_net)};
+}
+template <typename T>
+    requires std::derived_from<T, google::protobuf::Message>
+bool decode_packet(T& message, std::span<const uint8_t> data,
+                   const PacketHeader& header) {
+    if (data.size() != header.compressed_size) {
+        return false;
+    }
+
+    if (header.compress_type == CompressType::NONE &&
+        header.uncompressed_size != header.compressed_size) {
+        return false;
+    }
+
+    switch (header.compress_type) {
+    case CompressType::NONE: {
+        return message.ParseFromArray(
+            data.data(), static_cast<int>(header.uncompressed_size));
+    }
+    case CompressType::ZSTD: {
+        auto raw = decompress_data(data, header.uncompressed_size);
+        return message.ParseFromArray(raw.data(), static_cast<int>(raw.size()));
+    }
+    default:
+        return false;
+    }
 }
 
 } // namespace Cubed

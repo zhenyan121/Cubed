@@ -45,7 +45,7 @@ asio::awaitable<void> NetworkClient::connect(std::string ip, int port) {
 asio::awaitable<void> NetworkClient::read_loop() {
     try {
         while (true) {
-            std::array<char, HEADER_LEN> header_buffer;
+            std::array<uint8_t, HEADER_LEN> header_buffer;
             co_await asio::async_read(m_socket, asio::buffer(header_buffer),
                                       asio::use_awaitable);
             auto header = decode_packet_header(header_buffer);
@@ -66,7 +66,7 @@ asio::awaitable<void> NetworkClient::read_loop() {
             case to_num(PacketEnum::LOGIN_RSP): {
                 LoginRsp rsp;
                 Logger::info("Client: Receive Login rsp");
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(rsp, body_data, header)) {
                     if (rsp.success()) {
                         m_world.start_client_thread(rsp.uuid());
                     } else {
@@ -76,34 +76,34 @@ asio::awaitable<void> NetworkClient::read_loop() {
             } break;
             case to_num(PacketEnum::CHUNK_DATA_RSP): {
                 ChunkDataRsp rsp;
-                // Logger::info("Client: Receive Chunk Data rsp, size {}mb",
-                //              body_data.size() / 1024.0f / 1024);
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                Logger::info("Client: Receive Chunk Data rsp, size {}mb",
+                             body_data.size() / 1024.0f / 1024);
+                if (decode_packet(rsp, body_data, header)) {
                     m_world.receive_chunk(rsp);
                 }
             } break;
             case to_num(PacketEnum::BLOCK_CHANGE_RSP): {
                 BlockChangeRsp rsp;
                 Logger::info("Client: Receive Block Change rsp");
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(rsp, body_data, header)) {
                     m_world.receive_block_change(rsp);
                 }
             } break;
             case to_num(PacketEnum::UPDATE_TIME): {
                 UpdateTime rsp;
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(rsp, body_data, header)) {
                     m_world.receive_time(rsp);
                 }
             } break;
             case to_num(PacketEnum::PLAYER_INFO_RSP): {
                 PlayerInfoRsp rsp;
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(rsp, body_data, header)) {
                     m_world.receive_other_player(rsp);
                 }
             } break;
             case to_num(PacketEnum::LOGOUT_RSP): {
                 LogoutRsp rsp;
-                if (rsp.ParseFromArray(body_data.data(), body_data.size())) {
+                if (decode_packet(rsp, body_data, header)) {
                     m_world.receive_player_logout(rsp);
                 }
             } break;
