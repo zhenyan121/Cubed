@@ -136,7 +136,7 @@ add_executable(${PROJECT_NAME}
     src/gameplay/builders/snowy_plain_builder.cpp
     src/gameplay/river_worm.cpp
     src/gameplay/river_path.cpp
-    src/block.cpp
+    src/gameplay/block.cpp
     src/gameplay/vertex_data.cpp
     src/gameplay/builders/ocean_builder.cpp
     src/gameplay/network_server.cpp

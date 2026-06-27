@@ -582,6 +582,7 @@ void DevPanel::show_player_tab_item() {
         return;
     }
     if (ImGui::BeginTabItem("player")) {
+        ImGui::Text("Player %s", m_player->get_name().c_str());
         if (ImGui::Combo("GameMode", &m_player_profile.game_mode, GAME_MODES,
                          IM_ARRAYSIZE(GAME_MODES))) {
             if (m_player_profile.game_mode == 0) {
