@@ -309,7 +309,9 @@ void ClientWorld::change_pool_threads(int threads) {
 void ClientWorld::hot_reload() {
     auto& config = Config::get();
     int dist = config.get<int>("world.rendering_distance");
+    Logger::info("Get Config Randering dist {}", dist);
     m_rendering_distance = dist <= MAX_DISTANCE ? dist : MAX_DISTANCE;
+    request_chunk();
 }
 
 void ClientWorld::client_run(std::stop_token stoken) {
@@ -356,6 +358,7 @@ void ClientWorld::request_chunk() {
     int z = std::floor(player_pos.z);
     auto [chunk_x, chunk_z] = get_chunk_pos(x, z);
     int radius = m_rendering_distance;
+    Logger::info("Client Chunk Radius {}", radius);
     int r2 = radius * radius;
     required_chunks.reserve(radius * radius);
 
@@ -386,6 +389,7 @@ void ClientWorld::request_chunk() {
         }
     }
     if (need_send_pos.empty()) {
+        m_requesting_chunk = false;
         return;
     }
     using enum ChunkLoadStyle;
@@ -420,6 +424,7 @@ void ClientWorld::request_chunk() {
         p->set_z(pos.z);
         m_client->send(make_packet(*req));
     }
+    Logger::info("Send Chunk Request Success");
     m_requesting_chunk = false;
 }
 
@@ -564,6 +569,9 @@ int ClientWorld::rendering_distance() const {
 
 void ClientWorld::rendering_distance(int rendering_distance) {
     m_rendering_distance = rendering_distance;
+    Logger::info("Set Rendering dist {} , the value is {}", rendering_distance,
+                 m_rendering_distance.load());
+    request_chunk();
 }
 const std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() const {
     return m_render_snapshots;

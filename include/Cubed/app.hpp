@@ -46,6 +46,7 @@ public:
     Window& window();
     ClientWorld& client_world();
     ServerWorld& server_world();
+    const Argument& argument() const;
 
 private:
     Camera m_camera;

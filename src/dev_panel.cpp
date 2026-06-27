@@ -16,6 +16,7 @@ namespace Cubed {
 static constexpr const char* THEMES[] = {"Dark", "Light"};
 static constexpr const char* GAITS[] = {"Walk", "Run"};
 static constexpr const char* GAME_MODES[] = {"Creative", "Spectator"};
+static constexpr const char* CHUNK_LOAD_STYLE[] = {"Random", "Center"};
 static char perlin_noise_input_buffer[64];
 
 constexpr float TEMP_MIN = 0.0f;
@@ -458,99 +459,119 @@ void DevPanel::show_settings_tab_item() {
 
 void DevPanel::show_world_tab_item() {
     if (ImGui::BeginTabItem("world")) {
-        if (m_text_editing.perlin_seed) {
-            if (ImGui::InputText("ChunkGenerator Seed",
-                                 perlin_noise_input_buffer,
-                                 sizeof(perlin_noise_input_buffer),
-                                 ImGuiInputTextFlags_CallbackCharFilter |
-                                     ImGuiInputTextFlags_EnterReturnsTrue,
-                                 filter_unsigned)) {
-                ChunkGenerator::seed(static_cast<unsigned int>(
-                    std::strtoul(perlin_noise_input_buffer, nullptr, 10)));
-                m_text_editing.perlin_seed = false;
-                m_player->set_player_pos({0.0f, 255.0f, 0.0f});
-                m_app.server_world().rebuild_world();
-            }
-        }
-        if (!m_text_editing.perlin_seed) {
-            ImGui::Text("ChunkGenerator Seed: %u", ChunkGenerator::seed());
-            if (ImGui::IsItemClicked()) {
-                m_text_editing.perlin_seed = true;
-            }
-        }
-        static int rendering_distance =
-            m_app.client_world().rendering_distance();
-        if (ImGui::SliderInt("Render Distance", &rendering_distance, 2, 128)) {
-            m_app.client_world().rendering_distance(rendering_distance);
-        }
-        ImGui::Text(
-            "Pool Threads %d  Max Support Threads %d  Reserved Threads %d",
-            m_app.server_world().pool_threads(),
-            m_app.server_world().max_threads(), RESERVED_THREADS);
-        ImGui::SliderInt("Set Pool Threads", &m_threads, 1,
-                         m_app.server_world().max_threads());
-        ImGui::SameLine();
-        if (ImGui::Button("Set")) {
-            m_app.server_world().change_pool_threads(m_threads);
-        }
-        if (m_threads > m_app.server_world().max_threads() - RESERVED_THREADS) {
-            ImGui::TextColored(
-                ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
-                "Waring: When the threads in the thread pool exceed \n(maximum "
-                "threads minus reserved threads), \nit may cause stuttering.");
-        }
 
-        static const char* chunk_load_style[] = {"Random", "Center"};
-        m_chunk_style = m_app.server_world().chunk_load_style();
-        if (ImGui::Combo("ChunkLoadStyle", &m_chunk_style, chunk_load_style,
-                         IM_ARRAYSIZE(chunk_load_style))) {
-            m_app.server_world().set_chunk_load_style(m_chunk_style);
-        }
-        if (ImGui::Button("Rebuild World")) {
-            m_app.server_world().rebuild_world();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Request Chunk Build")) {
-            Logger::warn("This Request Chunk Build button is not finish");
-            m_app.server_world().need_gen(std::nullopt);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Spawn Point")) {
-            m_player->set_player_pos({0.0f, 255.0f, 0.0f});
-        }
-        ImGui::SameLine();
-        if (ImGui::Checkbox("Gen Thread", &m_gen_thread_running)) {
-            if (m_gen_thread_running) {
-                m_app.server_world().start_gen_thread();
-            } else {
-                m_app.server_world().stop_gen_thread();
+        if (ImGui::BeginTabBar("World Kind")) {
+            if (!m_app.argument().is_client) {
+                if (ImGui::BeginTabItem("ServerWorld")) {
+                    show_server_world_table_bar();
+                    ImGui::EndTabItem();
+                }
             }
-        }
-        // ImGui::Text("Chunk Build Progress\n");
-        // ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
-        show_chunk_table_bar();
-        if (ImGui::BeginTabBar("World Settings")) {
-            if (ImGui::BeginTabItem("Time")) {
-                show_time_table_bar();
+            if (ImGui::BeginTabItem("Client World")) {
+                show_client_world_table_bar();
                 ImGui::EndTabItem();
             }
-            /*
-            if (ImGui::BeginTabItem("Cave")) {
-                show_cave_table_bar();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("River")) {
-                show_river_table_bar();
-                ImGui::EndTabItem();
-            }*/
-            if (ImGui::BeginTabItem("Biome")) {
-                show_biome_table_bar();
-                ImGui::EndTabItem();
-            }
-
             ImGui::EndTabBar();
         }
+
+        // ImGui::Text("Chunk Build Progress\n");
+        // ImGui::ProgressBar(m_app.world().chunk_gen_fraction());
+        // show_chunk_table_bar();
+
         ImGui::EndTabItem();
+    }
+}
+
+void DevPanel::show_server_world_table_bar() {
+    if (m_text_editing.perlin_seed) {
+        if (ImGui::InputText("ChunkGenerator Seed", perlin_noise_input_buffer,
+                             sizeof(perlin_noise_input_buffer),
+                             ImGuiInputTextFlags_CallbackCharFilter |
+                                 ImGuiInputTextFlags_EnterReturnsTrue,
+                             filter_unsigned)) {
+            ChunkGenerator::seed(static_cast<unsigned int>(
+                std::strtoul(perlin_noise_input_buffer, nullptr, 10)));
+            m_text_editing.perlin_seed = false;
+            m_player->set_player_pos({0.0f, 255.0f, 0.0f});
+            m_app.server_world().rebuild_world();
+        }
+    }
+    if (!m_text_editing.perlin_seed) {
+        ImGui::Text("ChunkGenerator Seed: %u", ChunkGenerator::seed());
+        if (ImGui::IsItemClicked()) {
+            m_text_editing.perlin_seed = true;
+        }
+    }
+
+    ImGui::Text("Pool Threads %d  Max Support Threads %d  Reserved Threads %d",
+                m_app.server_world().pool_threads(),
+                m_app.server_world().max_threads(), RESERVED_THREADS);
+    ImGui::SliderInt("Set Pool Threads", &m_threads, 1,
+                     m_app.server_world().max_threads());
+    ImGui::SameLine();
+    if (ImGui::Button("Set")) {
+        m_app.server_world().change_pool_threads(m_threads);
+    }
+    if (m_threads > m_app.server_world().max_threads() - RESERVED_THREADS) {
+        ImGui::TextColored(
+            ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+            "Waring: When the threads in the thread pool exceed \n(maximum "
+            "threads minus reserved threads), \nit may cause stuttering.");
+    }
+
+    m_chunk_style = m_app.server_world().chunk_load_style();
+    if (ImGui::Combo("ChunkLoadStyle", &m_chunk_style, CHUNK_LOAD_STYLE,
+                     IM_ARRAYSIZE(CHUNK_LOAD_STYLE))) {
+        m_app.server_world().set_chunk_load_style(m_chunk_style);
+    }
+    if (ImGui::Button("Rebuild World")) {
+        m_app.server_world().rebuild_world();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Request Chunk Build")) {
+        Logger::warn("This Request Chunk Build button is not finish");
+        m_app.server_world().need_gen(std::nullopt);
+    }
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Gen Thread", &m_gen_thread_running)) {
+        if (m_gen_thread_running) {
+            m_app.server_world().start_gen_thread();
+        } else {
+            m_app.server_world().stop_gen_thread();
+        }
+    }
+
+    if (ImGui::BeginTabBar("World Settings")) {
+        if (ImGui::BeginTabItem("Time")) {
+            show_time_table_bar();
+            ImGui::EndTabItem();
+        }
+        /*
+        if (ImGui::BeginTabItem("Cave")) {
+            show_cave_table_bar();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("River")) {
+            show_river_table_bar();
+            ImGui::EndTabItem();
+        }*/
+        if (ImGui::BeginTabItem("Biome")) {
+            show_biome_table_bar();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+}
+void DevPanel::show_client_world_table_bar() {
+
+    static int rendering_distance = m_app.client_world().rendering_distance();
+    if (ImGui::SliderInt("Render Distance", &rendering_distance, 2, 128)) {
+        m_app.client_world().rendering_distance(rendering_distance);
+        // Config::get().set("world.rendering_distance", rendering_distance);
+    }
+    if (ImGui::Button("Spawn Point")) {
+        m_player->set_player_pos({0.0f, 255.0f, 0.0f});
     }
 }
 

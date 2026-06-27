@@ -58,6 +58,8 @@ private:
     void show_chunk_table_bar();
     void show_settings_tab_item();
     void show_world_tab_item();
+    void show_server_world_table_bar();
+    void show_client_world_table_bar();
     void show_player_tab_item();
     void show_items_tab_item();
     void show_shader_tab_item();

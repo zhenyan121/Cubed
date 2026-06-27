@@ -509,6 +509,7 @@ void ClientPlayer::update_player_chunk() {
     ChunkPos chunk_pos = get_chunk_pos(x, z);
     float dist = distance2(chunk_pos, m_last_chunk_pos);
     if (dist > 2) {
+        Logger::info("Player request new chunk");
         m_world.request_chunk();
         m_last_chunk_pos = chunk_pos;
     }

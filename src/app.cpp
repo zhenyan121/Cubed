@@ -353,5 +353,5 @@ TextureManager& App::texture_manager() { return m_texture_manager; }
 Window& App::window() { return m_window; }
 ClientWorld& App::client_world() { return m_client_world; }
 ServerWorld& App::server_world() { return m_server.server_world(); }
-
+const App::Argument& App::argument() const { return m_argument; }
 } // namespace Cubed
