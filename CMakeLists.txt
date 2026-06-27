@@ -69,6 +69,11 @@ target_compile_definitions(${PROJECT_NAME}
         ASIO_STANDALONE
         ASIO_NO_DEPRECATED
         $<$<CONFIG:Debug>:DEBUG_MODE>
+        $<$<CXX_COMPILER_ID:MSVC>:
+            WIN32_LEAN_AND_MEAN
+            NOMINMAX
+            _CRT_SECURE_NO_WARNINGS
+        >
 )
 
 if(CMAKE_CONFIGURATION_TYPES)
@@ -119,6 +124,7 @@ target_link_libraries(${PROJECT_NAME}
         absl::log
         absl::check
         zstd::zstd
+        $<$<PLATFORM_ID:Windows>:ws2_32>
 
 )
 

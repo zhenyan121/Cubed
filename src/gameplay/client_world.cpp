@@ -3,6 +3,9 @@
 #include "Cubed/config.hpp"
 #include "Cubed/gameplay/game_time.hpp"
 #include "Cubed/gameplay/packet.hpp"
+
+#include <numbers>
+
 using namespace std::chrono;
 using namespace std::chrono_literals;
 using namespace google::protobuf;

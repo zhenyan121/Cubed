@@ -43,3 +43,4 @@ CMakeError.log
 assets/config.toml
 .venv/
 pyout/
+vcpkg_installed/

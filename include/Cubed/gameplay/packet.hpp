@@ -6,7 +6,14 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 #include <span>
 #include <stdexcept>
 #include <type_traits>
@@ -23,11 +30,10 @@ enum class CompressType : uint16_t {
 
 inline CompressType get_compress_type(uint16_t id) {
     using enum CompressType;
-    constexpr auto& to = std::to_underlying<CompressType>;
     switch (id) {
-    case to(NONE):
+    case std::to_underlying(NONE):
         return NONE;
-    case to(ZSTD):
+    case std::to_underlying(ZSTD):
         return ZSTD;
     }
     throw std::runtime_error(std::format("Unknown CompressType {}", id));

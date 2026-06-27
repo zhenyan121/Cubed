@@ -9,7 +9,7 @@
 namespace Cubed {
 
 namespace Logger {
-enum class Level { TRACE, DEBUG, INFO, ERROR, WARN };
+enum class Level { L_TRACE, L_DEBUG, L_INFO, L_ERROR, L_WARN };
 
 template <typename... Args>
 inline void info(std::format_string<Args...> fmt, Args&&... args) {
@@ -53,7 +53,7 @@ inline void log(Level level, std::source_location loc,
         std::chrono::system_clock::now());
     std::string msg = std::vformat(fmt.get(), std::make_format_args(args...));
     switch (level) {
-    case Logger::Level::TRACE:
+    case Logger::Level::L_TRACE:
         std::osyncstream(std::cout)
             << "\033[1;34m"
             << std::format("[TRACE][{:%Y-%m-%d %H:%M:%S}]", now_time) << "["
@@ -61,20 +61,20 @@ inline void log(Level level, std::source_location loc,
             << "[" << loc.function_name() << "]" << msg << "\033[0m"
             << "\n";
         break;
-    case Logger::Level::DEBUG:
+    case Logger::Level::L_DEBUG:
         std::osyncstream(std::cout)
             << "\033[1;34m"
             << std::format("[DEBUG][{:%Y-%m-%d %H:%M:%S}]", now_time) << msg
             << "\033[0m"
             << "\n";
         break;
-    case Logger::Level::INFO:
+    case Logger::Level::L_INFO:
         info(fmt, std::forward<Args>(args)...);
         break;
-    case Logger::Level::WARN:
+    case Logger::Level::L_WARN:
         warn(fmt, std::forward<Args>(args)...);
         break;
-    case Logger::Level::ERROR:
+    case Logger::Level::L_ERROR:
         error(fmt, std::forward<Args>(args)...);
         break;
     }

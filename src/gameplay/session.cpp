@@ -53,10 +53,9 @@ asio::awaitable<void> Session::read_loop() {
                 co_await asio::async_read(m_socket, asio::buffer(body_data),
                                           asio::use_awaitable);
             }
-            constexpr auto& to_num = std::to_underlying<PacketEnum>;
             auto cmd_id = header.cmd;
             Arena arena;
-            if (cmd_id == to_num(PacketEnum::LOGIN_REQ)) {
+            if (cmd_id == std::to_underlying(PacketEnum::LOGIN_REQ)) {
                 auto* req = Arena::Create<LoginReq>(&arena);
                 Logger::info("Session: Receive Login req");
                 if (decode_packet(*req, body_data, header)) {
@@ -64,7 +63,7 @@ asio::awaitable<void> Session::read_loop() {
                                                        shared_from_this());
                 }
             }
-            if (cmd_id == to_num(PacketEnum::PLAYER_POS)) {
+            if (cmd_id == std::to_underlying(PacketEnum::PLAYER_POS)) {
                 auto* pos = Arena::Create<PlayerPos>(&arena);
                 if (decode_packet(*pos, body_data, header)) {
                     m_server_world.sync_player_pos(pos->uuid(), pos->pos().x(),
@@ -72,7 +71,7 @@ asio::awaitable<void> Session::read_loop() {
                                                    pos->pos().z());
                 }
             }
-            if (cmd_id == to_num(PacketEnum::CHUNK_DATA_REQ)) {
+            if (cmd_id == std::to_underlying(PacketEnum::CHUNK_DATA_REQ)) {
                 auto* req = Arena::Create<ChunkDataReq>(&arena);
                 // Logger::info("Session: Receive Chunk Data req");
                 if (decode_packet(*req, body_data, header)) {
@@ -81,14 +80,14 @@ asio::awaitable<void> Session::read_loop() {
                         ChunkPos(req->pos().x(), req->pos().z()));
                 }
             }
-            if (cmd_id == to_num(PacketEnum::BLOCK_CHANGE_REQ)) {
+            if (cmd_id == std::to_underlying(PacketEnum::BLOCK_CHANGE_REQ)) {
                 auto* req = Arena::Create<BlockChangeReq>(&arena);
                 Logger::info("Session: Receive Block Change req");
                 if (decode_packet(*req, body_data, header)) {
                     m_server_world.handle_block_change(*req);
                 }
             }
-            if (cmd_id == to_num(PacketEnum::LOGOUT_REQ)) {
+            if (cmd_id == std::to_underlying(PacketEnum::LOGOUT_REQ)) {
                 auto* req = Arena::Create<LogoutReq>(&arena);
                 if (decode_packet(*req, body_data, header)) {
                     m_server_world.handle_player_exit(req->uuid());

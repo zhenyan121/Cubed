@@ -96,10 +96,10 @@ void App::handle_argument(int argc, char** argv) {
              [&](ArgParser& p) {
                  auto arg = p.require_next("-p");
 
-                 auto r =
-                     std::from_chars(arg.begin(), arg.end(), m_argument.port);
+                 auto r = std::from_chars(arg.data(), arg.data() + arg.size(),
+                                          m_argument.port);
 
-                 if (r.ec != std::errc{} || r.ptr != arg.end()) {
+                 if (r.ec != std::errc{} || arg.data() + arg.size()) {
                      throw std::runtime_error(
                          std::format("Invalid port: {}", arg));
                  }

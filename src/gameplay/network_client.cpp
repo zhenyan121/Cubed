@@ -2,6 +2,9 @@
 
 #include "Cubed/gameplay/client_world.hpp"
 #include "Cubed/tools/log.hpp"
+
+#include <utility>
+
 using namespace google::protobuf;
 namespace Cubed {
 NetworkClient::NetworkClient(ClientWorld& world)
@@ -62,10 +65,10 @@ asio::awaitable<void> NetworkClient::read_loop() {
                                           asio::use_awaitable);
             }
 
-            constexpr auto& to_num = std::to_underlying<PacketEnum>;
+            using std::to_underlying;
             Arena arena;
             switch (header.cmd) {
-            case to_num(PacketEnum::LOGIN_RSP): {
+            case std::to_underlying(PacketEnum::LOGIN_RSP): {
                 auto* rsp = Arena::Create<LoginRsp>(&arena);
                 Logger::info("Client: Receive Login rsp");
                 if (decode_packet(*rsp, body_data, header)) {
@@ -76,7 +79,7 @@ asio::awaitable<void> NetworkClient::read_loop() {
                     }
                 }
             } break;
-            case to_num(PacketEnum::CHUNK_DATA_RSP): {
+            case std::to_underlying(PacketEnum::CHUNK_DATA_RSP): {
                 ChunkDataRsp rsp;
                 // Logger::info("Client: Receive Chunk Data rsp, size {}mb",
                 //              body_data.size() / 1024.0f / 1024);
@@ -84,32 +87,32 @@ asio::awaitable<void> NetworkClient::read_loop() {
                     m_world.receive_chunk(std::move(rsp));
                 }
             } break;
-            case to_num(PacketEnum::BLOCK_CHANGE_RSP): {
+            case std::to_underlying(PacketEnum::BLOCK_CHANGE_RSP): {
                 auto* rsp = Arena::Create<BlockChangeRsp>(&arena);
                 Logger::info("Client: Receive Block Change rsp");
                 if (decode_packet(*rsp, body_data, header)) {
                     m_world.receive_block_change(*rsp);
                 }
             } break;
-            case to_num(PacketEnum::UPDATE_TIME): {
+            case std::to_underlying(PacketEnum::UPDATE_TIME): {
                 auto* rsp = Arena::Create<UpdateTime>(&arena);
                 if (decode_packet(*rsp, body_data, header)) {
                     m_world.receive_time(*rsp);
                 }
             } break;
-            case to_num(PacketEnum::PLAYER_INFO_RSP): {
+            case std::to_underlying(PacketEnum::PLAYER_INFO_RSP): {
                 auto* rsp = Arena::Create<PlayerInfoRsp>(&arena);
                 if (decode_packet(*rsp, body_data, header)) {
                     m_world.receive_remote_player(*rsp);
                 }
             } break;
-            case to_num(PacketEnum::LOGOUT_RSP): {
+            case std::to_underlying(PacketEnum::LOGOUT_RSP): {
                 auto* rsp = Arena::Create<LogoutRsp>(&arena);
                 if (decode_packet(*rsp, body_data, header)) {
                     m_world.receive_player_logout(*rsp);
                 }
             } break;
-            case to_num(PacketEnum::S2C_CLEAR_ALL_CHUNKS): {
+            case std::to_underlying(PacketEnum::S2C_CLEAR_ALL_CHUNKS): {
                 auto* rsp = Arena::Create<S2C_ClearAllChunks>(&arena);
                 if (decode_packet(*rsp, body_data, header)) {
                     if (rsp->clear()) {
