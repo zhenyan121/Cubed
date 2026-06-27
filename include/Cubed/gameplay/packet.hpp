@@ -59,43 +59,53 @@ enum class PacketEnum : uint16_t {
 };
 
 template <typename> struct always_false : std::false_type {}; // NOLINT
-template <typename T> constexpr uint16_t get_packet_id() {
-    using enum PacketEnum;
-    using std::is_same_v;
 
-    using U = std::decay_t<T>;
-    constexpr auto& to_num = std::to_underlying<PacketEnum>;
-    if constexpr (is_same_v<U, LoginReq>) {
-        return to_num(LOGIN_REQ);
-    } else if constexpr (is_same_v<U, LoginRsp>) {
-        return to_num(LOGIN_RSP);
-    } else if constexpr (is_same_v<U, LogoutReq>) {
-        return to_num(LOGOUT_REQ);
-    } else if constexpr (is_same_v<U, LogoutRsp>) {
-        return to_num(LOGOUT_RSP);
-    } else if constexpr (is_same_v<U, PlayerInfo>) {
-        return to_num(PLAYER_INFO);
-    } else if constexpr (is_same_v<U, PlayerPos>) {
-        return to_num(PLAYER_POS);
-    } else if constexpr (is_same_v<U, PlayerInfoRsp>) {
-        return to_num(PLAYER_INFO_RSP);
-    } else if constexpr (is_same_v<U, ChunkDataReq>) {
-        return to_num(CHUNK_DATA_REQ);
-    } else if constexpr (is_same_v<U, ChunkDataRsp>) {
-        return to_num(CHUNK_DATA_RSP);
-    } else if constexpr (is_same_v<U, BlockChangeReq>) {
-        return to_num(BLOCK_CHANGE_REQ);
-    } else if constexpr (is_same_v<U, BlockChangeRsp>) {
-        return to_num(BLOCK_CHANGE_RSP);
-    } else if constexpr (is_same_v<U, UpdateTime>) {
-        return to_num(UPDATE_TIME);
-    } else if constexpr (is_same_v<U, Ping>) {
-        return to_num(PING);
-    } else if constexpr (is_same_v<U, Pong>) {
-        return to_num(PONG);
-    } else {
-        static_assert(always_false<U>::value, "Unknown Type");
-    }
+template <typename T> constexpr uint16_t get_packet_id() {
+    static_assert(always_false<T>::value, "Unknown Type");
+    return 0;
+}
+
+template <> constexpr uint16_t get_packet_id<LoginReq>() {
+    return std::to_underlying(PacketEnum::LOGIN_REQ);
+}
+template <> constexpr uint16_t get_packet_id<LoginRsp>() {
+    return std::to_underlying(PacketEnum::LOGIN_RSP);
+}
+template <> constexpr uint16_t get_packet_id<LogoutReq>() {
+    return std::to_underlying(PacketEnum::LOGOUT_REQ);
+}
+template <> constexpr uint16_t get_packet_id<LogoutRsp>() {
+    return std::to_underlying(PacketEnum::LOGOUT_RSP);
+}
+template <> constexpr uint16_t get_packet_id<PlayerInfo>() {
+    return std::to_underlying(PacketEnum::PLAYER_INFO);
+}
+template <> constexpr uint16_t get_packet_id<PlayerPos>() {
+    return std::to_underlying(PacketEnum::PLAYER_POS);
+}
+template <> constexpr uint16_t get_packet_id<PlayerInfoRsp>() {
+    return std::to_underlying(PacketEnum::PLAYER_INFO_RSP);
+}
+template <> constexpr uint16_t get_packet_id<ChunkDataReq>() {
+    return std::to_underlying(PacketEnum::CHUNK_DATA_REQ);
+}
+template <> constexpr uint16_t get_packet_id<ChunkDataRsp>() {
+    return std::to_underlying(PacketEnum::CHUNK_DATA_RSP);
+}
+template <> constexpr uint16_t get_packet_id<BlockChangeReq>() {
+    return std::to_underlying(PacketEnum::BLOCK_CHANGE_REQ);
+}
+template <> constexpr uint16_t get_packet_id<BlockChangeRsp>() {
+    return std::to_underlying(PacketEnum::BLOCK_CHANGE_RSP);
+}
+template <> constexpr uint16_t get_packet_id<UpdateTime>() {
+    return std::to_underlying(PacketEnum::UPDATE_TIME);
+}
+template <> constexpr uint16_t get_packet_id<Ping>() {
+    return std::to_underlying(PacketEnum::PING);
+}
+template <> constexpr uint16_t get_packet_id<Pong>() {
+    return std::to_underlying(PacketEnum::PONG);
 }
 
 template <typename T>
