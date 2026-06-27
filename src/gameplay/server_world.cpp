@@ -249,7 +249,7 @@ void ServerWorld::start_gen_thread() {
             std::optional<std::string> uuid{std::nullopt};
             if (!m_need_gen_queue.empty()) {
                 uuid = m_need_gen_queue.front();
-                m_need_gen_queue.pop_front();
+                m_need_gen_queue.pop();
             }
             lk.unlock();
             gen_chunks_internal(uuid);
@@ -327,7 +327,7 @@ void ServerWorld::need_gen(std::optional<std::string> uuid) {
 
     if (uuid) {
         std::lock_guard lock(m_need_gen_queue_mutex);
-        m_need_gen_queue.push_back(*uuid);
+        m_need_gen_queue.enqueue(*uuid);
     }
 
     // m_gen_player_pos = get_player("TestPlayer").get_player_pos();

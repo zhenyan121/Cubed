@@ -6,6 +6,7 @@
 #include "Cubed/gameplay/river_worm.hpp"
 #include "Cubed/gameplay/server_chunk.hpp"
 #include "Cubed/gameplay/server_player.hpp"
+#include "Cubed/tools/recent_queue.hpp"
 #include "Cubed/tools/thread_pool.hpp"
 #include "world/block_change.pb.h"
 
@@ -128,7 +129,7 @@ private:
     std::mutex m_need_gen_queue_mutex;
     std::condition_variable_any m_gen_cv;
 
-    std::deque<std::string> m_need_gen_queue;
+    RecentQueue<std::string> m_need_gen_queue;
 
     std::atomic<std::shared_ptr<ThreadPool>> m_gen_thread_pool;
 
