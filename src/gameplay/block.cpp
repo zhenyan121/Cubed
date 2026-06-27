@@ -1,30 +1,17 @@
 #include "Cubed/gameplay/block.hpp"
 
-#include "Cubed/config.hpp"
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
+#include "Cubed/tools/toml.utils.hpp"
 
 #include <filesystem>
-#include <toml++/toml.hpp>
 
 namespace fs = std::filesystem;
 
 using namespace std::string_literals;
-
+using namespace Cubed::TOML;
 namespace {
 std::string block_data_dir = ASSETS_PATH + "data/block"s;
-
-template <Cubed::TomlValueType T>
-std::optional<T> safe_get_value(const toml::table& table, std::string_view key,
-                                const T& default_value) {
-    auto value = table[key].value<T>();
-    if (value == std::nullopt) {
-        Cubed::Logger::warn("Key {} Is Not Find, Wiil Set the Default Value {}",
-                            key, default_value);
-        value = default_value;
-    }
-    return value;
-}
 
 } // namespace
 

@@ -70,6 +70,7 @@ private:
     Argument m_argument;
     void init(int argc, char** argv);
     void handle_argument(int argc, char** argv);
+    void handle_toml();
     auto init_camera();
     auto init_texture();
     auto init_world();

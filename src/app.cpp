@@ -34,7 +34,9 @@ void App::cursor_position_callback(GLFWwindow* window, double xpos,
     }
 }
 void App::init(int argc, char** argv) {
+    handle_toml();
     handle_argument(argc, argv);
+
     m_window.init();
     m_window.imgui_init();
 
@@ -125,6 +127,20 @@ void App::handle_argument(int argc, char** argv) {
             Logger::warn("Unknown argument: {}", arg);
         }
     }
+}
+
+void App::handle_toml() {
+    toml::table ip;
+    try {
+        ip = toml::parse_file("ip.toml");
+    } catch (const toml::parse_error& e) {
+        Logger::warn("Ip toml parse error {}", e.what());
+        return;
+    }
+
+    m_argument.ip = *TOML::safe_get_value(ip, "ip", "127.0.01");
+    m_argument.port = *TOML::safe_get_value(ip, "port", 25530);
+    m_argument.is_client = *TOML::safe_get_value(ip, "client", false);
 }
 
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action,

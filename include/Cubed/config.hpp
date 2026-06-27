@@ -1,16 +1,8 @@
 #pragma once
 #include "Cubed/tools/cubed_assert.hpp"
-
-#include <toml++/toml.hpp>
+#include "Cubed/tools/toml.utils.hpp"
 
 namespace Cubed {
-
-template <typename T>
-concept TomlValueType =
-    std::same_as<T, int> || std::same_as<T, bool> || std::same_as<T, double> ||
-    std::same_as<T, const char*> || std::same_as<T, toml::date> ||
-    std::same_as<T, toml::time> || std::same_as<T, toml::date_time> ||
-    std::same_as<T, std::string>;
 
 class Config {
 public:
@@ -24,7 +16,7 @@ public:
     void load_or_create_config();
     void save_to_file();
 
-    template <TomlValueType T> T get(std::string_view key) const {
+    template <TOML::TomlValueType T> T get(std::string_view key) const {
         size_t cur = 0;
         auto pos = key.find('.');
         const toml::table* table = &m_tbl;
@@ -61,7 +53,7 @@ public:
         }
     }
     template <typename T> void set(std::string_view key, T&& val) {
-        if constexpr (!TomlValueType<std::decay_t<T>>) {
+        if constexpr (!TOML::TomlValueType<std::decay_t<T>>) {
             static_assert(false, "Type Not Support");
         }
         size_t cur = 0;
