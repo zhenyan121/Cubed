@@ -72,7 +72,7 @@ public:
                              std::shared_ptr<Session> session);
     glm::vec3 get_player_pos(const std::string& uuid) const;
 
-    void handle_chunk_req(const std::string& uuid, ChunkPos pos);
+    void handle_chunk_req(int task_id, const std::string& uuid, ChunkPos pos);
     void handle_block_change(const BlockChangeReq& req);
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {

@@ -524,10 +524,32 @@ glm::vec3 ServerWorld::get_player_pos(const std::string& uuid) const {
     return it->second.get_pos();
 }
 
-void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
-
+void ServerWorld::handle_chunk_req(int task_id, const std::string& uuid,
+                                   ChunkPos pos) {
+    {
+        std::shared_lock lock(m_player_mutex);
+        auto it = m_players.find(uuid);
+        if (it == m_players.end()) {
+            return;
+        }
+        if (it->second.task_id() < task_id) {
+            // task_id is an atomic variable, can be operated on directly
+            it->second.task_id(task_id);
+        }
+    }
     auto pool = m_gen_thread_pool.load();
-    pool->enqueue([uuid, pos, this]() {
+    pool->enqueue([task_id, uuid, pos, this]() {
+        {
+            std::shared_lock lock(m_player_mutex);
+            auto it = m_players.find(uuid);
+            if (it == m_players.end()) {
+                return;
+            }
+            if (task_id < it->second.task_id()) {
+                // Old chunk requests are simply discarded
+                return;
+            }
+        }
         Arena arean;
         ChunkDataRsp* rsp = Arena::Create<ChunkDataRsp>(&arean);
         auto* rsq_pos = rsp->mutable_pos();
@@ -578,7 +600,7 @@ void ServerWorld::handle_chunk_req(const std::string& uuid, ChunkPos pos) {
             Logger::error("Player {} session not exist", uuid);
             return;
         }
-
+        rsp->set_task_id(task_id);
         s->send(make_packet(*rsp));
     });
 }

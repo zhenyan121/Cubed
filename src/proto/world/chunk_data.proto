@@ -3,19 +3,21 @@ syntax = "proto3";
 import "common/chunk_pos.proto";
 
 message ChunkDataReq {
-    string uuid = 1;
-    ChunkPosNet pos = 2;
+    int32 task_id = 1;
+    string uuid = 2;
+    ChunkPosNet pos = 3;
 }
 
 message ChunkDataRsp {
-    ChunkPosNet pos = 1;
-    uint32 chunk_seed = 2;
-    int32 biome_type = 3;
-    repeated uint32 chunk_blocks = 4 [packed=true];
-    repeated uint32 neighbor_blocks_1 = 5 [packed=true];
-    repeated uint32 neighbor_blocks_2 = 6 [packed=true];
-    repeated uint32 neighbor_blocks_3 = 7 [packed=true];
-    repeated uint32 neighbor_blocks_4 = 8 [packed=true];
+    int32 task_id = 1;
+    ChunkPosNet pos = 2;
+    uint32 chunk_seed = 3;
+    int32 biome_type = 4;
+    repeated uint32 chunk_blocks = 5 [packed=true];
+    repeated uint32 neighbor_blocks_1 = 6 [packed=true];
+    repeated uint32 neighbor_blocks_2 = 7 [packed=true];
+    repeated uint32 neighbor_blocks_3 = 8 [packed=true];
+    repeated uint32 neighbor_blocks_4 = 9 [packed=true];
 }
 
 message S2C_ClearAllChunks {

@@ -31,4 +31,7 @@ bool ServerPlayer::is_disconnect(TickType current_gametick) const {
     return false;
 }
 
+int ServerPlayer::task_id() const { return m_chunk_task_id.load(); }
+void ServerPlayer::task_id(int id) { m_chunk_task_id = id; }
+
 } // namespace Cubed

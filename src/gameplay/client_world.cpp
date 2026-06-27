@@ -416,8 +416,10 @@ void ClientWorld::request_chunk() {
     }
     auto uuid = m_player.get_uuid();
     Arena arena;
+    ++m_chunk_task_id;
     auto* req = Arena::Create<ChunkDataReq>(&arena);
     for (const auto& pos : need_send_pos) {
+        req->set_task_id(m_chunk_task_id.load());
         req->set_uuid(uuid);
         auto* p = req->mutable_pos();
         p->set_x(pos.x);
@@ -429,6 +431,9 @@ void ClientWorld::request_chunk() {
 }
 
 void ClientWorld::receive_chunk(ChunkDataRsp data) {
+    if (data.task_id() < m_chunk_task_id) {
+        return;
+    }
 
     {
         std::lock_guard lock(m_chunks_mutex);
@@ -573,6 +578,9 @@ void ClientWorld::rendering_distance(int rendering_distance) {
                  m_rendering_distance.load());
     request_chunk();
 }
+
+int ClientWorld::get_chunk_task_id() const { return m_chunk_task_id.load(); }
+
 const std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() const {
     return m_render_snapshots;
 };

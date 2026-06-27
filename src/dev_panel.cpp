@@ -573,6 +573,7 @@ void DevPanel::show_client_world_table_bar() {
     if (ImGui::Button("Spawn Point")) {
         m_player->set_player_pos({0.0f, 255.0f, 0.0f});
     }
+    ImGui::Text("Chunk Task Id %d", m_app.client_world().get_chunk_task_id());
 }
 
 void DevPanel::show_player_tab_item() {

@@ -52,6 +52,7 @@ public:
     void receive_player_logout(const LogoutRsp& rsp);
     int rendering_distance() const;
     void rendering_distance(int rendering_distance);
+    int get_chunk_task_id() const;
     void start_client_thread(std::string_view uuid);
     void stop_client_thread();
 
@@ -108,6 +109,7 @@ private:
     std::atomic<TickType> m_day_tick{6000};
     std::atomic<bool> m_requesting_chunk{false};
     std::atomic<bool> m_is_rebuilding{false};
+    std::atomic<int> m_chunk_task_id{0};
     std::shared_ptr<NetworkClient> m_client;
     ChunkLoadStyle m_chunk_load_style{ChunkLoadStyle::CENTER};
 

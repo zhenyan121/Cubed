@@ -22,6 +22,8 @@ public:
     void update_pos(float x, float y, float z);
     void update_sync_gametick(TickType gametick);
     bool is_disconnect(TickType current_gametick) const;
+    int task_id() const;
+    void task_id(int id);
 
 private:
     static constexpr TickType TIMEOUT = 200;
@@ -32,5 +34,6 @@ private:
     ChunkPos m_last_chunk_pos{0, 0};
     std::shared_ptr<Session> m_session;
     std::atomic<TickType> m_last_gametick{0};
+    std::atomic<int> m_chunk_task_id{0};
 };
 } // namespace Cubed
