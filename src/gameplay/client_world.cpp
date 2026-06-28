@@ -240,6 +240,9 @@ void ClientWorld::receive_player_logout(const LogoutRsp& rsp) {
             Logger::info("Player {} erase", rsp.uuid());
         }
     }
+    if (rsp.uuid() == m_player.get_uuid()) {
+        m_receive_exit = true;
+    }
 }
 
 void ClientWorld::init(std::string_view player_name,
@@ -462,12 +465,25 @@ void ClientWorld::receive_chunk(ChunkDataRsp data) {
         }
     });
 }
+void ClientWorld::receive_exit() { m_receive_exit = true; }
 
-void ClientWorld::exit() {
+void ClientWorld::request_exit() {
+    if (m_receive_exit) {
+        return;
+    }
     Arena arena;
     auto* req = Arena::Create<LogoutReq>(&arena);
     req->set_uuid(m_player.get_uuid());
     m_client->send(make_packet(*req));
+    int cnt = 0;
+    while (!m_receive_exit) {
+        std::this_thread::sleep_for(milliseconds(DEFAULT_PER_TICK_TIME));
+        ++cnt;
+        if (cnt >= WORLD_EXIT_TIMEOUT) {
+            Logger::warn("Can't Receive Server Exit Sign");
+            break;
+        }
+    }
 }
 
 void ClientWorld::update(float delta_time) {

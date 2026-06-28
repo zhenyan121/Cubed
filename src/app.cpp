@@ -305,7 +305,7 @@ void App::run() {
         update();
         render();
     }
-    m_client_world.exit();
+    m_client_world.request_exit();
 }
 static Gait player_gait = Gait::WALK;
 void App::update() {

@@ -664,11 +664,13 @@ void ServerWorld::handle_player_login(const std::string& name,
 }
 
 void ServerWorld::handle_player_exit(const std::string& uuid) {
+    std::shared_ptr<Session> exit_session;
     {
         std::lock_guard lock(m_player_mutex);
         auto it = m_players.find(uuid);
         if (it != m_players.end()) {
             Logger::info("Player {} Exit the Server", it->second.get_name());
+            exit_session = it->second.get_session();
             m_players.erase(it);
         } else {
             Logger::error("Player {} isn't in Server", uuid);
@@ -677,6 +679,11 @@ void ServerWorld::handle_player_exit(const std::string& uuid) {
     }
 
     m_uuid_to_name.erase(uuid);
+
+    Arena arena;
+    auto* rsp = Arena::Create<LogoutRsp>(&arena);
+    rsp->set_uuid(uuid);
+    exit_session->send(make_packet(*rsp));
 
     std::vector<std::shared_ptr<Session>> sessions;
     {
@@ -687,9 +694,6 @@ void ServerWorld::handle_player_exit(const std::string& uuid) {
     }
 
     for (auto& s : sessions) {
-        Arena arena;
-        auto* rsp = Arena::Create<LogoutRsp>(&arena);
-        rsp->set_uuid(uuid);
         s->send(make_packet(*rsp));
     }
 }

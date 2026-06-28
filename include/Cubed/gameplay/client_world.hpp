@@ -66,7 +66,8 @@ public:
     const std::vector<RemotePlayerRenderData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(ChunkDataRsp data);
-    void exit();
+    void receive_exit();
+    void request_exit();
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,
@@ -82,6 +83,9 @@ private:
     using ChunkPosVector = std::vector<ChunkPos>;
     using OtherPlayerHashMap =
         std::unordered_map<std::string, RemotePlayerInfo>;
+
+    static constexpr int WORLD_EXIT_TIMEOUT = 200;
+
     ClientPlayer m_player;
     OtherPlayerHashMap m_other_players;
     ChunkHashMap m_chunks;
@@ -104,6 +108,7 @@ private:
     std::vector<RemotePlayerRenderData> m_render_player_data;
     tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     std::atomic<bool> m_game_running{false};
+    std::atomic<bool> m_receive_exit{false};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<TickType> m_game_ticks{0};
     std::atomic<TickType> m_day_tick{6000};
