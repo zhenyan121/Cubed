@@ -27,14 +27,6 @@ std::optional<T> safe_get_value(const toml::table& table, std::string_view key,
     }
     return value;
 }
-template <typename U>
-    requires std::convertible_to<U, std::string>
-std::optional<std::string> safe_get_value(const toml::table& table,
-                                          std::string_view key,
-                                          U&& default_value) {
-    return safe_get_value<std::string>(
-        table, key, std::string(std::forward<U>(default_value)));
-}
 
 } // namespace TOML
 

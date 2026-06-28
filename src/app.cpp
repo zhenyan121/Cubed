@@ -99,7 +99,7 @@ void App::handle_argument(int argc, char** argv) {
                  auto r = std::from_chars(arg.data(), arg.data() + arg.size(),
                                           m_argument.port);
 
-                 if (r.ec != std::errc{} || arg.data() + arg.size()) {
+                 if (r.ec != std::errc{} || r.ptr != arg.data() + arg.size()) {
                      throw std::runtime_error(
                          std::format("Invalid port: {}", arg));
                  }
@@ -143,7 +143,8 @@ void App::handle_toml() {
         return;
     }
 
-    m_argument.ip = *TOML::safe_get_value(server, "ip", "127.0.01");
+    m_argument.ip =
+        *TOML::safe_get_value(server, "ip", std::string("127.0.01"));
     m_argument.port = *TOML::safe_get_value(server, "port", 25530);
     m_argument.is_client = *TOML::safe_get_value(server, "client", false);
 }
