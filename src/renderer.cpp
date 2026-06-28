@@ -276,7 +276,7 @@ void Renderer::render_outline() {
     const auto& shader = get_shader("outline");
     shader.use();
 
-    const auto& block_pos = m_world.get_look_block_pos("TestPlayer");
+    const auto& block_pos = m_world.get_look_block_pos();
 
     if (block_pos != std::nullopt) {
 

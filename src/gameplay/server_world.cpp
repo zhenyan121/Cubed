@@ -16,10 +16,16 @@ using namespace google::protobuf;
 namespace Cubed {
 ServerWorld::ServerWorld() {}
 
-ServerWorld::~ServerWorld() {
+ServerWorld::~ServerWorld() { stop(); }
+
+void ServerWorld::stop() {
     if (!m_init) {
         return;
     }
+    if (m_stopped.exchange(true)) {
+        return;
+    }
+    send_server_stop();
     stop_gen_thread();
     stop_server_thread();
     wait_all_chunk_tasks();
@@ -115,12 +121,14 @@ void ServerWorld::send_chunk(int task_id, const std::string& uuid,
             Logger::error("Chunk {} {} is invaild", pos.x, pos.z);
             return;
         }
+
         rsp->set_chunk_seed(it->second.chunk->seed());
         rsp->set_biome_type(std::to_underlying(it->second.chunk->biome()));
         auto* blocks = rsp->mutable_chunk_blocks();
         auto& chunk_blocks = it->second.chunk->get_chunk_blocks();
         blocks->Assign(chunk_blocks.begin(), chunk_blocks.end());
         auto& neighbor_blocks = it->second.chunk->get_neightbor_blocks();
+
         auto assign = [](auto* nb,
                          const std::optional<std::vector<BlockType>>& blocks) {
             if (!blocks) {
@@ -231,7 +239,8 @@ void ServerWorld::gen_chunks_internal(const std::string& uuid) {
         // Create new chunk
         std::lock_guard lock(m_new_chunk_mutex);
         for (auto& pos : need_gen_chunks_pos) {
-            m_new_chunks.emplace(pos, ServerChunk(*this, pos));
+            m_new_chunks.emplace(
+                pos, std::make_unique<ServerChunk>(ServerChunk(*this, pos)));
         }
     }
 
@@ -292,7 +301,7 @@ void ServerWorld::submit_new_chunks(const std::string& uuid) {
         for (auto& [pos, task] : m_new_chunks) {
             if (!task.future.valid()) {
                 task.future =
-                    pool_ptr->enqueue([&task]() { task.chunk.gen_chunk(); });
+                    pool_ptr->enqueue([&task]() { task.chunk->gen_chunk(); });
             }
         }
         break;
@@ -320,7 +329,7 @@ void ServerWorld::submit_new_chunks(const std::string& uuid) {
         for (auto& [pos, task] : tasks) {
             if (!task->future.valid()) {
                 task->future =
-                    pool_ptr->enqueue([task]() { task->chunk.gen_chunk(); });
+                    pool_ptr->enqueue([task]() { task->chunk->gen_chunk(); });
             }
         }
     }
@@ -346,9 +355,8 @@ void ServerWorld::poll_finished_chunks() {
                 return true;
             }
             // Spawn complete, move away
-            m_new_finished_chunk.emplace_back(
-                pair.first,
-                std::make_shared<ServerChunk>(std::move(pending.chunk)));
+            m_new_finished_chunk.emplace_back(pair.first,
+                                              std::move(pending.chunk));
 
             return true;
         });
@@ -683,6 +691,7 @@ void ServerWorld::handle_player_exit(const std::string& uuid) {
     Arena arena;
     auto* rsp = Arena::Create<LogoutRsp>(&arena);
     rsp->set_uuid(uuid);
+    rsp->set_server_stop(false);
     exit_session->send(make_packet(*rsp));
 
     std::vector<std::shared_ptr<Session>> sessions;
@@ -800,6 +809,18 @@ int ServerWorld::change_pool_threads(
     thread_pool.store(std::make_shared<ThreadPool>(used_thread));
     return used_thread;
 }
+
+void ServerWorld::send_server_stop() {
+    Arena arena;
+    auto* rsp = Arena::Create<LogoutRsp>(&arena);
+    rsp->set_server_stop(true);
+    std::shared_lock lock(m_player_mutex);
+    for (auto& [uuid, player] : m_players) {
+        player.get_session()->send(make_packet(*rsp));
+    }
+    Logger::info("Send Server Mesaage Success");
+}
+
 int ServerWorld::chunk_load_style() const {
     return std::to_underlying(m_chunk_load_style.load());
 }

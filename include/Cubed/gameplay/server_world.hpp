@@ -26,6 +26,7 @@ public:
     enum class ThreadPoolKind { NET, GEN };
     ServerWorld();
     ~ServerWorld();
+    void stop();
     void handle_player_exit(const std::string& uuid);
     void init_world();
     void need_gen(std::string uuid);
@@ -78,7 +79,6 @@ public:
     void handle_block_change(const BlockChangeReq& req);
 
     int chunk_size() const;
-
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,
@@ -100,12 +100,12 @@ private:
         ChunkPos pos;
     };
     struct PendingChunk {
-        ServerChunk chunk;
+        std::unique_ptr<ServerChunk> chunk;
         std::future<void> future;
     };
     struct FinishedChunk {
         ChunkPos pos;
-        std::shared_ptr<ServerChunk> chunk;
+        std::unique_ptr<ServerChunk> chunk;
     };
 
     using ChunkHashMap =
@@ -136,6 +136,7 @@ private:
     std::atomic<bool> m_need_gen_chunk{false};
     std::atomic<bool> m_is_rebuilding{false};
     std::atomic<bool> m_init{false};
+    std::atomic<bool> m_stopped{false};
     std::atomic<int> m_rendering_distance{24};
     std::atomic<int> m_gen_pool_threads{0};
     std::atomic<int> m_net_pool_threads{0};
@@ -185,5 +186,6 @@ private:
     int
     change_pool_threads(std::atomic<std::shared_ptr<ThreadPool>>& thread_pool,
                         int threads);
+    void send_server_stop();
 };
 } // namespace Cubed

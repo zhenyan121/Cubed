@@ -301,11 +301,16 @@ void App::run() {
 
     last_time = glfwGetTime();
     while (!glfwWindowShouldClose(m_window.get_glfw_window())) {
-
+        if (m_client_world.is_receive_exit()) {
+            break;
+        }
         update();
         render();
     }
     m_client_world.request_exit();
+    if (!m_argument.is_client) {
+        m_server.server_world().stop();
+    }
 }
 static Gait player_gait = Gait::WALK;
 void App::update() {

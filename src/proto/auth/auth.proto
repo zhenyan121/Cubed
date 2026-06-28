@@ -15,5 +15,6 @@ message LogoutReq {
 
 message LogoutRsp {
     string uuid = 1;
+    bool server_stop = 2;
 }
 

@@ -44,8 +44,7 @@ ClientWorld::~ClientWorld() {
     m_timers.clear();
 }
 
-const std::optional<LookBlock>&
-ClientWorld::get_look_block_pos(const std::string& name) const {
+const std::optional<LookBlock>& ClientWorld::get_look_block_pos() const {
 
     return m_player.get_look_block_pos();
 }
@@ -231,6 +230,14 @@ void ClientWorld::receive_remote_player(const PlayerInfoRsp& rsp) {
 }
 
 void ClientWorld::receive_player_logout(const LogoutRsp& rsp) {
+    if (rsp.server_stop()) {
+        m_receive_exit = true;
+        return;
+    }
+    if (rsp.uuid() == m_player.get_uuid()) {
+        m_receive_exit = true;
+        return;
+    }
     {
         std::lock_guard lock(m_other_players_mutex);
         int sum = m_other_players.erase(rsp.uuid());
@@ -239,9 +246,6 @@ void ClientWorld::receive_player_logout(const LogoutRsp& rsp) {
         } else {
             Logger::info("Player {} erase", rsp.uuid());
         }
-    }
-    if (rsp.uuid() == m_player.get_uuid()) {
-        m_receive_exit = true;
     }
 }
 
@@ -465,8 +469,7 @@ void ClientWorld::receive_chunk(ChunkDataRsp data) {
         }
     });
 }
-void ClientWorld::receive_exit() { m_receive_exit = true; }
-
+bool ClientWorld::is_receive_exit() { return m_receive_exit; }
 void ClientWorld::request_exit() {
     if (m_receive_exit) {
         return;

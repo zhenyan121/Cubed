@@ -29,8 +29,7 @@ public:
     void init(std::string_view player_name,
               std::shared_ptr<NetworkClient> client);
     void update(float delta_time);
-    const std::optional<LookBlock>&
-    get_look_block_pos(const std::string& name) const;
+    const std::optional<LookBlock>& get_look_block_pos() const;
     ClientPlayer& get_player();
     int get_block(const glm::ivec3& block_pos) const;
     bool is_solid(const glm::ivec3& block_pos) const;
@@ -66,8 +65,9 @@ public:
     const std::vector<RemotePlayerRenderData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(ChunkDataRsp data);
-    void receive_exit();
     void request_exit();
+    bool is_receive_exit();
+
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,
