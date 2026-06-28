@@ -2,20 +2,20 @@
 #include "Cubed/gameplay/chunk_pos.hpp"
 #include "Cubed/gameplay/game_time.hpp"
 
+#include <absl/container/flat_hash_set.h>
 #include <atomic>
 #include <glm/glm.hpp>
 #include <memory>
 #include <shared_mutex>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 namespace Cubed {
 class ServerWorld;
 class Session;
 class ServerPlayer {
-    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
 
 public:
+    using ChunkPosSet = absl::flat_hash_set<ChunkPos, ChunkPos::Hash>;
     ServerPlayer(const ServerPlayer&) = delete;
     ServerPlayer(ServerPlayer&&) = delete;
     ServerPlayer& operator=(const ServerPlayer&) = delete;
@@ -23,7 +23,6 @@ public:
     ServerPlayer(std::string_view name, std::string_view uuid,
                  ServerWorld& m_world, std::shared_ptr<Session> session,
                  TickType gametick);
-    using PlayerChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
 
     const glm::vec3& get_pos() const;
     const std::string& get_name() const;
@@ -36,6 +35,8 @@ public:
     void task_id(int id);
     bool has_player(ChunkPos pos) const;
     void update_chunk_set(const ChunkPosSet& set);
+    const ChunkPosSet& get_chunk_pos_set() const;
+    ChunkPosSet& get_chunk_pos_set();
 
 private:
     static constexpr TickType TIMEOUT = 200;
@@ -48,6 +49,6 @@ private:
     std::atomic<TickType> m_last_gametick{0};
     std::atomic<int> m_chunk_task_id{0};
     mutable std::shared_mutex m_chunk_pos_mutex;
-    PlayerChunkPosSet m_player_chunk_pos_set;
+    ChunkPosSet m_player_chunk_pos_set;
 };
 } // namespace Cubed

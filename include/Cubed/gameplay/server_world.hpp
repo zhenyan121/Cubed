@@ -10,13 +10,13 @@
 #include "Cubed/tools/thread_pool.hpp"
 #include "world/block_change.pb.h"
 
+#include <absl/container/flat_hash_set.h>
 #include <future>
 #include <shared_mutex>
 #include <tbb/concurrent_hash_map.h>
 #include <tbb/concurrent_queue.h>
 #include <tbb/concurrent_unordered_map.h>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 namespace Cubed {
@@ -91,6 +91,7 @@ private:
     struct ChunkEntity {
         ChunkState state;
         std::shared_ptr<ServerChunk> chunk;
+        uint32_t ref_count = 0;
     };
 
     enum class ChunkLoadStyle { RANDOM, CENTER };
@@ -113,7 +114,7 @@ private:
     using PlayerHashMap = std::unordered_map<std::string, ServerPlayer>;
     using PendingChunkHashMap =
         std::unordered_map<ChunkPos, PendingChunk, ChunkPos::Hash>;
-    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
+    using ChunkPosSet = absl::flat_hash_set<ChunkPos, ChunkPos::Hash>;
     using PlayerUUIDMap = tbb::concurrent_hash_map<std::string, std::string>;
 
     using uuid_acc = PlayerUUIDMap::accessor;
@@ -177,7 +178,7 @@ private:
     void poll_finished_chunks();
     void wait_all_chunk_tasks();
 
-    void clear_unused_chunks();
+    void update_ref_count(const ChunkPosSet& old, const ChunkPosSet& now);
 
     void send_time();
 

@@ -44,4 +44,13 @@ void ServerPlayer::update_chunk_set(const ChunkPosSet& set) {
     m_player_chunk_pos_set.insert(set.begin(), set.end());
 }
 
+const ServerPlayer::ChunkPosSet& ServerPlayer::get_chunk_pos_set() const {
+    std::shared_lock lock(m_chunk_pos_mutex);
+    return m_player_chunk_pos_set;
+}
+
+ServerPlayer::ChunkPosSet& ServerPlayer::get_chunk_pos_set() {
+    std::lock_guard lock(m_chunk_pos_mutex);
+    return m_player_chunk_pos_set;
+}
 } // namespace Cubed

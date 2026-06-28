@@ -52,22 +52,44 @@ void ServerWorld::wait_all_chunk_tasks() {
     }
 }
 
-void ServerWorld::clear_unused_chunks() {
+void ServerWorld::update_ref_count(const ChunkPosSet& old,
+                                   const ChunkPosSet& now) {
+    std::lock_guard lock(m_chunks_mutex);
 
-    std::scoped_lock lock(m_chunks_mutex, m_player_mutex);
-    Logger::info("before {}", m_chunks.size());
+    // Elements in the old set that are not contained in now are not needed by
+    // the current player.
 
-    size_t removed = std::erase_if(m_chunks, [this](const auto& item) {
-        const auto& [pos, chunk] = item;
-        for (const auto& [uuid, player] : m_players) {
-            if (player.has_player(pos)) {
-                return false;
+    for (auto& pos : old) {
+        if (!now.contains(pos)) {
+            auto it = m_chunks.find(pos);
+            if (it == m_chunks.end()) {
+                Logger::warn(
+                    "Update Ref Count Error, can't Find old pos in m_chunks");
+                continue;
+            }
+            if (it->second.ref_count == 0) {
+                Logger::error("Chunk {} {} error, ref count is 0", pos.x,
+                              pos.z);
+                m_chunks.erase(pos);
+                continue;
+            }
+            if (--it->second.ref_count == 0) {
+                m_chunks.erase(pos);
             }
         }
-        return true;
-    });
-    Logger::info("removed: {}", removed);
-    Logger::info("after {}", m_chunks.size());
+    }
+
+    for (auto& pos : now) {
+        auto it = m_chunks.find(pos);
+        if (it == m_chunks.end()) {
+            Logger::warn(
+                "Update Ref Count Error, can't Find now pos in m_chunks");
+            continue;
+        }
+        if (!old.contains(pos)) {
+            ++it->second.ref_count;
+        }
+    }
 }
 
 void ServerWorld::send_time() {
@@ -212,22 +234,25 @@ void ServerWorld::gen_chunks_internal(const std::string& uuid) {
     // Logger::info("gen_chunks_internal");
     m_chunk_gen_finished = false;
 
-    ChunkPosSet required_chunks;
-    compute_required_chunks(required_chunks, uuid);
+    ChunkPosSet required_chunks_set;
+    compute_required_chunks(required_chunks_set, uuid);
     std::vector<ChunkPos> need_gen_chunks_pos;
 
-    sync_and_collect_missing_chunks(need_gen_chunks_pos, required_chunks);
+    ChunkPosSet old_set;
+    sync_and_collect_missing_chunks(need_gen_chunks_pos, required_chunks_set);
     {
         std::lock_guard lock(m_player_mutex);
         auto it = m_players.find(uuid);
         if (it == m_players.end()) {
             return;
         }
-        it->second.update_chunk_set(required_chunks);
+        old_set = std::move(it->second.get_chunk_pos_set());
+        it->second.update_chunk_set(required_chunks_set);
     }
-    ASSERT_MSG(!required_chunks.empty(), "required chunks is empty!!");
 
-    clear_unused_chunks();
+    update_ref_count(old_set, required_chunks_set);
+    ASSERT_MSG(!required_chunks_set.empty(), "required chunks is empty!!");
+
     Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
 
     if (need_gen_chunks_pos.empty() && m_new_chunks.empty()) {
@@ -281,8 +306,8 @@ void ServerWorld::sync_and_collect_missing_chunks(
             auto it = m_chunks.find(pos);
             if (it == m_chunks.end()) {
                 need_gen_chunks_pos.push_back(pos);
-                m_chunks.emplace(pos,
-                                 ChunkEntity{ChunkState::GENERATING, nullptr});
+                m_chunks.emplace(
+                    pos, ChunkEntity{ChunkState::GENERATING, nullptr, 0});
             }
         }
     }
@@ -673,12 +698,14 @@ void ServerWorld::handle_player_login(const std::string& name,
 
 void ServerWorld::handle_player_exit(const std::string& uuid) {
     std::shared_ptr<Session> exit_session;
+    ChunkPosSet old_set;
     {
         std::lock_guard lock(m_player_mutex);
         auto it = m_players.find(uuid);
         if (it != m_players.end()) {
             Logger::info("Player {} Exit the Server", it->second.get_name());
             exit_session = it->second.get_session();
+            old_set = std::move(it->second.get_chunk_pos_set());
             m_players.erase(it);
         } else {
             Logger::error("Player {} isn't in Server", uuid);
@@ -687,6 +714,8 @@ void ServerWorld::handle_player_exit(const std::string& uuid) {
     }
 
     m_uuid_to_name.erase(uuid);
+
+    update_ref_count(old_set, {});
 
     Arena arena;
     auto* rsp = Arena::Create<LogoutRsp>(&arena);
