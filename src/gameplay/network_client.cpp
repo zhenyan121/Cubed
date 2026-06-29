@@ -59,6 +59,7 @@ asio::awaitable<void> NetworkClient::read_loop() {
 
                 throw std::runtime_error("invalid packet length");
             }
+            // maybe move, don't use it after switch!
             std::vector<uint8_t> body_data(header.compressed_size);
             if (header.compressed_size > 0) {
                 co_await asio::async_read(m_socket, asio::buffer(body_data),
@@ -80,12 +81,9 @@ asio::awaitable<void> NetworkClient::read_loop() {
                 }
             } break;
             case std::to_underlying(PacketEnum::CHUNK_DATA_RSP): {
-                ChunkDataRsp rsp;
                 // Logger::info("Client: Receive Chunk Data rsp, size {}mb",
                 //              body_data.size() / 1024.0f / 1024);
-                if (decode_packet(rsp, body_data, header)) {
-                    m_world.receive_chunk(std::move(rsp));
-                }
+                m_world.receive_chunk(std::move(body_data), header);
             } break;
             case std::to_underlying(PacketEnum::BLOCK_CHANGE_RSP): {
                 auto* rsp = Arena::Create<BlockChangeRsp>(&arena);

@@ -23,10 +23,9 @@ ClientWorld::ClientWorld() : m_player(*this) {}
 ClientWorld::~ClientWorld() {
     stop_client_thread();
     stop_thread_pool();
-    {
-        std::lock_guard lock(m_chunks_mutex);
-        m_chunks.clear();
-    }
+
+    m_chunks.clear();
+
     {
         std::lock_guard lk(m_delete_vbo_mutex);
         for (auto x : m_pending_delete_vbo) {
@@ -53,14 +52,13 @@ ClientPlayer& ClientWorld::get_player() { return m_player; }
 
 int ClientWorld::get_block(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
-    std::shared_lock lk(m_chunks_mutex);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+    chunk_cacc cacc;
 
-    if (it == m_chunks.end()) {
+    if (!m_chunks.find(cacc, ChunkPos{chunk_x, chunk_z})) {
         return 0;
     }
 
-    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    const auto& chunk_blocks = cacc->second->get_chunk_blocks();
     auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
@@ -70,13 +68,12 @@ int ClientWorld::get_block(const glm::ivec3& block_pos) const {
 }
 bool ClientWorld::is_solid(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
-    std::shared_lock lk(m_chunks_mutex);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+    chunk_cacc cacc;
 
-    if (it == m_chunks.end()) {
+    if (!m_chunks.find(cacc, ChunkPos{chunk_x, chunk_z})) {
         return false;
     }
-    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    const auto& chunk_blocks = cacc->second->get_chunk_blocks();
     auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
@@ -91,13 +88,12 @@ bool ClientWorld::is_solid(const glm::ivec3& block_pos) const {
 }
 bool ClientWorld::can_pass_block(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
-    std::shared_lock lk(m_chunks_mutex);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+    chunk_cacc cacc;
 
-    if (it == m_chunks.end()) {
+    if (!m_chunks.find(cacc, ChunkPos{chunk_x, chunk_z})) {
         return true;
     }
-    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    const auto& chunk_blocks = cacc->second->get_chunk_blocks();
     auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
@@ -111,31 +107,31 @@ void ClientWorld::rebuild_world() {
     if (m_is_rebuilding.exchange(true)) {
         return;
     }
+
+    stop_client_thread();
     stop_thread_pool();
-    {
-        std::lock_guard lk(m_chunks_mutex);
-        m_chunks.clear();
-    }
-    {
-        std::lock_guard lock(m_pending_upload_queue_mutex);
-        m_pending_upload_queue.clear();
-    }
+
+    m_chunks.clear();
+
+    m_pending_upload_queue.clear();
+
     start_thread_pool();
+    start_client_thread(m_player.get_uuid());
     request_chunk();
     m_is_rebuilding = false;
 }
 
 BlockType ClientWorld::get_block_tpye(const glm::ivec3& block_pos) const {
     auto [chunk_x, chunk_z] = get_chunk_pos(block_pos.x, block_pos.z);
-    std::shared_lock lk(m_chunks_mutex);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+    chunk_cacc cacc;
+    ;
 
-    if (it == m_chunks.end()) {
+    if (!m_chunks.find(cacc, ChunkPos{chunk_x, chunk_z})) {
         // Logger::error("Can't Find Block {} {} {}", block_pos.x, block_pos.y,
         //               block_pos.z);
         return 0;
     }
-    const auto& chunk_blocks = it->second.get_chunk_blocks();
+    const auto& chunk_blocks = cacc->second->get_chunk_blocks();
     auto [x, y, z] = ClientChunk::world_to_block(block_pos, {chunk_x, chunk_z});
     if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
         z >= CHUNK_SIZE) {
@@ -152,21 +148,22 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
     world_z = block_pos.z;
 
     auto [chunk_x, chunk_z] = get_chunk_pos(world_x, world_z);
-    std::lock_guard lk(m_chunks_mutex);
-    auto it = m_chunks.find(ChunkPos{chunk_x, chunk_z});
+    {
+        chunk_acc acc;
 
-    if (it == m_chunks.end()) {
-        return;
+        if (!m_chunks.find(acc, ChunkPos{chunk_x, chunk_z})) {
+            return;
+        }
+
+        auto [x, y, z] = ClientChunk::world_to_block(world_x, world_y, world_z,
+                                                     chunk_x, chunk_z);
+        if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
+            z >= CHUNK_SIZE) {
+            return;
+        }
+
+        acc->second->set_chunk_block(ClientChunk::index(x, y, z), id);
     }
-
-    auto [x, y, z] = ClientChunk::world_to_block(world_x, world_y, world_z,
-                                                 chunk_x, chunk_z);
-    if (x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= WORLD_SIZE_Y ||
-        z >= CHUNK_SIZE) {
-        return;
-    }
-
-    it->second.set_chunk_block(ClientChunk::index(x, y, z), id);
 
     static const glm::ivec3 NEIGHBOR_DIRS[] = {
         {1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
@@ -175,9 +172,11 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
         glm::ivec3 neighbor = block_pos + dir;
 
         auto [cx, cz] = get_chunk_pos(neighbor.x, neighbor.z);
-        auto it = m_chunks.find({cx, cz});
-        if (it != m_chunks.end()) {
-            it->second.mark_dirty();
+        {
+            chunk_acc acc;
+            if (m_chunks.find(acc, {cx, cz})) {
+                acc->second->mark_dirty();
+            }
         }
     }
 }
@@ -251,7 +250,6 @@ void ClientWorld::receive_player_logout(const LogoutRsp& rsp) {
 
 void ClientWorld::init(std::string_view player_name,
                        std::shared_ptr<NetworkClient> client) {
-    m_chunks.reserve(MAX_DISTANCE * MAX_DISTANCE * 4);
     m_player.init(player_name);
     m_client = client;
     // timer
@@ -361,6 +359,26 @@ void ClientWorld::report_player_pos() {
     m_client->send(make_packet(*pos));
 }
 
+void ClientWorld::update_chunk(const ChunkPosSet& old, const ChunkPosSet& now) {
+
+    // Elements in the old set that are not contained in now are not needed by
+    // the current player.
+
+    for (auto& pos : old) {
+        if (!now.contains(pos)) {
+
+            chunk_acc acc;
+            if (!m_chunks.find(acc, pos)) {
+                Logger::warn("Update Ref Count Error, can't Find old pos "
+                             "in m_chunks");
+                continue;
+            }
+
+            m_chunks.erase(acc);
+        }
+    }
+}
+
 void ClientWorld::request_chunk() {
     if (m_requesting_chunk.exchange(true)) {
         Logger::warn("It is requesting new chunk!");
@@ -386,24 +404,20 @@ void ClientWorld::request_chunk() {
         }
     }
 
-    ChunkPosVector need_send_pos;
-    {
-        std::lock_guard lk(m_chunks_mutex);
-        for (auto it = m_chunks.begin(); it != m_chunks.end();) {
-            if (required_chunks.find(it->first) == required_chunks.end()) {
-                it = m_chunks.unsafe_erase(it);
-            } else {
-                ++it;
-            }
-        }
+    ChunkPosSet old = std::move(m_player.get_chunk_pos_set());
+    m_player.update_chunk_set(required_chunks);
 
-        for (auto pos : required_chunks) {
-            auto it = m_chunks.find(pos);
-            if (it == m_chunks.end()) {
-                need_send_pos.emplace_back(pos);
-            }
+    ChunkPosVector need_send_pos;
+
+    for (auto pos : required_chunks) {
+        chunk_cacc cacc;
+        if (!m_chunks.find(cacc, pos)) {
+            need_send_pos.emplace_back(pos);
         }
     }
+
+    update_chunk(old, required_chunks);
+
     if (need_send_pos.empty()) {
         m_requesting_chunk = false;
         return;
@@ -416,9 +430,8 @@ void ClientWorld::request_chunk() {
     case CENTER: {
 
         glm::vec3 player_pos = m_player.get_player_pos();
-        auto dist2 = [player_pos](ChunkPos chunk_pos) {
-            ChunkPos player_chunk_pos =
-                get_chunk_pos(player_pos.x, player_pos.z);
+        ChunkPos player_chunk_pos = get_chunk_pos(player_pos.x, player_pos.z);
+        auto dist2 = [player_chunk_pos](ChunkPos chunk_pos) {
             float dx = player_chunk_pos.x - chunk_pos.x;
             float dz = player_chunk_pos.z - chunk_pos.z;
             return dx * dx + dz * dz;
@@ -446,36 +459,48 @@ void ClientWorld::request_chunk() {
     m_requesting_chunk = false;
 }
 
-void ClientWorld::receive_chunk(ChunkDataRsp data) {
-    if (data.task_id() < m_chunk_task_id) {
-        return;
-    }
+void ClientWorld::receive_chunk(std::vector<uint8_t> raw_data,
+                                PacketHeader header) {
 
-    {
-        std::lock_guard lock(m_chunks_mutex);
-        ChunkPos pos{data.pos().x(), data.pos().z()};
-        if (m_chunks.find(pos) != m_chunks.end()) {
-            Logger::warn("Chunk {} {} has already in client world", pos.x,
-                         pos.z);
-            return;
-        }
-    }
     // vertex data will genrator in  client thread pool instead of net thread;
     auto pool = m_thread_pool.load();
     if (!pool) {
         Logger::error("Client Thread Pool is nullptr");
         return;
     }
-    pool->enqueue([this, data = std::move(data)]() {
-        ClientChunk chunk{*this};
-        chunk.receive_chunk(data);
-        {
-            std::lock_guard lock(m_pending_upload_queue_mutex);
-            m_pending_upload_queue.emplace_back(std::move(chunk));
-        }
-    });
+    pool->enqueue(
+        [this, raw_data = std::move(raw_data), header = std::move(header)]() {
+            Arena arena;
+            auto* data = Arena::Create<ChunkDataRsp>(&arena);
+            if (!decode_packet(*data, raw_data, header)) {
+                return;
+            }
+
+            if (data->task_id() < m_chunk_task_id) {
+                return;
+            }
+
+            {
+                chunk_cacc cacc;
+                ChunkPos pos{data->pos().x(), data->pos().z()};
+                if (m_chunks.find(cacc, pos)) {
+                    Logger::warn("Chunk {} {} has already in client world",
+                                 pos.x, pos.z);
+                    return;
+                }
+            }
+
+            std::unique_ptr<ClientChunk> chunk =
+                std::make_unique<ClientChunk>(*this);
+            chunk->receive_chunk(*data);
+
+            m_pending_upload_queue.emplace(std::move(chunk));
+        });
 }
 bool ClientWorld::is_receive_exit() { return m_receive_exit; }
+
+int ClientWorld::chunk_size() const { return m_chunks.size(); }
+
 void ClientWorld::request_exit() {
     if (m_receive_exit) {
         return;
@@ -512,51 +537,60 @@ void ClientWorld::update(float delta_time) {
         }
         m_pending_delete_vao.clear();
     }
-    std::vector<ClientChunk> new_chunks;
+    std::vector<std::unique_ptr<ClientChunk>> new_chunks;
     {
-        std::lock_guard lock(m_pending_upload_queue_mutex);
-        for (auto& c : m_pending_upload_queue) {
-            // Logger::info("{} {}", c.get_chunk_pos().x, c.get_chunk_pos().z);
-            new_chunks.emplace_back(std::move(c));
+        std::unique_ptr<ClientChunk> chunk;
+        while (m_pending_upload_queue.try_pop(chunk)) {
+            new_chunks.emplace_back(std::move(chunk));
         }
-        m_pending_upload_queue.clear();
     }
     for (auto& c : new_chunks) {
-        c.upload_to_gpu();
+        c->upload_to_gpu();
     }
     {
-        std::lock_guard lock(m_chunks_mutex);
+
         for (auto& c : new_chunks) {
-            m_chunks.emplace(c.get_chunk_pos(), std::move(c));
+            m_chunks.emplace(c->get_chunk_pos(), std::move(c));
         }
         m_render_snapshots.clear();
-        for (auto& [pos, chunk] : m_chunks) {
-            if (chunk.is_dirty()) {
+        auto chunk_pos_set = m_player.get_chunk_pos_set();
+        for (auto& pos : chunk_pos_set) {
+            std::shared_ptr<ClientChunk> chunk;
+            {
+                chunk_acc acc;
+                if (m_chunks.find(acc, pos)) {
+                    chunk = acc->second;
+                }
+            }
+            if (!chunk) {
+                continue;
+            }
+            if (chunk->is_dirty()) {
                 // the curial fator influence
                 OptionalBlockVectorArray neighbor_block;
                 for (int i = 0; i < 4; i++) {
-                    auto it = m_chunks.find(pos + CHUNK_DIR[i]);
-                    if (it != m_chunks.end()) {
-                        neighbor_block[i] = (it->second.get_chunk_blocks());
+                    chunk_cacc cacc;
+                    if (m_chunks.find(cacc, pos + CHUNK_DIR[i])) {
+                        neighbor_block[i] = (cacc->second->get_chunk_blocks());
                     } else {
                         neighbor_block[i] = std::nullopt;
                     }
                 }
-                chunk.gen_vertex_data(neighbor_block);
-                chunk.upload_to_gpu();
+                chunk->gen_vertex_data(neighbor_block);
+                chunk->upload_to_gpu();
             }
-            if (!chunk.is_dirty()) {
-                if (chunk.is_need_upload()) {
-                    chunk.upload_to_gpu();
+            if (!chunk->is_dirty()) {
+                if (chunk->is_need_upload()) {
+                    chunk->upload_to_gpu();
                 }
                 m_render_snapshots.push_back(
-                    {chunk.get_normal_vao(), chunk.get_normal_vertices_sum(),
-                     chunk.get_cross_vao(), chunk.get_cross_vertices_sum(),
-                     chunk.get_normal_discard_vao(),
-                     chunk.get_normal_discard_vertices_sum(),
-                     chunk.get_normal_blend_vao(),
-                     chunk.get_normal_blend_vertices_sum(),
-                     chunk.get_water_vao(), chunk.get_water_vertices_sum(),
+                    {chunk->get_normal_vao(), chunk->get_normal_vertices_sum(),
+                     chunk->get_cross_vao(), chunk->get_cross_vertices_sum(),
+                     chunk->get_normal_discard_vao(),
+                     chunk->get_normal_discard_vertices_sum(),
+                     chunk->get_normal_blend_vao(),
+                     chunk->get_normal_blend_vertices_sum(),
+                     chunk->get_water_vao(), chunk->get_water_vertices_sum(),
                      glm::vec3(static_cast<float>(pos.x * CHUNK_SIZE) +
                                    static_cast<float>(CHUNK_SIZE / 2),
                                static_cast<float>(WORLD_SIZE_Y / 2),

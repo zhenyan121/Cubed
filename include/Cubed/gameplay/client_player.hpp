@@ -6,6 +6,7 @@
 #include "Cubed/gameplay/game_mode.hpp"
 #include "Cubed/input.hpp"
 
+#include <absl/container/flat_hash_set.h>
 #include <glm/glm.hpp>
 #include <optional>
 #include <shared_mutex>
@@ -14,8 +15,14 @@ enum class Gait { WALK = 0, RUN };
 class ClientWorld;
 class ClientPlayer {
 public:
+    using ChunkPosSet = absl::flat_hash_set<ChunkPos, ChunkPos::Hash>;
     ClientPlayer(ClientWorld& world);
     ~ClientPlayer();
+
+    void update_chunk_set(const ChunkPosSet& set);
+    const ChunkPosSet& get_chunk_pos_set() const;
+    ChunkPosSet& get_chunk_pos_set();
+
     AABB get_aabb(const glm::vec3& pos) const;
     const glm::vec3& get_front() const;
     const Gait& get_gait() const;
@@ -101,7 +108,8 @@ private:
     ClientWorld& m_world;
 
     mutable std::shared_mutex m_player_pos_mutex;
-
+    mutable std::shared_mutex m_chunk_pos_mutex;
+    ChunkPosSet m_player_chunk_pos_set;
     bool ray_cast(const glm::vec3& start, const glm::vec3& dir,
                   glm::ivec3& block_pos, glm::vec3& normal,
                   float distance = 4.0f);

@@ -542,6 +542,22 @@ void ClientPlayer::update_scroll(double yoffset) {
     }
 }
 
+void ClientPlayer::update_chunk_set(const ChunkPosSet& set) {
+    std::lock_guard lock(m_chunk_pos_mutex);
+    m_player_chunk_pos_set.clear();
+    m_player_chunk_pos_set.insert(set.begin(), set.end());
+}
+
+const ClientPlayer::ChunkPosSet& ClientPlayer::get_chunk_pos_set() const {
+    std::shared_lock lock(m_chunk_pos_mutex);
+    return m_player_chunk_pos_set;
+}
+
+ClientPlayer::ChunkPosSet& ClientPlayer::get_chunk_pos_set() {
+    std::lock_guard lock(m_chunk_pos_mutex);
+    return m_player_chunk_pos_set;
+}
+
 float& ClientPlayer::max_walk_speed() { return m_max_walk_speed; }
 float& ClientPlayer::max_run_speed() { return m_max_run_speed; }
 float& ClientPlayer::max_speed() { return m_max_speed; }

@@ -7,7 +7,10 @@
 #include "Cubed/gameplay/network_client.hpp"
 #include "Cubed/tools/thread_pool.hpp"
 
+#include <absl/container/flat_hash_set.h>
 #include <deque>
+#include <tbb/concurrent_hash_map.h>
+#include <tbb/concurrent_queue.h>
 #include <tbb/concurrent_unordered_map.h>
 namespace Cubed {
 
@@ -64,10 +67,10 @@ public:
     const std::vector<ChunkRenderSnapshot>& render_snapshots() const;
     const std::vector<RemotePlayerRenderData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
-    void receive_chunk(ChunkDataRsp data);
+    void receive_chunk(std::vector<uint8_t> data, PacketHeader header);
     void request_exit();
     bool is_receive_exit();
-
+    int chunk_size() const;
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,
@@ -78,12 +81,14 @@ public:
 private:
     enum class ChunkLoadStyle { RANDOM, CENTER };
     using ChunkHashMap =
-        tbb::concurrent_unordered_map<ChunkPos, ClientChunk, ChunkPos::Hash>;
-    using ChunkPosSet = std::unordered_set<ChunkPos, ChunkPos::Hash>;
+        tbb::concurrent_hash_map<ChunkPos, std::shared_ptr<ClientChunk>,
+                                 ChunkPos::TBBHash>;
+    using ChunkPosSet = absl::flat_hash_set<ChunkPos, ChunkPos::Hash>;
     using ChunkPosVector = std::vector<ChunkPos>;
     using OtherPlayerHashMap =
         std::unordered_map<std::string, RemotePlayerInfo>;
-
+    using chunk_acc = ChunkHashMap::accessor;
+    using chunk_cacc = ChunkHashMap::const_accessor;
     static constexpr int WORLD_EXIT_TIMEOUT = 200;
 
     ClientPlayer m_player;
@@ -92,13 +97,11 @@ private:
     std::vector<glm::vec4> m_planes;
     std::jthread m_client_thread;
 
-    mutable std::shared_mutex m_chunks_mutex;
     std::mutex m_delete_vbo_mutex;
     std::mutex m_delete_vao_mutex;
-    std::mutex m_pending_upload_queue_mutex;
     std::mutex m_other_players_mutex;
 
-    std::deque<ClientChunk> m_pending_upload_queue;
+    tbb::concurrent_queue<std::unique_ptr<ClientChunk>> m_pending_upload_queue;
 
     std::vector<GLuint> m_pending_delete_vbo;
     std::vector<GLuint> m_pending_delete_vao;
@@ -127,5 +130,7 @@ private:
     void report_player_pos();
 
     void set_block(const glm::ivec3& pos, unsigned id);
+
+    void update_chunk(const ChunkPosSet& old, const ChunkPosSet& now);
 };
 } // namespace Cubed
