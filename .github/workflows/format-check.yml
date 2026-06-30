@@ -1,4 +1,3 @@
-# .github/workflows/format-check.yml
 name: Code Format Check
 
 on: [push, pull_request]
@@ -9,9 +8,19 @@ permissions:
 jobs:
   formatting:
     runs-on: ubuntu-latest
-    container: silkeh/clang:21   
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install LLVM 22
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          clang-format-22 --version
+
       - name: Run clang-format
         run: |
-          find src include -name '*.cpp' -o -name '*.hpp' -print0 | xargs -0 clang-format --dry-run --Werror
+          find src include \
+            \( -name '*.cpp' -o -name '*.hpp' \) \
+            -print0 | xargs -0 clang-format-22 --dry-run --Werror
