@@ -6,6 +6,7 @@
 #include "Cubed/gameplay/river_worm.hpp"
 #include "Cubed/gameplay/server_chunk.hpp"
 #include "Cubed/gameplay/server_player.hpp"
+#include "Cubed/tools/priority_thread_pool.hpp"
 #include "Cubed/tools/recent_queue.hpp"
 #include "Cubed/tools/thread_pool.hpp"
 #include "world/block_change.pb.h"
@@ -147,7 +148,7 @@ private:
 
     RecentQueue<std::string> m_need_gen_queue;
 
-    std::atomic<std::shared_ptr<ThreadPool>> m_gen_thread_pool;
+    std::atomic<std::shared_ptr<PriorityThreadPool>> m_gen_thread_pool;
     std::atomic<std::shared_ptr<ThreadPool>> m_net_thread_pool;
 
     std::atomic<ChunkLoadStyle> m_chunk_load_style{ChunkLoadStyle::CENTER};
@@ -178,6 +179,9 @@ private:
     int
     change_pool_threads(std::atomic<std::shared_ptr<ThreadPool>>& thread_pool,
                         int threads);
+    int change_pool_threads(
+        std::atomic<std::shared_ptr<PriorityThreadPool>>& thread_pool,
+        int threads);
     void send_server_stop();
 };
 } // namespace Cubed

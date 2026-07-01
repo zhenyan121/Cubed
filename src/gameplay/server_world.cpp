@@ -330,12 +330,17 @@ void ServerWorld::submit_new_chunks(const std::string& uuid,
                   [&dist2](const auto& a, const auto& b) {
                       return dist2(a.first) < dist2(b.first);
                   });
-        for (auto& [pos, task] : tasks) {
 
-            pool_ptr->enqueue([this, chunk = std::move(task->chunk)]() mutable {
-                chunk->gen_chunk();
-                m_finished_queue.push(std::move(chunk));
-            });
+        const int CHUNKS_PER_PRIORITY = m_gen_pool_threads;
+
+        for (size_t i = 0; i < tasks.size(); ++i) {
+            int priority = 10 + static_cast<int>(i / CHUNKS_PER_PRIORITY);
+            auto* task = tasks[i].second;
+            pool_ptr->enqueue(priority,
+                              [this, chunk = std::move(task->chunk)]() mutable {
+                                  chunk->gen_chunk();
+                                  m_finished_queue.push(std::move(chunk));
+                              });
         }
     } break;
     }
@@ -774,6 +779,20 @@ int ServerWorld::change_pool_threads(
     int used_thread = std::clamp(threads, 1, m_max_threads.load());
     Logger::info("Create New Thread Pool Use {} Threads", used_thread);
     thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+    return used_thread;
+}
+
+int ServerWorld::change_pool_threads(
+    std::atomic<std::shared_ptr<PriorityThreadPool>>& thread_pool,
+    int threads) {
+    m_max_threads = std::thread::hardware_concurrency();
+    if (m_max_threads < 1) {
+        Logger::warn("Can't Get Max Support Threads, Set Max Threads to 4");
+        m_max_threads = 1;
+    }
+    int used_thread = std::clamp(threads, 1, m_max_threads.load());
+    Logger::info("Create New Thread Pool Use {} Threads", used_thread);
+    thread_pool.store(std::make_shared<PriorityThreadPool>(used_thread));
     return used_thread;
 }
 
