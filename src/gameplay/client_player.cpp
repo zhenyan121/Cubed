@@ -8,13 +8,13 @@ namespace Cubed {
 ClientPlayer::ClientPlayer(ClientWorld& world) : m_world(world) {}
 ClientPlayer::~ClientPlayer() {}
 
-AABB ClientPlayer::get_aabb(const glm::vec3& pos) const {
-    float half_width = m_size.x / 2.0f;
-    float half_depth = m_size.z / 2.0f;
+AABB ClientPlayer::get_aabb(const glm::vec3& pos) {
+    float half_width = M_SIZE.x / 2.0f;
+    float half_depth = M_SIZE.z / 2.0f;
 
     glm::vec3 min{pos.x - half_width, pos.y, pos.z - half_depth};
 
-    glm::vec3 max{pos.x + half_width, pos.y + m_size.y, pos.z + half_depth};
+    glm::vec3 max{pos.x + half_width, pos.y + M_SIZE.y, pos.z + half_depth};
 
     return AABB{min, max};
 }
@@ -282,15 +282,7 @@ void ClientPlayer::update_lookup_block() {
         if (Input::get_input_state().mouse_state.right) {
             glm::ivec3 near_pos = m_look_block->pos + m_look_block->normal;
             if (!m_world.is_solid(near_pos)) {
-                auto x = near_pos.x;
-                auto y = near_pos.y;
-                auto z = near_pos.z;
-                AABB block_box = {glm::vec3{static_cast<float>(x),
-                                            static_cast<float>(y),
-                                            static_cast<float>(z)},
-                                  glm::vec3{static_cast<float>(x + 1),
-                                            static_cast<float>(y + 1),
-                                            static_cast<float>(z + 1)}};
+                AABB block_box = ClientWorld::get_block_aabb(near_pos);
                 AABB player_box = get_aabb(get_player_pos());
                 if (!player_box.intersects(block_box)) {
                     m_world.report_block_change(near_pos, m_place_block);
@@ -409,13 +401,9 @@ void ClientPlayer::update_x_move(glm::vec3& player_pos) {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
-                    AABB block_box = {glm::vec3{static_cast<float>(x),
-                                                static_cast<float>(y),
-                                                static_cast<float>(z)},
-                                      glm::vec3{static_cast<float>(x + 1),
-                                                static_cast<float>(y + 1),
-                                                static_cast<float>(z + 1)}};
+                glm::ivec3 block_pos{x, y, z};
+                if (!m_world.can_pass_block(block_pos)) {
+                    AABB block_box = ClientWorld::get_block_aabb(block_pos);
                     if (player_box.intersects(block_box)) {
                         m_gait = Gait::WALK;
                         player_pos.x -= move_distance.x;
@@ -443,13 +431,9 @@ void ClientPlayer::update_y_move(glm::vec3& player_pos) {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
-                    AABB block_box = {glm::vec3{static_cast<float>(x),
-                                                static_cast<float>(y),
-                                                static_cast<float>(z)},
-                                      glm::vec3{static_cast<float>(x + 1),
-                                                static_cast<float>(y + 1),
-                                                static_cast<float>(z + 1)}};
+                glm::ivec3 block_pos{x, y, z};
+                if (!m_world.can_pass_block(block_pos)) {
+                    AABB block_box = ClientWorld::get_block_aabb(block_pos);
                     if (player_box.intersects(block_box)) {
                         player_pos.y -= move_distance.y;
                         m_y_speed = 0.0f;
@@ -481,13 +465,9 @@ void ClientPlayer::update_z_move(glm::vec3& player_pos) {
     for (int x = minx; x <= maxx; ++x) {
         for (int y = miny; y <= maxy; ++y) {
             for (int z = minz; z <= maxz; ++z) {
-                if (!m_world.can_pass_block(glm::ivec3{x, y, z})) {
-                    AABB block_box = {glm::vec3{static_cast<float>(x),
-                                                static_cast<float>(y),
-                                                static_cast<float>(z)},
-                                      glm::vec3{static_cast<float>(x + 1),
-                                                static_cast<float>(y + 1),
-                                                static_cast<float>(z + 1)}};
+                glm::ivec3 block_pos{x, y, z};
+                if (!m_world.can_pass_block(block_pos)) {
+                    AABB block_box = ClientWorld::get_block_aabb(block_pos);
                     if (player_box.intersects(block_box)) {
                         m_gait = Gait::WALK;
                         player_pos.z -= move_distance.z;

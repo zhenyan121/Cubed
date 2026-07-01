@@ -71,6 +71,7 @@ public:
     void request_exit();
     bool is_receive_exit();
     int chunk_size() const;
+    static AABB get_block_aabb(const glm::ivec3& pos);
     template <typename Fn>
     void register_timer(std::string_view id, TickType threshold, Fn&& f) {
         m_timers.emplace(std::piecewise_construct,
@@ -99,7 +100,7 @@ private:
 
     std::mutex m_delete_vbo_mutex;
     std::mutex m_delete_vao_mutex;
-    std::mutex m_other_players_mutex;
+    mutable std::shared_mutex m_other_players_mutex;
 
     tbb::concurrent_queue<std::unique_ptr<ClientChunk>> m_pending_upload_queue;
     tbb::concurrent_queue<ChunkPos> m_dirty_chunk_queue;

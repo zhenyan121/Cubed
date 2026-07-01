@@ -262,6 +262,18 @@ void ClientWorld::push_delete_vao(GLuint vao) {
 
 void ClientWorld::report_block_change(const glm::ivec3& pos,
                                       unsigned id) const {
+    {
+        AABB block_box = get_block_aabb(pos);
+        std::shared_lock lock(m_other_players_mutex);
+
+        for (auto& [uuid, player] : m_other_players) {
+            AABB box = ClientPlayer::get_aabb(player.target_pos);
+            if (box.intersects(block_box)) {
+                return;
+            }
+        }
+    }
+
     Arena arena;
     auto* req = Arena::Create<BlockChangeReq>(&arena);
     req->set_uuid(m_player.get_uuid());
@@ -571,6 +583,16 @@ void ClientWorld::receive_chunk(std::vector<uint8_t> raw_data,
 bool ClientWorld::is_receive_exit() { return m_receive_exit; }
 
 int ClientWorld::chunk_size() const { return m_chunks.size(); }
+
+AABB ClientWorld::get_block_aabb(const glm::ivec3& pos) {
+    auto x = pos.x;
+    auto y = pos.y;
+    auto z = pos.z;
+    return {glm::vec3{static_cast<float>(x), static_cast<float>(y),
+                      static_cast<float>(z)},
+            glm::vec3{static_cast<float>(x + 1), static_cast<float>(y + 1),
+                      static_cast<float>(z + 1)}};
+}
 
 void ClientWorld::request_exit() {
     if (m_receive_exit) {

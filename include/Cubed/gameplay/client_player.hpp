@@ -23,7 +23,7 @@ public:
     const ChunkPosSet& get_chunk_pos_set() const;
     ChunkPosSet& get_chunk_pos_set();
 
-    AABB get_aabb(const glm::vec3& pos) const;
+    static AABB get_aabb(const glm::vec3& pos);
     const glm::vec3& get_front() const;
     const Gait& get_gait() const;
     const std::optional<LookBlock>& get_look_block_pos() const;
@@ -97,7 +97,7 @@ private:
 
     glm::vec3 m_front{0, 0, -1};
     glm::vec3 m_right{0, 0, 0};
-    glm::vec3 m_size{0.6f, 1.8f, 0.6f};
+    static constexpr glm::vec3 M_SIZE{0.6f, 1.8f, 0.6f};
 
     Gait m_gait = Gait::WALK;
     MoveState m_move_state{};
