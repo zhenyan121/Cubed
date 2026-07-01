@@ -51,6 +51,7 @@ public:
     const std::vector<BlockType>& get_chunk_blocks() const;
     void receive_chunk(const ChunkDataRsp& data);
     void gen_vertex_data(const OptionalBlockVectorArray& neighbor_block);
+    // Can only be called on the render thread
     void upload_to_gpu();
 
     GLuint get_normal_vao() const;
@@ -82,6 +83,7 @@ public:
     std::vector<BlockType>& blocks();
     ClientWorld& world();
     unsigned seed() const;
+    const ChunkRenderSnapshot* get_render_snapshot() const;
 
 private:
     struct FaceKey {
@@ -117,6 +119,9 @@ private:
     4 - water
     */
     std::vector<VertexData> m_vertex_data;
+
+    ChunkRenderSnapshot m_render_snapshot;
+
     unsigned m_seed = 0;
     void clear_dirty();
     void gen_vertices(const OptionalBlockVectorArray& neighbor_block);

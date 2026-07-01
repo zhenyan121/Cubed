@@ -233,7 +233,9 @@ size_t ClientChunk::get_water_vertices_sum() const {
 
 void ClientChunk::upload_to_gpu() {
 
-    ASSERT(is_need_upload());
+    if (!is_need_upload()) {
+        return;
+    }
 
     std::lock_guard lk(m_vertexs_data_mutex);
 
@@ -243,6 +245,27 @@ void ClientChunk::upload_to_gpu() {
 
     // after fininshed it, can use
     clear_dirty();
+
+    m_render_snapshot = {
+        get_normal_vao(),
+        get_normal_vertices_sum(),
+        get_cross_vao(),
+        get_cross_vertices_sum(),
+        get_normal_discard_vao(),
+        get_normal_discard_vertices_sum(),
+        get_normal_blend_vao(),
+        get_normal_blend_vertices_sum(),
+        get_water_vao(),
+        get_water_vertices_sum(),
+        glm::vec3(static_cast<float>(m_chunk_pos.x * CHUNK_SIZE) +
+                      static_cast<float>(CHUNK_SIZE / 2),
+                  static_cast<float>(WORLD_SIZE_Y / 2),
+                  static_cast<float>(m_chunk_pos.z * CHUNK_SIZE) +
+                      static_cast<float>(CHUNK_SIZE / 2)),
+        glm::vec3(static_cast<float>(CHUNK_SIZE / 2),
+                  static_cast<float>(WORLD_SIZE_Y / 2),
+                  static_cast<float>(CHUNK_SIZE / 2))};
+
     m_need_upload = false;
 }
 
@@ -258,7 +281,6 @@ void ClientChunk::need_upload() { m_need_upload = true; }
 
 void ClientChunk::set_chunk_block(int index, unsigned id) {
     m_blocks[index] = id;
-    mark_dirty();
 }
 
 ChunkPos ClientChunk::chunk_pos() const { return m_chunk_pos; }
@@ -274,6 +296,10 @@ unsigned ClientChunk::seed() const {
         Logger::warn("Seed Not Generator");
     }
     return m_seed;
+}
+
+const ChunkRenderSnapshot* ClientChunk::get_render_snapshot() const {
+    return &m_render_snapshot;
 }
 
 void ClientChunk::gen_vertices(const OptionalBlockVectorArray& neighbor_block) {

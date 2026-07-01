@@ -5,6 +5,7 @@
 #include "Cubed/gameplay/packet.hpp"
 #include "Cubed/tools/math_tools.hpp"
 
+#include <absl/container/inlined_vector.h>
 #include <numbers>
 
 using namespace std::chrono;
@@ -149,10 +150,11 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
     world_z = block_pos.z;
 
     auto [chunk_x, chunk_z] = get_chunk_pos(world_x, world_z);
+    ChunkPos pos{chunk_x, chunk_z};
     {
         chunk_acc acc;
 
-        if (!m_chunks.find(acc, ChunkPos{chunk_x, chunk_z})) {
+        if (!m_chunks.find(acc, pos)) {
             return;
         }
 
@@ -164,10 +166,44 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
         }
 
         acc->second->set_chunk_block(ClientChunk::index(x, y, z), id);
+        acc->second->mark_dirty();
     }
+
+    auto pool = m_thread_pool.load();
+
+    pool->enqueue([this, pos]() {
+        std::shared_ptr<ClientChunk> chunk;
+
+        {
+            chunk_acc acc;
+            if (m_chunks.find(acc, pos)) {
+                chunk = acc->second;
+            }
+        }
+
+        if (!chunk) {
+            return;
+        }
+
+        OptionalBlockVectorArray neighbor_block;
+        for (int i = 0; i < 4; i++) {
+            chunk_cacc cacc;
+            if (m_chunks.find(cacc, pos + CHUNK_DIR[i])) {
+                neighbor_block[i] = (cacc->second->get_chunk_blocks());
+            } else {
+                neighbor_block[i] = std::nullopt;
+            }
+        }
+
+        chunk->gen_vertex_data(neighbor_block);
+        m_dirty_chunk_queue.emplace(pos);
+    });
 
     static const glm::ivec3 NEIGHBOR_DIRS[] = {
         {1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
+    static constexpr int NPOS_SUM = sizeof(NEIGHBOR_DIRS);
+
+    absl::InlinedVector<ChunkPos, NPOS_SUM> nposes;
 
     for (const auto& dir : NEIGHBOR_DIRS) {
         glm::ivec3 neighbor = block_pos + dir;
@@ -176,9 +212,43 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
         {
             chunk_acc acc;
             if (m_chunks.find(acc, {cx, cz})) {
-                acc->second->mark_dirty();
+                if (acc->second->is_dirty()) {
+                    continue;
+                }
+                nposes.emplace_back(acc->first);
             }
         }
+    }
+
+    for (auto& npos : nposes) {
+        pool->enqueue([this, npos]() {
+            std::shared_ptr<ClientChunk> chunk;
+
+            {
+                chunk_acc acc;
+                if (m_chunks.find(acc, npos)) {
+                    chunk = acc->second;
+                }
+            }
+
+            if (!chunk) {
+                return;
+            }
+
+            OptionalBlockVectorArray neighbor_block;
+            for (int i = 0; i < 4; i++) {
+                chunk_cacc cacc;
+                if (m_chunks.find(cacc, npos + CHUNK_DIR[i])) {
+                    neighbor_block[i] = (cacc->second->get_chunk_blocks());
+                } else {
+                    neighbor_block[i] = std::nullopt;
+                }
+            }
+
+            chunk->gen_vertex_data(neighbor_block);
+
+            m_dirty_chunk_queue.emplace(npos);
+        });
     }
 }
 void ClientWorld::push_delete_vbo(GLuint vbo) {
@@ -538,71 +608,64 @@ void ClientWorld::update(float delta_time) {
         }
         m_pending_delete_vao.clear();
     }
+
     std::vector<std::unique_ptr<ClientChunk>> new_chunks;
     {
         std::unique_ptr<ClientChunk> chunk;
+        int sum = 0;
         while (m_pending_upload_queue.try_pop(chunk)) {
             new_chunks.emplace_back(std::move(chunk));
+            ++sum;
+            if (sum >= MAX_UPLOAD_CHUNK_SUM) {
+                break; // Limit the maximum number of uploads per frame to
+                       // improve frame rate performance
+            }
         }
     }
+
     for (auto& c : new_chunks) {
         c->upload_to_gpu();
     }
-    {
 
-        for (auto& c : new_chunks) {
-            m_chunks.emplace(c->get_chunk_pos(), std::move(c));
-        }
-        m_render_snapshots.clear();
-        auto chunk_pos_set = m_player.get_chunk_pos_set();
-        for (auto& pos : chunk_pos_set) {
-            std::shared_ptr<ClientChunk> chunk;
-            {
-                chunk_acc acc;
-                if (m_chunks.find(acc, pos)) {
-                    chunk = acc->second;
-                }
-            }
-            if (!chunk) {
-                continue;
-            }
-            if (chunk->is_dirty()) {
-                // the curial fator influence
-                OptionalBlockVectorArray neighbor_block;
-                for (int i = 0; i < 4; i++) {
-                    chunk_cacc cacc;
-                    if (m_chunks.find(cacc, pos + CHUNK_DIR[i])) {
-                        neighbor_block[i] = (cacc->second->get_chunk_blocks());
-                    } else {
-                        neighbor_block[i] = std::nullopt;
-                    }
-                }
-                chunk->gen_vertex_data(neighbor_block);
-                chunk->upload_to_gpu();
-            }
-            if (!chunk->is_dirty()) {
-                if (chunk->is_need_upload()) {
-                    chunk->upload_to_gpu();
-                }
-                m_render_snapshots.push_back(
-                    {chunk->get_normal_vao(), chunk->get_normal_vertices_sum(),
-                     chunk->get_cross_vao(), chunk->get_cross_vertices_sum(),
-                     chunk->get_normal_discard_vao(),
-                     chunk->get_normal_discard_vertices_sum(),
-                     chunk->get_normal_blend_vao(),
-                     chunk->get_normal_blend_vertices_sum(),
-                     chunk->get_water_vao(), chunk->get_water_vertices_sum(),
-                     glm::vec3(static_cast<float>(pos.x * CHUNK_SIZE) +
-                                   static_cast<float>(CHUNK_SIZE / 2),
-                               static_cast<float>(WORLD_SIZE_Y / 2),
-                               static_cast<float>(pos.z * CHUNK_SIZE) +
-                                   static_cast<float>(CHUNK_SIZE / 2)),
-                     glm::vec3(static_cast<float>(CHUNK_SIZE / 2),
-                               static_cast<float>(WORLD_SIZE_Y / 2),
-                               static_cast<float>(CHUNK_SIZE / 2))});
-            }
-        }
+    for (auto& c : new_chunks) {
+        m_chunks.emplace(c->get_chunk_pos(), std::move(c));
     }
+    m_render_snapshots.clear();
+
+    ChunkPos pos;
+
+    while (m_dirty_chunk_queue.try_pop(pos)) {
+        std::shared_ptr<ClientChunk> chunk;
+        {
+            chunk_acc acc;
+            if (m_chunks.find(acc, pos)) {
+                chunk = acc->second;
+            }
+        }
+        if (!chunk) {
+            continue;
+        }
+
+        chunk->upload_to_gpu();
+    }
+
+    auto chunk_pos_set = m_player.get_chunk_pos_set();
+
+    for (auto& pos : chunk_pos_set) {
+        std::shared_ptr<ClientChunk> chunk;
+        {
+            chunk_acc acc;
+            if (m_chunks.find(acc, pos)) {
+                chunk = acc->second;
+            }
+        }
+        if (!chunk) {
+            continue;
+        }
+
+        m_render_snapshots.push_back(chunk->get_render_snapshot());
+    }
+
     m_render_player_data.clear();
     {
         std::lock_guard lock(m_other_players_mutex);
@@ -649,7 +712,8 @@ void ClientWorld::rendering_distance(int rendering_distance) {
 
 int ClientWorld::get_chunk_task_id() const { return m_chunk_task_id.load(); }
 
-const std::vector<ChunkRenderSnapshot>& ClientWorld::render_snapshots() const {
+const std::vector<const ChunkRenderSnapshot*>&
+ClientWorld::render_snapshots() const {
     return m_render_snapshots;
 };
 const std::vector<RemotePlayerRenderData>&

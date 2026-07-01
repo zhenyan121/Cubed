@@ -676,37 +676,42 @@ void Renderer::render_world() {
         glActiveTexture(GL_TEXTURE1);
         glEnable(GL_DEPTH_TEST);
         for (const auto& snapshot : m_render_snapshots) {
+            if (!snapshot) {
+                continue;
+            }
             glBindTexture(GL_TEXTURE_2D_ARRAY,
                           m_texture_manager.get_texture_array());
-            glBindVertexArray(snapshot.normal_vao);
+            glBindVertexArray(snapshot->normal_vao);
 
-            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
+            glDrawArrays(GL_TRIANGLES, 0, snapshot->normal_vertices_count);
         }
 
         // cross_plane and discard
 
         for (const auto& snapshot : m_render_snapshots) {
-
+            if (!snapshot) {
+                continue;
+            }
             glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
-            if (snapshot.cross_vertices_count != 0) {
-                glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
+            if (snapshot->cross_vertices_count != 0) {
+                glm::vec2 center_xz{snapshot->center.x, snapshot->center.z};
                 float dist2d = glm::distance(camera_pos_xz, center_xz);
                 if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
                     glBindTexture(GL_TEXTURE_2D_ARRAY,
                                   m_texture_manager.get_cross_plane_array());
-                    glBindVertexArray(snapshot.cross_vao);
+                    glBindVertexArray(snapshot->cross_vao);
 
                     glDrawArrays(GL_TRIANGLES, 0,
-                                 snapshot.cross_vertices_count);
+                                 snapshot->cross_vertices_count);
                 }
             }
-            if (snapshot.normal_discard_vertices_count != 0) {
+            if (snapshot->normal_discard_vertices_count != 0) {
                 glBindTexture(GL_TEXTURE_2D_ARRAY,
                               m_texture_manager.get_texture_array());
-                glBindVertexArray(snapshot.normal_discard_vao);
+                glBindVertexArray(snapshot->normal_discard_vao);
 
                 glDrawArrays(GL_TRIANGLES, 0,
-                             snapshot.normal_discard_vertices_count);
+                             snapshot->normal_discard_vertices_count);
             }
         }
     }
@@ -762,28 +767,33 @@ void Renderer::render_world() {
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_pbr_texture());
     normal_block_shader.set_loc("enablePBR", m_pbr);
     for (const auto& snapshot : m_render_snapshots) {
-
-        if (Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+        if (!snapshot) {
+            continue;
+        }
+        if (Math::is_aabb_in_frustum(snapshot->center, snapshot->half_extents,
                                      m_planes)) {
 
-            glBindVertexArray(snapshot.normal_vao);
+            glBindVertexArray(snapshot->normal_vao);
 
-            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_vertices_count);
+            glDrawArrays(GL_TRIANGLES, 0, snapshot->normal_vertices_count);
 
             rendered_sum++;
         }
     }
     // discard
     for (const auto& snapshot : m_render_snapshots) {
-        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+        if (!snapshot) {
+            continue;
+        }
+        if (!Math::is_aabb_in_frustum(snapshot->center, snapshot->half_extents,
                                       m_planes)) {
             continue;
         }
-        if (snapshot.normal_discard_vertices_count != 0) {
-            glBindVertexArray(snapshot.normal_discard_vao);
+        if (snapshot->normal_discard_vertices_count != 0) {
+            glBindVertexArray(snapshot->normal_discard_vao);
 
             glDrawArrays(GL_TRIANGLES, 0,
-                         snapshot.normal_discard_vertices_count);
+                         snapshot->normal_discard_vertices_count);
         }
     }
     // cross_plane
@@ -792,18 +802,21 @@ void Renderer::render_world() {
                   m_texture_manager.get_cross_plane_array());
     normal_block_shader.set_loc("enablePBR", false);
     for (const auto& snapshot : m_render_snapshots) {
-        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+        if (!snapshot) {
+            continue;
+        }
+        if (!Math::is_aabb_in_frustum(snapshot->center, snapshot->half_extents,
                                       m_planes)) {
             continue;
         }
         glm::vec2 camera_pos_xz{camera_pos.x, camera_pos.z};
-        if (snapshot.cross_vertices_count != 0) {
-            glm::vec2 center_xz{snapshot.center.x, snapshot.center.z};
+        if (snapshot->cross_vertices_count != 0) {
+            glm::vec2 center_xz{snapshot->center.x, snapshot->center.z};
             float dist2d = glm::distance(camera_pos_xz, center_xz);
             if (dist2d <= CROSS_PLANE_DISTANCE * 16) {
-                glBindVertexArray(snapshot.cross_vao);
+                glBindVertexArray(snapshot->cross_vao);
 
-                glDrawArrays(GL_TRIANGLES, 0, snapshot.cross_vertices_count);
+                glDrawArrays(GL_TRIANGLES, 0, snapshot->cross_vertices_count);
             }
         }
     }
@@ -853,16 +866,20 @@ void Renderer::render_world() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_texture_array());
     for (const auto& snapshot : m_render_snapshots) {
-        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+        if (!snapshot) {
+            continue;
+        }
+        if (!Math::is_aabb_in_frustum(snapshot->center, snapshot->half_extents,
                                       m_planes)) {
             continue;
         }
 
-        if (snapshot.normal_blend_vertices_count != 0) {
+        if (snapshot->normal_blend_vertices_count != 0) {
 
-            glBindVertexArray(snapshot.normal_blend_vao);
+            glBindVertexArray(snapshot->normal_blend_vao);
 
-            glDrawArrays(GL_TRIANGLES, 0, snapshot.normal_blend_vertices_count);
+            glDrawArrays(GL_TRIANGLES, 0,
+                         snapshot->normal_blend_vertices_count);
         }
     }
 
@@ -902,16 +919,19 @@ void Renderer::render_world() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture_manager.get_texture_array());
     for (const auto& snapshot : m_render_snapshots) {
-        if (!Math::is_aabb_in_frustum(snapshot.center, snapshot.half_extents,
+        if (!snapshot) {
+            continue;
+        }
+        if (!Math::is_aabb_in_frustum(snapshot->center, snapshot->half_extents,
                                       m_planes)) {
             continue;
         }
 
-        if (snapshot.water_vertices_count != 0) {
+        if (snapshot->water_vertices_count != 0) {
 
-            glBindVertexArray(snapshot.water_vao);
+            glBindVertexArray(snapshot->water_vao);
 
-            glDrawArrays(GL_TRIANGLES, 0, snapshot.water_vertices_count);
+            glDrawArrays(GL_TRIANGLES, 0, snapshot->water_vertices_count);
         }
     }
 

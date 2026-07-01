@@ -64,7 +64,7 @@ public:
     void hot_reload();
     void request_chunk();
     std::vector<glm::vec4>& planes();
-    const std::vector<ChunkRenderSnapshot>& render_snapshots() const;
+    const std::vector<const ChunkRenderSnapshot*>& render_snapshots() const;
     const std::vector<RemotePlayerRenderData>& render_player_data() const;
     glm::vec3 sunlight_dir() const;
     void receive_chunk(std::vector<uint8_t> data, PacketHeader header);
@@ -90,7 +90,7 @@ private:
     using chunk_acc = ChunkHashMap::accessor;
     using chunk_cacc = ChunkHashMap::const_accessor;
     static constexpr int WORLD_EXIT_TIMEOUT = 200;
-
+    static constexpr int MAX_UPLOAD_CHUNK_SUM = 16;
     ClientPlayer m_player;
     OtherPlayerHashMap m_other_players;
     ChunkHashMap m_chunks;
@@ -102,12 +102,13 @@ private:
     std::mutex m_other_players_mutex;
 
     tbb::concurrent_queue<std::unique_ptr<ClientChunk>> m_pending_upload_queue;
+    tbb::concurrent_queue<ChunkPos> m_dirty_chunk_queue;
 
     std::vector<GLuint> m_pending_delete_vbo;
     std::vector<GLuint> m_pending_delete_vao;
 
     std::deque<ChunkPos> m_dirty_queue;
-    std::vector<ChunkRenderSnapshot> m_render_snapshots;
+    std::vector<const ChunkRenderSnapshot*> m_render_snapshots;
     std::vector<RemotePlayerRenderData> m_render_player_data;
     tbb::concurrent_unordered_map<std::string, Timer> m_timers;
     std::atomic<bool> m_game_running{false};
