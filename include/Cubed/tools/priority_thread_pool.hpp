@@ -9,21 +9,41 @@
 #include <thread>
 #include <vector>
 namespace Cubed {
-class ThreadPool {
+class PriorityThreadPool {
 private:
+    struct Task {
+        int priority = 10;
+        std::uint64_t sequence;
+        std::function<void()> task;
+        Task(int p, std::uint64_t seq, std::function<void()> t)
+            : priority(p), sequence(seq), task(std::move(t)) {}
+    };
+
+    struct TaskCompare {
+        bool operator()(const Task& a, const Task& b) const {
+
+            if (a.priority != b.priority) {
+                return a.priority > b.priority;
+            }
+
+            return a.sequence > b.sequence;
+        }
+    };
+
     std::vector<std::jthread> m_workers;
-    std::queue<std::function<void()>> m_tasks;
+    std::priority_queue<Task, std::vector<Task>, TaskCompare> m_tasks;
     std::mutex m_mtx;
     std::condition_variable_any m_cv;
     std::atomic<bool> m_stopping{false};
     std::atomic<size_t> m_thread_sum{0};
+    std::atomic_uint64_t m_sequence{0};
 
 public:
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool(ThreadPool&&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ThreadPool& operator=(ThreadPool&&) = delete;
-    explicit ThreadPool(size_t thread_sum) : m_thread_sum(thread_sum) {
+    PriorityThreadPool(const PriorityThreadPool&) = delete;
+    PriorityThreadPool(PriorityThreadPool&&) = delete;
+    PriorityThreadPool& operator=(const PriorityThreadPool&) = delete;
+    PriorityThreadPool& operator=(PriorityThreadPool&&) = delete;
+    explicit PriorityThreadPool(size_t thread_sum) : m_thread_sum(thread_sum) {
         for (size_t i = 0; i < thread_sum; i++) {
             m_workers.emplace_back([this](std::stop_token stoken) {
                 while (true) {
@@ -35,7 +55,7 @@ public:
                         if (stoken.stop_requested() && m_tasks.empty()) {
                             return;
                         }
-                        task = std::move(m_tasks.front());
+                        task = std::move(m_tasks.top().task);
                         m_tasks.pop();
                     }
                     task();
@@ -43,8 +63,8 @@ public:
             });
         }
     }
-    ~ThreadPool() { stop(); }
-    template <typename F> auto enqueue(F&& f) {
+    ~PriorityThreadPool() { stop(); }
+    template <typename F> auto enqueue(int priority, F&& f) {
 
         using R = std::invoke_result_t<F>;
 
@@ -56,15 +76,21 @@ public:
             std::lock_guard lock(m_mtx);
             if (m_stopping)
                 throw std::runtime_error("thread pool stopped");
-            m_tasks.emplace([task] { (*task)(); });
+            m_tasks.emplace(priority, m_sequence++, [task] { (*task)(); });
         }
         m_cv.notify_one();
         return fut;
     }
+
+    template <typename F> auto enqueue(F&& f) {
+        return enqueue(10, std::forward<F>(f));
+    }
+
     void stop() {
         if (m_stopping.exchange(true)) {
             return;
         }
+
         for (auto& w : m_workers) {
             w.request_stop();
         }
@@ -81,8 +107,8 @@ public:
 };
 
 template <std::random_access_iterator Iter, typename F>
-void parallel_do(ThreadPool& pool, Iter first, Iter last, size_t max_threads,
-                 F&& f) {
+void parallel_do(PriorityThreadPool& pool, Iter first, Iter last,
+                 size_t max_threads, F&& f) {
     max_threads = std::max<size_t>(1, max_threads);
     max_threads = std::min(max_threads, pool.thread_sum());
     std::decay_t<F> fn(std::forward<F>(f));

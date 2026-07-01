@@ -171,7 +171,7 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
 
     auto pool = m_thread_pool.load();
 
-    pool->enqueue([this, pos]() {
+    pool->enqueue(0, [this, pos]() {
         std::shared_ptr<ClientChunk> chunk;
 
         {
@@ -221,7 +221,7 @@ void ClientWorld::set_block(const glm::ivec3& block_pos, unsigned id) {
     }
 
     for (auto& npos : nposes) {
-        pool->enqueue([this, npos]() {
+        pool->enqueue(0, [this, npos]() {
             std::shared_ptr<ClientChunk> chunk;
 
             {
@@ -388,7 +388,7 @@ void ClientWorld::change_pool_threads(int threads) {
     }
     int used_thread = std::clamp(threads, 1, m_max_threads);
     Logger::info("Create New Thread Pool Use {} Threads", used_thread);
-    m_thread_pool.store(std::make_shared<ThreadPool>(used_thread));
+    m_thread_pool.store(std::make_shared<PriorityThreadPool>(used_thread));
 }
 
 void ClientWorld::hot_reload() {
