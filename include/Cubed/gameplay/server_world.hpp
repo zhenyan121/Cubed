@@ -118,7 +118,6 @@ private:
     // key = uuid
     PlayerHashMap m_players;
     ChunkHashMap m_chunks;
-    NewChunkVector m_new_chunks;
 
     CaveCarver m_cave_carcer;
     RiverWorm m_river_worm;
@@ -142,7 +141,6 @@ private:
     std::atomic<bool> m_tick_running{true};
     std::atomic<int> m_per_tick_time = DEFAULT_PER_TICK_TIME; // ms
 
-    std::shared_mutex m_new_chunk_mutex;
     mutable std::shared_mutex m_player_mutex;
     std::mutex m_need_gen_queue_mutex;
     std::condition_variable_any m_gen_cv;
@@ -168,7 +166,7 @@ private:
                                  const std::optional<std::string>& uuid);
     void sync_and_collect_missing_chunks(std::vector<ChunkPos>&,
                                          const ChunkPosSet&);
-    void submit_new_chunks(const std::string& uuid);
+    void submit_new_chunks(const std::string& uuid, NewChunkVector& new_chunks);
     // void wait_all_chunk_tasks();
 
     void update_ref_count(const ChunkPosSet& old, const ChunkPosSet& now);

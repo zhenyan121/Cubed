@@ -237,25 +237,22 @@ void ServerWorld::gen_chunks_internal(const std::string& uuid) {
     ASSERT_MSG(!required_chunks_set.empty(), "required chunks is empty!!");
 
     Logger::info("New Gen Chunks Sum: {}", need_gen_chunks_pos.size());
-    {
-        std::lock_guard lock(m_new_chunk_mutex);
-        if (need_gen_chunks_pos.empty() && m_new_chunks.empty()) {
-            m_could_gen = true;
 
-            return;
-        }
+    if (need_gen_chunks_pos.empty()) {
+        m_could_gen = true;
+
+        return;
+    }
+    NewChunkVector new_chunks;
+
+    // Create new chunk
+
+    for (auto& pos : need_gen_chunks_pos) {
+        new_chunks.emplace_back(
+            pos, std::make_unique<ServerChunk>(ServerChunk(*this, pos)));
     }
 
-    {
-        // Create new chunk
-        std::lock_guard lock(m_new_chunk_mutex);
-        for (auto& pos : need_gen_chunks_pos) {
-            m_new_chunks.emplace_back(
-                pos, std::make_unique<ServerChunk>(ServerChunk(*this, pos)));
-        }
-    }
-
-    submit_new_chunks(uuid);
+    submit_new_chunks(uuid, new_chunks);
     m_chunk_gen_finished = true;
 }
 
@@ -296,9 +293,9 @@ void ServerWorld::sync_and_collect_missing_chunks(
     }
 }
 
-void ServerWorld::submit_new_chunks(const std::string& uuid) {
+void ServerWorld::submit_new_chunks(const std::string& uuid,
+                                    NewChunkVector& new_chunks) {
     using enum ChunkLoadStyle;
-    std::lock_guard lock(m_new_chunk_mutex);
     auto pool_ptr = m_gen_thread_pool.load();
     if (!pool_ptr) {
         return;
@@ -306,7 +303,7 @@ void ServerWorld::submit_new_chunks(const std::string& uuid) {
     switch (m_chunk_load_style) {
     case RANDOM:
         // Enqueue directly in random order
-        for (auto& task : m_new_chunks) {
+        for (auto& task : new_chunks) {
 
             pool_ptr->enqueue([&task, this]() {
                 std::unique_ptr<ServerChunk> chunk{std::move(task.chunk)};
@@ -317,7 +314,7 @@ void ServerWorld::submit_new_chunks(const std::string& uuid) {
         break;
     case CENTER: {
         std::vector<std::pair<ChunkPos, PendingChunk*>> tasks;
-        for (auto& task : m_new_chunks) {
+        for (auto& task : new_chunks) {
 
             tasks.emplace_back(task.pos, &task);
         }
@@ -342,8 +339,6 @@ void ServerWorld::submit_new_chunks(const std::string& uuid) {
         }
     } break;
     }
-
-    m_new_chunks.clear();
 }
 
 void ServerWorld::start_gen_thread() {
