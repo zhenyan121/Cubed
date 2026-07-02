@@ -49,13 +49,11 @@ jobs:
         if: matrix.platform == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Setup vcpkg
-        id: setup-vcpkg
-        if: matrix.platform == 'windows'
-        uses: lukka/run-vcpkg@v11
-        with:
-          runVcpkgInstall: true
-
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          
       - name: Configure
         if: matrix.platform == 'windows'
         run: >
@@ -63,8 +61,10 @@ jobs:
           -B build
           -G Ninja
           -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DVCPKG_TARGET_TRIPLET=x64-windows-release
+          -DVCPKG_OVERLAY_TRIPLETS=${{ github.workspace }}/triplets
           "-DCUBED_VERSION=${{ steps.version.outputs.version }}"
-          "-DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-vcpkg.outputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build
         run: cmake --build build --config Release --target Cubed
