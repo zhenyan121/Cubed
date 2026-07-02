@@ -1,0 +1,153 @@
+name: Release-Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version
+        required: false
+        default: dev
+
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: windows
+            
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+
+      - name: Get Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup MSVC
+        if: matrix.platform == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup vcpkg
+        id: setup-vcpkg
+        if: matrix.platform == 'windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
+
+      - name: Configure
+        if: matrix.platform == 'windows'
+        run: >
+          cmake
+          -B build
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          "-DCUBED_VERSION=${{ steps.version.outputs.version }}"
+          "-DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-vcpkg.outputs.vcpkg-root }}/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --config Release --target Cubed
+
+      - name: Copy assets
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          if (Test-Path assets) {
+            Copy-Item -Path assets -Destination build/Cubed -Recurse
+          } else {
+            Write-Warning "assets folder not found, skipping copy"
+          }
+
+      - name: Create Zip
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path build/Cubed/* `
+            -DestinationPath Cubed-${{ steps.version.outputs.version }}-windows-x64.zip
+      
+      ####################################################################
+      # Upload
+      ####################################################################
+
+      - name: Upload Windows Artifacts
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            *.zip
+
+  ##########################################################################
+  # Release
+  ##########################################################################
+
+  release:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate SHA256
+        run: |
+          cd artifacts
+
+          find . -type f | while read file
+          do
+            sha256sum "$file"
+          done > SHA256SUMS
+          
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          MAIN_BRANCH="${{ github.event.repository.default_branch }}"
+          git fetch origin "$MAIN_BRANCH" --depth=1 2>/dev/null || true
+
+          if git merge-base --is-ancestor "${{ github.sha }}" "origin/$MAIN_BRANCH"; then
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false"
+          else
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true"
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*
+            artifacts/SHA256SUMS
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
