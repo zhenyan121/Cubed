@@ -6,6 +6,7 @@
 #include "Cubed/tools/cubed_assert.hpp"
 #include "Cubed/tools/log.hpp"
 #include "Cubed/tools/system_info.hpp"
+#include "version.hpp"
 
 #include <exception>
 #include <imgui_impl_glfw.h>
@@ -119,6 +120,11 @@ void App::handle_argument(int argc, char** argv) {
              [&](ArgParser& p) {
                  auto arg = p.require_next("--player");
                  m_argument.player = arg;
+             }},
+            {"-V",
+             [&](ArgParser) {
+                 std::cout << CUBED_VERSION << "\n";
+                 exit(EXIT_SUCCESS);
              }}
 
         };
@@ -139,7 +145,7 @@ void App::handle_toml() {
     try {
         server = toml::parse_file("server.toml");
     } catch (const toml::parse_error& e) {
-        Logger::warn("Ip toml parse error {}", e.what());
+        // Logger::warn("Ip toml parse error {}", e.what());
         return;
     }
 

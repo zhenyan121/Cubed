@@ -13,6 +13,10 @@ if(NOT CMAKE_CONFIGURATION_TYPES
 
 endif()
 
+if(NOT DEFINED CUBED_VERSION)
+    set(CUBED_VERSION "dev")
+endif()
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -41,6 +45,12 @@ protobuf_generate(
     LANGUAGE cpp         
     PROTOS ${PROTO_FILES}
     IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/proto
+)
+
+configure_file(
+    src/version.hpp.in
+    ${CMAKE_BINARY_DIR}/generated/version.hpp
+    @ONLY
 )
 
 target_compile_options(${PROJECT_NAME}
@@ -102,7 +112,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/third_party/asio/include
-
+        ${CMAKE_BINARY_DIR}/generated
         ${PROJECT_BINARY_DIR}
         ${PROJECT_BINARY_DIR}/src
 

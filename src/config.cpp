@@ -24,7 +24,6 @@ toml::table& Config::table() { return m_tbl; }
 
 void Config::create_config() {
     static constexpr auto SOURCE = R"(
-        version = "0.0.1"
 
         [window]
         width = 800

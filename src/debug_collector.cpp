@@ -1,8 +1,8 @@
 #include "Cubed/debug_collector.hpp"
 
-#include "Cubed/config.hpp"
 #include "Cubed/tools/cubed_hash.hpp"
 #include "Cubed/tools/system_info.hpp"
+#include "version.hpp"
 
 namespace Cubed {
 
@@ -24,10 +24,16 @@ void DebugCollector::init_text() {
     Text opengl_version_text("opengl_version");
     Text biome_text("biome");
     Text speed_text("speed");
+    std::string version{"Version: " CUBED_VERSION};
+#ifdef DEBUG_MODE
+    version.append("-debug");
+#else
+    version.append("-release");
+#endif
     version_text.position(0.0f, 100.0f)
         .scale(0.8f)
         .color(Color::WHITE)
-        .text("Version: " + Config::get().get<std::string>("version"));
+        .text(version);
     fps_text.position(0.0f, 50.0f).text("FPS: 0");
     player_pos_text.position(0.0f, 150.0f)
         .scale(0.8f)

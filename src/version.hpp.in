@@ -1,0 +1,3 @@
+#pragma once
+
+#define CUBED_VERSION "@CUBED_VERSION@"
